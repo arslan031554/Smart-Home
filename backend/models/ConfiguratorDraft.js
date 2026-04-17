@@ -98,6 +98,7 @@ ConfiguratorDraft.init({
 
 ConfiguratorDraft.associate = (models) => {
     ConfiguratorDraft.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+    ConfiguratorDraft.hasMany(models.FollowupLog, { foreignKey: 'configuratorDraftId', as: 'followupLogs' });
 };
 
 export default ConfiguratorDraft;

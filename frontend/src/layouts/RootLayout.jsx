@@ -479,8 +479,12 @@ export default function RootLayout() {
           </div>
 
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/8 pt-6 text-center md:flex-row md:text-left">
-            <a href="#" className="transition-colors hover:text-textPrimary">{t('footer.termsOfService')}</a>
-            <a href="#" className="transition-colors hover:text-textPrimary">{t('footer.security')}</a>
+            <div className="flex flex-wrap items-center justify-center gap-4 md:justify-start">
+              <Link to="/legal/terms" className="transition-colors hover:text-textPrimary">{t('footer.termsOfService')}</Link>
+              <Link to="/legal/privacy" className="transition-colors hover:text-textPrimary">{t('footer.privacyPolicy')}</Link>
+              <Link to="/legal/cookies" className="transition-colors hover:text-textPrimary">{t('cookies.title')}</Link>
+            </div>
+            <span className="text-xs text-textSecondary">{t('footer.security')}</span>
           </div>
         </div>
       </footer>

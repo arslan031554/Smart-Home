@@ -73,9 +73,13 @@ export const sanitizeUser = (user) => {
     return json;
 };
 
-async function issueVerificationOtpForUser(user, channelInput) {
+async function issueVerificationOtpForUser(user, channelInput, options = {}) {
     if (!user) throw new Error('User not found');
-    if (user.isVerified) throw new Error('User already verified');
+    const { allowVerified = false, reason = 'account_verification' } = options;
+    if (!allowVerified && user.isVerified) throw new Error('User already verified');
+    if (reason === 'login_2fa' && !user.isVerified) {
+        throw new Error('Account must be verified before login');
+    }
 
     const channel = normalizeVerificationChannel(channelInput, user);
     if (channel === 'sms' && !user.phone) {
@@ -107,7 +111,7 @@ async function issueVerificationOtpForUser(user, channelInput) {
         throw error;
     }
 
-    return { otp, channel, delivery };
+    return { otp, channel, delivery, reason };
 }
 
 export const register = async (userData, context = {}) => {
@@ -161,7 +165,10 @@ export const register = async (userData, context = {}) => {
         preferredVerificationChannel: verificationChannel === 'sms' ? 'sms' : 'email',
     });
 
-    const otpDelivery = await issueVerificationOtpForUser(user, verificationChannel);
+    const otpDelivery = await issueVerificationOtpForUser(user, verificationChannel, {
+        allowVerified: false,
+        reason: 'account_verification',
+    });
 
     return {
         user,
@@ -183,17 +190,28 @@ export const login = async (email, password) => {
         throw new Error('Invalid credentials');
     }
 
+    const availableChannels = [];
+    if (user.phone) availableChannels.push('sms');
+    if (user.email) availableChannels.push('email');
+    const preferredVerificationChannel = normalizeVerificationChannel(user.preferredVerificationChannel, user);
+
     if (!user.isVerified) {
+        const otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
+            allowVerified: false,
+            reason: 'account_verification',
+        });
         const error = new Error('Verification required');
         error.statusCode = 403;
-        const availableChannels = [];
-        if (user.phone) availableChannels.push('sms');
-        if (user.email) availableChannels.push('email');
-
         error.data = {
             requiresVerification: true,
+            verificationReason: 'account_verification',
             availableChannels,
-            preferredVerificationChannel: normalizeVerificationChannel(user.preferredVerificationChannel, user),
+            preferredVerificationChannel,
+            delivery: otpDelivery?.delivery ? {
+                provider: otpDelivery.delivery.provider,
+                mocked: otpDelivery.delivery.mocked,
+                delivered: otpDelivery.delivery.delivered,
+            } : null,
             user: {
                 id: user.id,
                 email: user.email,
@@ -203,9 +221,29 @@ export const login = async (email, password) => {
         throw error;
     }
 
-    const token = generateToken(user.id);
-
-    return { user, token };
+    const otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
+        allowVerified: true,
+        reason: 'login_2fa',
+    });
+    const error = new Error('Two-factor verification required');
+    error.statusCode = 403;
+    error.data = {
+        requiresVerification: true,
+        verificationReason: 'login_2fa',
+        availableChannels,
+        preferredVerificationChannel,
+        delivery: otpDelivery?.delivery ? {
+            provider: otpDelivery.delivery.provider,
+            mocked: otpDelivery.delivery.mocked,
+            delivered: otpDelivery.delivery.delivered,
+        } : null,
+        user: {
+            id: user.id,
+            email: user.email,
+            phone: user.phone,
+        },
+    };
+    throw error;
 };
 
 export const generateToken = (id) => {
@@ -366,7 +404,10 @@ export const resetPassword = async (token, newPassword) => {
 export const sendVerificationOtp = async (email, channel) => {
     const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase() } });
     if (!user) throw new Error('User not found');
-    return issueVerificationOtpForUser(user, channel);
+    return issueVerificationOtpForUser(user, channel, {
+        allowVerified: true,
+        reason: user.isVerified ? 'login_2fa' : 'account_verification',
+    });
 };
 
 export const resendOtp = async (email, channel) => {

@@ -167,11 +167,14 @@
     },
     "verifyTitle": "Verificare cont",
     "verifySubtitle": "Alege cum vrei să primești codul de securitate pentru a-ți activa contul.",
+    "twoFactorTitle": "Verificare în doi pași",
+    "twoFactorSubtitle": "Alege unde să primești codul de securitate pentru autentificare.",
     "verifyByEmail": "Verifică prin email",
     "verifyBySms": "Verifică prin SMS",
     "otpEmailNotice": "Am trimis un cod din 6 cifre la {{email}}.",
     "otpSmsNotice": "Am trimis un cod din 6 cifre la numărul tău de telefon.",
     "otpEnterPrompt": "Introdu codul de mai jos pentru a finaliza verificarea contului.",
+    "otpEnterPrompt2fa": "Introdu codul de mai jos pentru a finaliza autentificarea.",
     "timeRemaining": "Timp rămas",
     "confirmVerification": "Confirmă verificarea",
     "resendIn": "Retrimite codul în {{seconds}}s",
@@ -841,6 +844,37 @@
       "offerNotOrdered": "Oferta necomandata",
       "unfinishedConfiguration": "Configuratie nefinalizata",
       "processVerification": "Verificare proces"
+    }
+  },
+  "legal": {
+    "badge": "Legal",
+    "terms": {
+      "subtitle": "Te rugam sa citesti termenii si conditiile platformei Smart Home Configurator.",
+      "paragraphs": [
+        "Prin utilizarea Smart Home Configurator, esti de acord sa folosesti platforma pentru estimari legitime de proiect si comunicare cu echipa furnizorului.",
+        "Platforma genereaza oferte tehnice si financiare orientative pe baza datelor de configurare furnizate. Contractul final, achizitia si implementarea se confirma separat in scris.",
+        "Esti responsabil pentru corectitudinea detaliilor de proiect, a datelor de contact si a datelor de cont. Datele incorecte pot afecta calitatea rezultatului, preturile si comunicarea de follow-up.",
+        "Ofertele generate, logica de pret, sabloanele de documente si continutul platformei raman proprietatea furnizorului, daca nu se agrea explicit altfel.",
+        "Furnizorul poate actualiza functionalitatile platformei, regulile de pret, integrarile si fluxurile pentru a imbunatati fiabilitatea, conformitatea si operarea."
+      ]
+    },
+    "privacy": {
+      "subtitle": "Cum sunt procesate in platforma datele de cont, proiect si comunicare.",
+      "paragraphs": [
+        "Platforma stocheaza date de cont, proiect, configurare, oferta si preferinte de comunicare necesare pentru generarea ofertelor si mentinerea spatiului clientului.",
+        "Canalele de verificare (email si SMS), reminder-ele si notificarile operationale sunt procesate prin furnizorii integrati (SendGrid si Twilio) conform setarilor de livrare.",
+        "Doar personalul autorizat poate accesa backoffice-ul si datele clientilor prin permisiuni bazate pe rol si endpoint-uri API autentificate.",
+        "Datele sunt pastrate in scopuri operationale, legale si de suport, conform obligatiilor de business si conformitate.",
+        "Poti solicita actualizari de profil si modificari de preferinte de comunicare din contul tau, iar operatorii platformei pot asista solicitarile formale de date."
+      ]
+    },
+    "cookies": {
+      "subtitle": "Cum sunt folosite cookie-urile si stocarea locala in platforma.",
+      "paragraphs": [
+        "Cookie-urile si stocarea locala sunt folosite pentru a pastra preferinta de limba, starea sesiunii, progresul configuratorului si setarile de utilizare.",
+        "Stocarea esentiala este necesara pentru autentificare, navigare si continuitatea fluxului de ofertare. Preferintele optionale pot fi acceptate sau refuzate din banner-ul de cookies.",
+        "Poti sterge oricand datele din browser; acest lucru poate reseta progresul local nesincronizat si preferintele."
+      ]
     }
   }
 }

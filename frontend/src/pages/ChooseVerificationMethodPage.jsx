@@ -13,11 +13,12 @@ export default function ChooseVerificationMethodPage() {
     const location = useLocation();
     const dispatch = useDispatch();
 
-    const { user, loading, error, availableChannels: reduxChannels } = useSelector((state) => state.auth);
+    const { user, loading, error, availableChannels: reduxChannels, verificationReason: reduxVerificationReason } = useSelector((state) => state.auth);
     const { t } = useTranslation();
     const [localError, setLocalError] = useState(null);
 
     const email = location.state?.email || user?.email;
+    const verificationReason = location.state?.verificationReason || reduxVerificationReason || 'account_verification';
     const availableChannels = (location.state?.availableChannels?.length > 0)
         ? location.state.availableChannels
         : reduxChannels;
@@ -38,6 +39,7 @@ export default function ChooseVerificationMethodPage() {
                         channel,
                         availableChannels,
                         message: t('auth.errors.otpSent', { channel: channel.toUpperCase() }),
+                        verificationReason,
                         ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
                     },
                 });
@@ -81,8 +83,14 @@ export default function ChooseVerificationMethodPage() {
                                 {t('auth.verifyTitle')}
                             </Badge>
                             <div className="space-y-2">
-                                <h3 className="font-heading text-4xl font-semibold text-textPrimary">{t('auth.verifyTitle')}</h3>
-                                <p className="mx-auto max-w-md text-sm leading-relaxed text-textSecondary">{t('auth.verifySubtitle')}</p>
+                                <h3 className="font-heading text-4xl font-semibold text-textPrimary">
+                                    {verificationReason === 'login_2fa' ? t('auth.twoFactorTitle', 'Two-Factor Verification') : t('auth.verifyTitle')}
+                                </h3>
+                                <p className="mx-auto max-w-md text-sm leading-relaxed text-textSecondary">
+                                    {verificationReason === 'login_2fa'
+                                        ? t('auth.twoFactorSubtitle', 'Choose where to receive your login security code.')
+                                        : t('auth.verifySubtitle')}
+                                </p>
                             </div>
                         </div>
 

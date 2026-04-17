@@ -3,11 +3,17 @@ import { Op } from 'sequelize';
 import OfferFollowup from '../../models/OfferFollowup.js';
 import ConfiguratorDraft from '../../models/ConfiguratorDraft.js';
 import Offer from '../../models/Offer.js';
+import FollowupLog from '../../models/FollowupLog.js';
 import User from '../../models/User.js';
 import Project from '../../models/Project.js';
 import * as notificationService from './notificationservice.js';
 import models from '../../models/index.js';
 import { DEFAULT_FOLLOWUP_PATTERN, FOLLOWUP_CONTEXTS, OFFER_REMINDER_ELIGIBLE_STATUSES } from '../constants/followup.js';
+
+function parseBooleanEnv(value, fallback = false) {
+    if (value == null || value === '') return fallback;
+    return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
 
 function parseReminderIndex(status) {
     const s = String(status || '').toLowerCase();
@@ -88,35 +94,143 @@ function getLanguage(source) {
     return source === 'ro' ? 'ro' : 'en';
 }
 
+async function recordFollowupLog(entry) {
+    try {
+        await FollowupLog.create(entry);
+    } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn('[FOLLOW-UP] FollowupLog write skipped:', error?.message || error);
+        }
+    }
+}
+
+async function recordFollowupAttempts({
+    context,
+    reason,
+    reminderStep,
+    offerId = null,
+    configuratorDraftId = null,
+    user = null,
+    emailTemplate = null,
+    smsTemplate = null,
+    attempts = [],
+}) {
+    if (!Array.isArray(attempts) || attempts.length === 0) return;
+
+    for (const attempt of attempts) {
+        const template = attempt.channel === 'email' ? emailTemplate : smsTemplate;
+        const deliveryMeta = attempt.delivery ? {
+            provider: attempt.delivery.provider || null,
+            delivered: Boolean(attempt.delivery.delivered),
+            mocked: Boolean(attempt.delivery.mocked),
+            externalId: attempt.delivery.externalId || null,
+            reason: attempt.delivery.reason || null,
+            to: attempt.delivery.to || null,
+        } : null;
+
+        await recordFollowupLog({
+            context,
+            offerId,
+            configuratorDraftId,
+            userId: user?.id || null,
+            channel: attempt.channel,
+            reminderStep,
+            templateId: template?.id || null,
+            status: attempt.status || 'skipped',
+            target: attempt.target || null,
+            subject: attempt.subject || null,
+            body: attempt.body || null,
+            provider: attempt.delivery?.provider || null,
+            providerMessageId: attempt.delivery?.externalId || null,
+            deliveryMeta,
+            reason: reason || null,
+            errorMessage: attempt.error || null,
+            sentAt: attempt.status === 'sent' ? new Date() : null,
+        });
+    }
+}
+
 async function sendReminderChannels({ channelEmail, channelSms, user, subject, emailBody, smsBody }) {
     let sentAny = false;
-    let lastError = null;
+    const attempts = [];
 
     if (channelEmail && user?.email) {
         try {
             const result = await notificationService.sendReminderEmail(user.email, subject, emailBody);
-            if (result?.delivered) sentAny = true;
+            const delivered = Boolean(result?.delivered || result?.mocked);
+            if (delivered) sentAny = true;
+            attempts.push({
+                channel: 'email',
+                status: delivered ? 'sent' : 'skipped',
+                target: user.email,
+                subject,
+                body: emailBody,
+                delivery: result || null,
+                error: null,
+            });
         } catch (error) {
             console.error(`[FOLLOW-UP] Email reminder channel failed for ${user.email}:`, error.message);
-            lastError = error;
+            attempts.push({
+                channel: 'email',
+                status: 'failed',
+                target: user.email,
+                subject,
+                body: emailBody,
+                delivery: null,
+                error: error?.message || 'Email reminder failed',
+            });
         }
+    } else if (channelEmail) {
+        attempts.push({
+            channel: 'email',
+            status: 'no_contact',
+            target: null,
+            subject,
+            body: emailBody,
+            delivery: null,
+            error: 'Missing customer email for follow-up delivery',
+        });
     }
 
     if (channelSms && user?.phone) {
         try {
             const result = await notificationService.sendReminderSms(user.phone, smsBody);
-            if (result?.delivered) sentAny = true;
+            const delivered = Boolean(result?.delivered || result?.mocked);
+            if (delivered) sentAny = true;
+            attempts.push({
+                channel: 'sms',
+                status: delivered ? 'sent' : 'skipped',
+                target: user.phone,
+                subject: null,
+                body: smsBody,
+                delivery: result || null,
+                error: null,
+            });
         } catch (error) {
             console.error(`[FOLLOW-UP] SMS reminder channel failed for ${user.phone}:`, error.message);
-            lastError = error;
+            attempts.push({
+                channel: 'sms',
+                status: 'failed',
+                target: user.phone,
+                subject: null,
+                body: smsBody,
+                delivery: null,
+                error: error?.message || 'SMS reminder failed',
+            });
         }
+    } else if (channelSms) {
+        attempts.push({
+            channel: 'sms',
+            status: 'no_contact',
+            target: null,
+            subject: null,
+            body: smsBody,
+            delivery: null,
+            error: 'Missing customer phone for follow-up delivery',
+        });
     }
 
-    if (!sentAny && lastError) {
-        throw lastError;
-    }
-
-    return sentAny;
+    return { sentAny, attempts };
 }
 
 function computeNextReminderAt(baseDate, patternDays, nextIndex) {
@@ -125,10 +239,26 @@ function computeNextReminderAt(baseDate, patternDays, nextIndex) {
 }
 
 export const initFollowupCron = () => {
-    cron.schedule('0 10 * * *', async () => {
-        console.log('Running daily follow-up job...');
+    const enabled = parseBooleanEnv(process.env.FOLLOWUP_CRON_ENABLED, true);
+    if (!enabled) {
+        console.log('[FOLLOW-UP] Cron disabled via FOLLOWUP_CRON_ENABLED.');
+        return;
+    }
+
+    const schedule = String(process.env.FOLLOWUP_CRON_SCHEDULE || '0 10 * * *').trim();
+    const timezone = String(process.env.FOLLOWUP_CRON_TIMEZONE || '').trim() || undefined;
+
+    if (!cron.validate(schedule)) {
+        console.error(`[FOLLOW-UP] Invalid FOLLOWUP_CRON_SCHEDULE: "${schedule}". Follow-up cron not started.`);
+        return;
+    }
+
+    cron.schedule(schedule, async () => {
+        console.log('[FOLLOW-UP] Running scheduled follow-up job...');
         await processFollowups();
-    });
+    }, timezone ? { timezone } : undefined);
+
+    console.log(`[FOLLOW-UP] Cron initialized (${schedule}${timezone ? `, tz=${timezone}` : ''}).`);
 };
 
 export async function syncOfferFollowup(offerId, offerStatus, transaction = undefined) {
@@ -148,13 +278,21 @@ export async function syncOfferFollowup(offerId, offerStatus, transaction = unde
         return followup;
     }
 
+    const offer = await Offer.findByPk(offerId, {
+        attributes: ['id', 'generatedAt', 'createdAt'],
+        transaction,
+    });
+    const baseDate = offer?.generatedAt
+        ? new Date(offer.generatedAt)
+        : new Date(offer?.createdAt || Date.now());
+
     const defaults = {
         enabled: true,
         pattern: DEFAULT_FOLLOWUP_PATTERN,
         reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
         channelEmail: true,
         channelSms: false,
-        nextReminderAt: addDays(new Date(), 7),
+        nextReminderAt: addDays(baseDate, 7),
     };
 
     if (followup) {
@@ -233,20 +371,29 @@ async function processOfferFollowups(now) {
         const resolvedEmail = tmplEmail ? applyTemplatePlaceholders(tmplEmail, vars) : null;
         const resolvedSms = tmplSms ? applyTemplatePlaceholders(tmplSms, vars) : null;
 
-        let sentAny = false;
-        try {
-            sentAny = await sendReminderChannels({
-                channelEmail: followup.channelEmail,
-                channelSms: followup.channelSms,
-                user,
-                subject: resolvedEmail?.subject || defaults.subject,
-                emailBody: resolvedEmail?.body || defaults.emailBody,
-                smsBody: resolvedSms?.body || defaults.smsBody,
-            });
-        } catch (error) {
-            console.error(`[FOLLOW-UP] Offer reminder failed for ${followup.offer.offerNumber}:`, error.message);
-            continue;
-        }
+        const subject = resolvedEmail?.subject || defaults.subject;
+        const emailBody = resolvedEmail?.body || defaults.emailBody;
+        const smsBody = resolvedSms?.body || defaults.smsBody;
+        const { sentAny, attempts } = await sendReminderChannels({
+            channelEmail: followup.channelEmail,
+            channelSms: followup.channelSms,
+            user,
+            subject,
+            emailBody,
+            smsBody,
+        });
+
+        await recordFollowupAttempts({
+            context: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+            reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+            reminderStep: nextIndex,
+            offerId: followup.offer.id,
+            configuratorDraftId: null,
+            user,
+            emailTemplate: tmplEmail,
+            smsTemplate: tmplSms,
+            attempts,
+        });
 
         if (!sentAny) continue;
 
@@ -297,27 +444,45 @@ async function processConfiguratorDraftFollowups(now) {
         const projectName = snapshot.projectInfo?.name || 'your smart home project';
         const language = getLanguage(snapshot.language);
         const configuratorUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/configurator`;
-        const defaults = getDefaultDraftReminderContent({
-            language,
+        const vars = {
             name: user.fullName || 'there',
             projectName,
             configuratorUrl,
+        };
+        const defaults = getDefaultDraftReminderContent({
+            language,
+            name: vars.name,
+            projectName,
+            configuratorUrl,
+        });
+        const tmplEmail = await resolveTemplate({ channel: 'email', step: nextIndex, language });
+        const tmplSms = await resolveTemplate({ channel: 'sms', step: nextIndex, language });
+        const resolvedEmail = tmplEmail ? applyTemplatePlaceholders(tmplEmail, vars) : null;
+        const resolvedSms = tmplSms ? applyTemplatePlaceholders(tmplSms, vars) : null;
+
+        const subject = resolvedEmail?.subject || defaults.subject;
+        const emailBody = resolvedEmail?.body || defaults.emailBody;
+        const smsBody = resolvedSms?.body || defaults.smsBody;
+        const { sentAny, attempts } = await sendReminderChannels({
+            channelEmail: draft.channelEmail,
+            channelSms: draft.channelSms,
+            user,
+            subject,
+            emailBody,
+            smsBody,
         });
 
-        let sentAny = false;
-        try {
-            sentAny = await sendReminderChannels({
-                channelEmail: draft.channelEmail,
-                channelSms: draft.channelSms,
-                user,
-                subject: defaults.subject,
-                emailBody: defaults.emailBody,
-                smsBody: defaults.smsBody,
-            });
-        } catch (error) {
-            console.error(`[FOLLOW-UP] Configurator reminder failed for user ${user.id}:`, error.message);
-            continue;
-        }
+        await recordFollowupAttempts({
+            context: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
+            reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
+            reminderStep: nextIndex,
+            offerId: null,
+            configuratorDraftId: draft.id,
+            user,
+            emailTemplate: tmplEmail,
+            smsTemplate: tmplSms,
+            attempts,
+        });
 
         if (!sentAny) continue;
 

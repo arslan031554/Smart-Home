@@ -25,6 +25,7 @@ import OfferCondition from './OfferCondition.js';
 import Disclaimer from './Disclaimer.js';
 import ServiceSmartFunction from './ServiceSmartFunction.js';
 import FollowupTemplate from './FollowupTemplate.js';
+import FollowupLog from './FollowupLog.js';
 import NewsletterSubscriber from './NewsletterSubscriber.js';
 
 const models = {
@@ -55,6 +56,7 @@ const models = {
     Disclaimer,
     ServiceSmartFunction,
     FollowupTemplate,
+    FollowupLog,
     NewsletterSubscriber
 };
 
@@ -92,6 +94,7 @@ export {
     Disclaimer,
     ServiceSmartFunction,
     FollowupTemplate,
+    FollowupLog,
     NewsletterSubscriber
 };
 

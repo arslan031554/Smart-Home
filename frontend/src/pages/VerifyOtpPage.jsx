@@ -15,7 +15,7 @@ export default function VerifyOtpPage() {
     const dispatch = useDispatch();
     const { t } = useTranslation();
 
-    const { email, channel = 'email', message: initialMessage, returnTo, returnStep } = location.state || {};
+    const { email, channel = 'email', message: initialMessage, returnTo, returnStep, verificationReason = 'account_verification' } = location.state || {};
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [step, setStep] = useState(2);
@@ -135,7 +135,9 @@ export default function VerifyOtpPage() {
                                     ? t('auth.otpSmsNotice', 'We sent a 6-digit code to your linked phone number.')
                                     : t('auth.otpEmailNotice', { email, defaultValue: `We sent a 6-digit code to ${email}.` })}
                                 {' '}
-                                {t('auth.otpEnterPrompt', 'Enter the code below to finish verifying your account.')}
+                                {verificationReason === 'login_2fa'
+                                    ? t('auth.otpEnterPrompt2fa', 'Enter the code below to complete your login.')
+                                    : t('auth.otpEnterPrompt', 'Enter the code below to finish verifying your account.')}
                             </p>
                         </div>
                     </div>
@@ -185,7 +187,13 @@ export default function VerifyOtpPage() {
                             </button>
                             <button
                                 className="text-sm font-medium text-textSecondary transition-colors hover:text-primary-300"
-                                onClick={() => navigate('/auth/choose-verification', { state: { email, availableChannels: location.state?.availableChannels || ['email', 'sms'] } })}
+                                onClick={() => navigate('/auth/choose-verification', {
+                                    state: {
+                                        email,
+                                        availableChannels: location.state?.availableChannels || ['email', 'sms'],
+                                        verificationReason,
+                                    },
+                                })}
                             >
                                 {t('auth.changeVerificationMethod', 'Change verification method')}
                             </button>

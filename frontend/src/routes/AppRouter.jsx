@@ -14,6 +14,9 @@ import ResetPasswordPage from '../pages/ResetPasswordPage';
 import VerifyEmailPage from '../pages/VerifyEmailPage';
 import VerifyOtpPage from '../pages/VerifyOtpPage';
 import ChooseVerificationMethodPage from '../pages/ChooseVerificationMethodPage';
+import TermsOfServicePage from '../pages/TermsOfServicePage';
+import PrivacyPolicyPage from '../pages/PrivacyPolicyPage';
+import CookiesPolicyPage from '../pages/CookiesPolicyPage';
 import DashboardHome from '../pages/DashboardHome';
 import ProfilePage from '../pages/ProfilePage';
 import OffersListPage from '../pages/OffersListPage';
@@ -69,6 +72,9 @@ const router = createBrowserRouter([
             { index: true, element: <HomePage /> },
             { path: 'configurator', element: <ConfiguratorPage /> },
             { path: 'offers', element: <OffersListPage /> },
+            { path: 'legal/terms', element: <TermsOfServicePage /> },
+            { path: 'legal/privacy', element: <PrivacyPolicyPage /> },
+            { path: 'legal/cookies', element: <CookiesPolicyPage /> },
         ],
     },
     {

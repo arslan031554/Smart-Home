@@ -17,6 +17,7 @@ export const register = async (req, res, next) => {
 
         sendResponse(res, 201, true, 'Registration successful. Verification required.', {
             requiresVerification: true,
+            verificationReason: 'account_verification',
             availableChannels,
             verification: verification ? {
                 channel: verification.channel,
@@ -60,7 +61,11 @@ export const login = async (req, res, next) => {
         });
     } catch (error) {
         if (error.statusCode === 403 && error.data?.requiresVerification) {
-            return sendResponse(res, 403, false, 'Account verification required', error.data);
+            const reason = String(error.data.verificationReason || 'account_verification').toLowerCase();
+            const message = reason === 'login_2fa'
+                ? 'Two-factor verification required'
+                : 'Account verification required';
+            return sendResponse(res, 403, false, message, error.data);
         }
         if (error.message === 'Invalid credentials') {
             return sendError(res, 401, 'Invalid credentials');

@@ -24,6 +24,13 @@ npm run dev
 - `npm run followups:run-once`
 - `npm run integrations:check`
 
+## Follow-up automation configuration
+- `FOLLOWUP_CRON_ENABLED=true|false`
+- `FOLLOWUP_CRON_SCHEDULE="0 10 * * *"` (cron expression)
+- `FOLLOWUP_CRON_TIMEZONE="Europe/Bucharest"` (optional timezone)
+
+Follow-up delivery attempts are persisted in `FollowupLogs` (migration `20260417010000-create-followup-logs.cjs`) for audit/troubleshooting.
+
 ## Important docs
 - `PROJECT_HANDOFF.md`
 - `docs/API_OVERVIEW.md`

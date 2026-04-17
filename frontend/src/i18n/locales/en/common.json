@@ -167,11 +167,14 @@
     },
     "verifyTitle": "Account Verification",
     "verifySubtitle": "Choose how you want to receive your security code to activate your account.",
+    "twoFactorTitle": "Two-Factor Verification",
+    "twoFactorSubtitle": "Choose where to receive your login security code.",
     "verifyByEmail": "Verify by Email",
     "verifyBySms": "Verify by SMS",
     "otpEmailNotice": "We sent a 6-digit code to {{email}}.",
     "otpSmsNotice": "We sent a 6-digit code to your linked phone number.",
     "otpEnterPrompt": "Enter the code below to finish verifying your account.",
+    "otpEnterPrompt2fa": "Enter the code below to complete your login.",
     "timeRemaining": "Time Remaining",
     "confirmVerification": "Confirm Verification",
     "resendIn": "Resend code in {{seconds}}s",
@@ -841,6 +844,37 @@
       "offerNotOrdered": "Offer not ordered",
       "unfinishedConfiguration": "Unfinished configuration",
       "processVerification": "Process verification"
+    }
+  },
+  "legal": {
+    "badge": "Legal",
+    "terms": {
+      "subtitle": "Please read the terms and conditions governing the Smart Home Configurator platform.",
+      "paragraphs": [
+        "By using the Smart Home Configurator, you agree to use the platform for legitimate project estimation and communication with the provider team.",
+        "The platform generates budgetary technical and financial offers based on the configuration data you provide. Final contract, procurement, and implementation terms are confirmed separately in writing.",
+        "You are responsible for providing accurate project details, contact information, and account data. Inaccurate data may affect output quality, pricing, and follow-up communication.",
+        "Generated offers, pricing logic, documentation templates, and platform content remain proprietary to the service provider unless explicitly agreed otherwise.",
+        "The provider may update platform features, pricing rules, integrations, and workflows to improve reliability, compliance, and business operations."
+      ]
+    },
+    "privacy": {
+      "subtitle": "How account, project, and communication data are processed in the platform.",
+      "paragraphs": [
+        "The platform stores account, project, configuration, offer, and communication preference data required to generate quotations and maintain your customer workspace.",
+        "Verification channels (email and SMS), reminders, and operational notifications are processed through integrated providers (SendGrid and Twilio) according to configured delivery settings.",
+        "Only authorized personnel can access backoffice and customer data through role-based permissions and authenticated API endpoints.",
+        "Data is retained for operational, legal, and support purposes as required by business and compliance obligations.",
+        "You can request profile updates and communication preference changes from your account profile, and platform operators can assist with formal data requests."
+      ]
+    },
+    "cookies": {
+      "subtitle": "How cookies and local storage are used in the platform.",
+      "paragraphs": [
+        "Cookies and local storage are used to preserve language preference, session state, configurator progress, and quality-of-use settings.",
+        "Essential storage is required for authentication, navigation, and quote workflow continuity. Optional preferences can be accepted or declined from the cookie banner.",
+        "You can clear browser storage at any time; this may reset unsynchronized local progress and preferences."
+      ]
     }
   }
 }

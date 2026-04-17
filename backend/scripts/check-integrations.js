@@ -38,15 +38,22 @@ const report = {
 
 console.log(JSON.stringify(report, null, 2));
 
+const strictMode = ['1', 'true', 'yes', 'on'].includes(String(process.env.STRICT_INTEGRATION_CHECK || '').trim().toLowerCase());
+const productionLike = recaptcha.production || process.env.NODE_ENV === 'production';
 const issues = [];
+const warnings = [];
 if (recaptcha.production && !recaptcha.productionReady) {
     issues.push('reCAPTCHA is not production-ready.');
 }
 if (recaptcha.activeMode === 'live' && !frontend.recaptchaSiteKeyConfigured) {
-    issues.push('Frontend reCAPTCHA site key is missing while backend reCAPTCHA is live.');
+    const message = 'Frontend reCAPTCHA site key is missing while backend reCAPTCHA is live.';
+    if (strictMode || productionLike) issues.push(message);
+    else warnings.push(message);
 }
 if (frontend.recaptchaMode && frontend.recaptchaMode !== recaptcha.activeMode) {
-    issues.push(`Frontend/backend reCAPTCHA mode mismatch: frontend=${frontend.recaptchaMode}, backend=${recaptcha.activeMode}.`);
+    const message = `Frontend/backend reCAPTCHA mode mismatch: frontend=${frontend.recaptchaMode}, backend=${recaptcha.activeMode}.`;
+    if (strictMode || productionLike) issues.push(message);
+    else warnings.push(message);
 }
 if (frontend.productionBuild && frontend.recaptchaMode === 'mock') {
     issues.push('Frontend reCAPTCHA mock mode is not allowed for production builds.');
@@ -56,6 +63,11 @@ if (notifications.email.mode === 'invalid' || notifications.email.mode === 'misc
 }
 if (notifications.sms.mode === 'invalid' || notifications.sms.mode === 'misconfigured') {
     issues.push(`SMS integration issue: ${notifications.sms.reason}`);
+}
+
+if (warnings.length) {
+    console.warn('\nIntegration warnings:');
+    warnings.forEach((warning) => console.warn(`- ${warning}`));
 }
 
 if (issues.length) {

@@ -70,6 +70,7 @@ Offer.associate = (models) => {
     Offer.hasMany(models.OfferProduct, { foreignKey: 'offerId', as: 'products' });
     Offer.hasMany(models.OfferService, { foreignKey: 'offerId', as: 'services' });
     Offer.hasOne(models.OfferFollowup, { foreignKey: 'offerId', as: 'followup' });
+    Offer.hasMany(models.FollowupLog, { foreignKey: 'offerId', as: 'followupLogs' });
 };
 
 export default Offer;

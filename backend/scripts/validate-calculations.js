@@ -488,21 +488,25 @@ async function validateStoredOfferAndExports(data, calculation) {
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(Buffer.from(excelBuffer));
-    const sheet = workbook.worksheets[0];
+    const projectSheet = workbook.getWorksheet('Project Info') || workbook.worksheets[0];
+    const summarySheet = workbook.getWorksheet('Calculation Summary') || workbook.worksheets[workbook.worksheets.length - 1];
     let foundMultiplier = false;
     let foundGrandTotal = false;
 
-    sheet.eachRow((row) => {
+    projectSheet.eachRow((row) => {
         const values = Array.from({ length: row.cellCount }, (_, index) => row.getCell(index + 1).value);
         const normalized = values.map((value) => String(value ?? '').trim());
         if (normalized.includes('Multiplication Index') && normalized.includes('5')) {
             foundMultiplier = true;
         }
-        if (String(row.getCell(1).value || '').startsWith('GRAND TOTAL')) {
-            const totalCell = Number(row.getCell(9).value || 0);
-            if (roundMoney(totalCell) === roundMoney(calculation.grandTotal)) {
-                foundGrandTotal = true;
-            }
+    });
+
+    summarySheet.eachRow((row) => {
+        const metric = String(row.getCell(1).value || '').trim().toUpperCase();
+        const rawValue = row.getCell(2).value;
+        const value = Number(typeof rawValue === 'object' && rawValue?.result != null ? rawValue.result : rawValue || 0);
+        if (metric.startsWith('GRAND TOTAL') && roundMoney(value) === roundMoney(calculation.grandTotal)) {
+            foundGrandTotal = true;
         }
     });
 

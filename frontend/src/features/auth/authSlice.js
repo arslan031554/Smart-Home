@@ -17,7 +17,9 @@ export const login = createAsyncThunk('auth/login', async (credentials, { reject
                 message: 'verification_required',
                 user: error.response.data.data.user,
                 availableChannels: error.response.data.data.availableChannels,
-                preferredVerificationChannel: error.response.data.data.preferredVerificationChannel
+                preferredVerificationChannel: error.response.data.data.preferredVerificationChannel,
+                verificationReason: error.response.data.data.verificationReason || 'account_verification',
+                delivery: error.response.data.data.delivery || null,
             });
         }
         return rejectWithValue(normalizeApiError(error));
@@ -128,6 +130,8 @@ const initialState = {
     isGuest: false,
     isVerifying: false,
     verificationStatus: 'none', 
+    verificationReason: null,
+    verificationDelivery: null,
     availableChannels: [],
     loading: false,
     error: null
@@ -167,6 +171,8 @@ const authSlice = createSlice({
                 state.isGuest = false;
                 state.isVerifying = false;
                 state.verificationStatus = 'verified';
+                state.verificationReason = null;
+                state.verificationDelivery = null;
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
@@ -176,6 +182,8 @@ const authSlice = createSlice({
                     state.user = { ...(state.user || {}), ...(action.payload.user || {}), preferredVerificationChannel: action.payload.preferredVerificationChannel || action.payload.user?.preferredVerificationChannel };
                     state.isVerifying = true;
                     state.verificationStatus = 'otp_required';
+                    state.verificationReason = action.payload.verificationReason || 'account_verification';
+                    state.verificationDelivery = action.payload.delivery || null;
                 } else {
                     state.error = action.payload?.message || action.payload || 'auth.errors.loginFailed';
                 }
@@ -191,6 +199,8 @@ const authSlice = createSlice({
                 state.availableChannels = action.payload.data.availableChannels || [];
                 state.isVerifying = true;
                 state.verificationStatus = 'otp_required';
+                state.verificationReason = action.payload.data.verificationReason || 'account_verification';
+                state.verificationDelivery = action.payload.data.verification?.delivery || null;
             })
             .addCase(registerUser.rejected, (state, action) => {
                 state.loading = false;
@@ -227,6 +237,8 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
                 state.user = action.payload.user;
                 state.token = action.payload.token;
+                state.verificationReason = null;
+                state.verificationDelivery = null;
             })
             // Logout
             .addCase(logout.fulfilled, (state) => {
@@ -277,4 +289,3 @@ export const {
 } = authSlice.actions;
 
 export default authSlice.reducer;
-

@@ -44,6 +44,8 @@ export default function LoginPage() {
                 state: {
                     email: resultAction.payload.user?.email,
                     availableChannels: resultAction.payload.availableChannels || [],
+                    verificationReason: resultAction.payload.verificationReason || 'account_verification',
+                    delivery: resultAction.payload.delivery || null,
                     ...(returnState && { returnTo: returnState.returnTo, returnStep: returnState.returnStep }),
                 },
             });
