@@ -1,0 +1,846 @@
+{
+  "app": {
+    "brandName": "Home Solution",
+    "brandProduct": "Configurator"
+  },
+  "nav": {
+    "home": "Acasă",
+    "configurator": "Configurator",
+    "dashboard": "Tablou",
+    "admin": "Admin",
+    "offers": "Oferte",
+    "profile": "Profil",
+    "logout": "Deconectare",
+    "login": "Autentificare",
+    "getStarted": "Începe"
+  },
+  "home": {
+    "hero": {
+      "badge": "V2.0 — Arhitectură Neural Matrix activă",
+      "title": {
+        "part1": "Construiește-ți",
+        "highlight": "casa inteligentă de vis"
+      },
+      "subtitle": "Automatizează ușor luminile, aparatele și securitatea pentru un stil de viață mai sigur și mai confortabil.",
+      "ctaPrimary": "Pornește configuratorul",
+      "ctaSecondary": "Autentificare",
+      "badges": {
+        "noCard": "Fără card",
+        "setupFast": "Configurare în câteva minute",
+        "trial": "Probă gratuită 30 de zile"
+      }
+    },
+    "stats": {
+      "activeHomes": "Case active",
+      "uptime": "Disponibilitate",
+      "energySaved": "Economie medie de energie",
+      "userRating": "Rating utilizatori"
+    },
+    "features": {
+      "badge": "De ce să ne alegi",
+      "title": {
+        "part1": "Tot ce are nevoie",
+        "highlight": "casa ta inteligentă",
+        "part2": ""
+      },
+      "subtitle": "O platformă completă, gândită de la zero pentru ca automatizarea să fie simplă, fiabilă și plăcută vizual.",
+      "learnMore": "Află mai mult",
+      "smartAutomation": {
+        "title": "Automatizare inteligentă",
+        "desc": "Controlezi luminile, aparatele și climatul automat, după programul și obiceiurile tale."
+      },
+      "energySavings": {
+        "title": "Economie de energie",
+        "desc": "Analize în timp real și reglaje automate care pot reduce factura cu până la 30%."
+      },
+      "advancedSecurity": {
+        "title": "Securitate avansată",
+        "desc": "Criptare la nivel enterprise și monitorizare 24/7 pentru casă și familie."
+      },
+      "unifiedDashboard": {
+        "title": "Tablou unificat",
+        "desc": "Un singur panou curat pentru toate dispozitivele, zonele și regulile de automatizare."
+      }
+    },
+    "testimonials": {
+      "0": {
+        "quote": "Am configurat casa noastră inteligentă într-o singură zi. Configuratorul este foarte intuitiv.",
+        "name": "Sarah M.",
+        "role": "Proprietar, Londra"
+      },
+      "1": {
+        "quote": "Economiile de energie sunt remarcabile. Am redus factura cu 28% în prima lună.",
+        "name": "James T.",
+        "role": "Arhitect, Dubai"
+      },
+      "2": {
+        "quote": "Integrarea sistemelor de securitate ne oferă liniște totală. Recomand cu încredere.",
+        "name": "Elena R.",
+        "role": "Designer interior, New York"
+      },
+      "badge": "Aprobat de comunitate",
+      "title": {
+        "part1": "Îndrăgit de",
+        "highlight": "proprietari de locuințe"
+      }
+    },
+    "cta": {
+      "ribbon": "Fără card necesar",
+      "title": {
+        "part1": "Transformă-ți locuința într-un",
+        "highlight": "spațiu de viață inteligent."
+      },
+      "subtitle": "Alătură-te miilor de clienți care și-au modernizat deja stilul de viață.",
+      "ctaPrimary": "Începe gratuit",
+      "ctaSecondary": "Autentificare"
+    }
+  },
+  "footer": {
+    "tagline": "Proiectează, configurează și automatizează casa ta inteligentă cu platforma noastră intuitivă.",
+    "platform": "Platformă",
+    "resources": "Resurse",
+    "documentation": "Documentație",
+    "apiAccess": "Acces API",
+    "support": "Suport",
+    "stayUpdated": "Rămâi la curent",
+    "stayUpdatedDesc": "Primește cele mai noi sfaturi și noutăți despre produse pentru casă inteligentă.",
+    "emailPlaceholder": "operator@neural.net",
+    "subscribe": "Abonează-te",
+    "privacyPolicy": "Politica de confidențialitate",
+    "termsOfService": "Termeni și condiții",
+    "security": "Securitate",
+    "copyright": "© 2026 Home Solution Configurator. Toate drepturile rezervate."
+  },
+  "cookies": {
+    "title": "Confidențialitate & Cookie-uri",
+    "desc": "Folosim cookie-uri pentru a îmbunătăți experiența, a analiza traficul și a personaliza conținutul. Poți accepta toate sau doar cele esențiale.",
+    "essentialOnly": "Doar esențiale",
+    "acceptAll": "Acceptă toate"
+  },
+  "errors": {
+    "requestFailed": "Ceva nu a mers bine. Te rugăm să încerci din nou.",
+    "validationFailed": "Câteva câmpuri au nevoie de atenție.",
+    "dashboardLoadFailed": "Nu am putut încărca tabloul. Reîncarcă pagina."
+  },
+  "common": {
+    "cancel": "Anuleaza",
+    "saving": "Se salveaza..."
+  },
+  "auth": {
+    "welcomeBack": "Bine ai revenit",
+    "loginTitle": "Autentifică-te în cont",
+    "loginSubtitle": "Autentifică-te pentru a accesa configuratorul și proiectele salvate.",
+    "email": "Adresă de email",
+    "password": "Parolă",
+    "rememberMe": "Ține-mă minte",
+    "forgotPassword": "Ai uitat parola?",
+    "orContinueWith": "Sau continuă cu",
+    "continueAsGuest": "Continuă ca vizitator",
+    "createAccount": "Creează cont",
+    "createAccountBadge": "Începe călătoria",
+    "createAccountSubtitle": "Creează un cont pentru instrumente profesionale și management complet.",
+    "fullName": "Nume complet",
+    "phone": "Număr de telefon",
+    "company": "Numele companiei",
+    "confirmPassword": "Confirmă parola",
+    "agreeTerms": "Sunt de acord cu Termenii de utilizare și Politica de confidențialitate",
+    "newsletter": "Abonează-te la newsletter pentru ultimele noutăți",
+    "enable2FA": "Activează autentificarea în doi pași",
+    "enable2FADesc": "Adaugă un nivel suplimentar de securitate contului",
+    "securityVerification": "Verificare de securitate",
+    "recaptchaRequired": "Te rugăm să completezi verificarea de securitate.",
+    "alreadyHaveAccount": "Ai deja cont?",
+    "alreadyHaveAccountPrompt": "Ai nevoie de un cont?",
+    "errors": {
+      "loginFailed": "Nu te-am putut conecta. Verifică datele și încearcă din nou.",
+      "registrationFailed": "Nu am putut crea contul. Verifică câmpurile și încearcă din nou.",
+      "fieldRequired": "Te rugăm să completezi acest câmp.",
+      "passwordsDontMatch": "Parolele nu sunt la fel.",
+      "mustAcceptTerms": "Trebuie să accepți termenii pentru a continua.",
+      "required": "Te rugăm să completezi acest câmp.",
+      "invalidEmail": "Te rugăm să introduci un email valid.",
+      "passwordTooShort": "Parola este prea scurtă.",
+      "otpInvalid": "Codul nu este corect. Încearcă din nou.",
+      "otpExpired": "Codul a expirat. Cere unul nou.",
+      "otpSent": "Cod trimis prin {{channel}}.",
+      "otpSendFailed": "Nu am putut trimite codul. Încearcă din nou."
+    },
+    "verifyTitle": "Verificare cont",
+    "verifySubtitle": "Alege cum vrei să primești codul de securitate pentru a-ți activa contul.",
+    "verifyByEmail": "Verifică prin email",
+    "verifyBySms": "Verifică prin SMS",
+    "otpEmailNotice": "Am trimis un cod din 6 cifre la {{email}}.",
+    "otpSmsNotice": "Am trimis un cod din 6 cifre la numărul tău de telefon.",
+    "otpEnterPrompt": "Introdu codul de mai jos pentru a finaliza verificarea contului.",
+    "timeRemaining": "Timp rămas",
+    "confirmVerification": "Confirmă verificarea",
+    "resendIn": "Retrimite codul în {{seconds}}s",
+    "resendCode": "Retrimite codul",
+    "changeVerificationMethod": "Schimbă metoda de verificare",
+    "verificationComplete": "Verificare finalizată",
+    "redirectingAfterVerification": "Identitatea ta a fost confirmată. Redirecționăm...",
+    "linkedPhone": "Numărul de telefon asociat",
+    "noChannels": "Nu există canale de verificare disponibile. Te rugăm să contactezi suportul."
+  },
+  "language": {
+    "label": "Limba",
+    "en": "Engleză",
+    "ro": "Română"
+  },
+  "dashboardLayout": {
+    "projects": "Proiecte",
+    "offers": "Oferte",
+    "settings": "Setari",
+    "menu": "Workspace",
+    "admin": "Admin",
+    "user": "Utilizator",
+    "customer": "Client",
+    "searchPlaceholder": "Cauta proiecte, oferte si setari...",
+    "account": "Cont"
+  },
+  "dashboardHome": {
+    "loading": "Se incarca tabloul...",
+    "retry": "Incearca din nou",
+    "welcome": "Bine ai revenit, {{name}}",
+    "startProject": "Proiect nou",
+    "recentProjects": "Proiecte recente",
+    "viewProjects": "Toate proiectele",
+    "noProjectsTitle": "Nu exista proiecte",
+    "noProjectsDesc": "Porneste o configuratie noua pentru a vedea proiectele salvate aici.",
+    "open": "Deschide",
+    "recentOffers": "Oferte recente",
+    "viewOffers": "Toate ofertele",
+    "noOffersTitle": "Nu exista oferte",
+    "noOffersDesc": "Genereaza o oferta dintr-un proiect pentru a o vedea aici.",
+    "configuratorTitle": "Planifica locuinta smart",
+    "configuratorDesc": "Foloseste configuratorul pentru camere, functii smart si oferta salvata.",
+    "remindersTitle": "Reminder-uri follow-up",
+    "noReminders": "Nu exista remindere in acest moment.",
+    "viewOffer": "Vezi oferta",
+    "stats": {
+      "activeProjects": "Proiecte active",
+      "pendingOffers": "Oferte in asteptare",
+      "offerReady": "Oferte pregatite",
+      "draftOffers": "Oferte ciorna"
+    }
+  },
+  "configurator": {
+    "title": "Configurator Smart Home",
+    "loadingMasterData": "Se încarcă datele configuratorului",
+    "preparingOptions": "Se pregătesc opțiunile…",
+    "retry": "Reîncearcă",
+    "badgeActive": "Configurare activă",
+    "badgeComplete": "Configurare finalizată",
+    "completeSubtitle": "Specificația ta tehnică a fost generată cu succes.",
+    "activeSubtitle": "Definește și personalizează mediul smart prin pașii configurați.",
+    "saveDraft": "Salvează ciornă",
+    "module": "Modul",
+    "workflowProgress": "Progres flux",
+    "realtimeValuation": "Evaluare în timp real",
+    "estimatedTotal": "Total estimat (fără TVA)",
+    "goBack": "Înapoi",
+    "continue": "Continuă",
+    "generateFinalOffer": "Generează oferta finală",
+    "noCompatibleProducts": "Niciun produs compatibil pentru gamă/culoare. Configurați în Admin.",
+    "reviewSummary": "Revizuiește rezumatul",
+    "steps": {
+      "project": "Proiect",
+      "rooms": "Camere",
+      "functions": "Funcții",
+      "productRange": "Gama produse",
+      "color": "Culoare",
+      "services": "Servicii",
+      "summary": "Rezumat",
+      "generating": "Se generează",
+      "offerReady": "Ofertă gata"
+    },
+    "generateOffer": {
+      "title": "Se generează oferta",
+      "subtitle": "Pregătim oferta și documentele tale.",
+      "status": "Status",
+      "nodeStep": "Pas",
+      "nodes": {
+        "configuration": "Configurare",
+        "hardware": "Echipamente",
+        "services": "Servicii",
+        "documentation": "Documente"
+      },
+      "activationTitle": "Creează cont ca să finalizezi",
+      "activationBody": "Am generat rezumatul proiectului. Pentru a salva, descărca PDF/Excel și a primi oferta pe email, creează un cont.",
+      "createAccount": "Creează cont",
+      "logIn": "Autentificare",
+      "secureSaved": "Configurația ta va fi salvată în cont.",
+      "secureConnection": "Conexiune sigură"
+    },
+    "projectDefinition": {
+      "title": "Detalii proiect",
+      "subtitle": "Incepe prin denumirea proiectului, selectarea destinatiei si definirea parametrilor principali ai cladirii necesari pentru pasii urmatori.",
+      "badge": "Pasul 01: Proiect",
+      "clientProfile": {
+        "title": "Profil client",
+        "subtitle": "Persoana fizica sau entitate comerciala?",
+        "private": "Persoana fizica",
+        "company": "Companie / Business",
+        "companyNameLabel": "Nume companie",
+        "companyNamePlaceholder": "ex. Acme Corp SRL"
+      },
+      "reference": {
+        "title": "Referinta proiect",
+        "subtitle": "Un titlu descriptiv care identifica aceasta configuratie.",
+        "nameLabel": "Nume proiect",
+        "namePlaceholder": "ex. Horizon Smart Estate - Corp A"
+      },
+      "description": {
+        "title": "Descriere proiect",
+        "optional": "optional",
+        "subtitle": "Context suplimentar despre cladire sau destinatie, reutilizabil ulterior in descrierea proiectului.",
+        "placeholder": "ex. Complex rezidential format din 10 apartamente identice cu 3 camere..."
+      },
+      "buildingType": {
+        "title": "Tip cladire / destinatie",
+        "subtitle": "Determina ce tipuri de camere sunt disponibile la pasul urmator",
+        "descriptionLabel": "Descriere cladire"
+      },
+      "levels": {
+        "title": "Numar niveluri",
+        "subtitle": "Controleaza structura de introducere a camerelor la pasul urmator",
+        "inputLabel": "Total niveluri"
+      },
+      "area": {
+        "title": "Suprafata construita",
+        "subtitle": "Suprafata aproximativa a proiectului",
+        "inputLabel": "Suprafata aprox. (m?)",
+        "placeholder": "ex. 450"
+      },
+      "complexity": {
+        "title": "Complexitate proiect",
+        "subtitle": "Salvata ca atribut de definire a proiectului pentru utilizare ulterioara",
+        "inputLabel": "Complexitate",
+        "placeholder": "ex. Standard"
+      },
+      "multiplication": {
+        "title": "Index multiplicare",
+        "subtitle": "Folosit ulterior de fluxul existent de discount si calcul",
+        "inputLabel": "Index multiplicare proiect",
+        "helper": "Pentru un complex cu 10 apartamente identice, introdu 10. Fluxul existent de preturi va continua sa foloseasca aceasta valoare."
+      }
+    },
+    "roomsLevels": {
+      "title": "Niveluri si camere",
+      "subtitle": "Defineste structura spatiala a cladirii. Adauga camere pe nivel si seteaza cate camere identice exista.",
+      "badge": "Pasul 02: Structura cladirii",
+      "summary": {
+        "rooms": "Camere",
+        "totalUnits": "Unitati totale"
+      },
+      "missingBuildingType": "Revino la pasul {{step}} si selecteaza un tip de cladire. Tipurile de camere vor fi filtrate corespunzator.",
+      "noRoomTypesForBuilding": "Nu exista in prezent tipuri de camere mapate pentru tipul de cladire selectat. Actualizeaza maparea din datele master inainte de a continua.",
+      "levelNames": {
+        "groundFloor": "Parter",
+        "floor": "Etaj {{number}}"
+      },
+      "levelSummary": {
+        "roomTypes": "Tipuri de camere: {{count}}",
+        "totalUnits": "Unitati totale: {{count}}"
+      },
+      "roomCard": {
+        "title": "Camera",
+        "unset": "Nesetat",
+        "removeRoom": "Sterge camera",
+        "roomType": "Tip camera",
+        "identicalRooms": "Numar camere identice",
+        "identicalRoomsHelper": "Functiile vor fi aplicate pentru toate cele {{count}} camere de acest tip",
+        "newRoomName": "Camera noua"
+      },
+      "actions": {
+        "addRoom": "Adauga camera",
+        "addAnotherRoom": "Adauga alta camera",
+        "addFirstRoom": "Adauga prima camera"
+      },
+      "empty": {
+        "title": "Nu exista camere pe acest nivel",
+        "subtitle": "Adauga camere pentru a configura functiile smart pentru acest nivel."
+      },
+      "repeatedRooms": {
+        "title": "Camere identice multiple?",
+        "subtitle": "Foloseste campul Numar camere identice pentru camere repetate (de ex. 10 camere identice de hotel). Echipamentele vor fi calculate corespunzator."
+      }
+    },
+    "servicesStep": {
+      "title": "Servicii profesionale",
+      "subtitle": "Selecteaza serviciile suplimentare de instalare, programare si suport care trebuie incluse in oferta.",
+      "badge": "Pasul 06: Servicii",
+      "exVat": "fara TVA",
+      "added": "Adaugat in oferta",
+      "optional": "Optional",
+      "selectedCount": "{{count}} servicii selectate",
+      "subtotal": "Subtotal servicii fara TVA",
+      "noteTitle": "Serviciile vin din datele master din backoffice",
+      "noteBody": "Orice modificare de serviciu, descriere sau pret facuta din admin va fi reflectata aici si in oferta generata dupa recalculare.",
+      "footer": "Toate preturile serviciilor sunt afisate in EUR fara TVA si vin din datele master din backend."
+    },
+    "summary": {
+      "generate": {
+        "title": "Genereaza oferta",
+        "subtitle": "Configuratia este gata. Genereaza oferta pentru a salva totalurile din backend si detaliile proiectului.",
+        "statusMapping": "Este necesara completarea datelor master",
+        "statusWaiting": "Se asteapta calculul backend",
+        "statusRefreshing": "Se reimprospateaza calculul backend",
+        "statusReady": "Toate validarile au trecut",
+        "completeMapping": "Completeaza maparea produselor",
+        "cta": "Genereaza oferta",
+        "blockedNote": "Generarea este blocata pana cand fiecare functie configurata are o cale de produs mapata",
+        "footer": "Generarea documentelor poate dura cateva secunde"
+      },
+      "financial": {
+        "title": "Total general",
+        "currencyNote": "Toate sumele sunt in EUR, fara TVA",
+        "refreshing": "Se reimprospateaza totalurile din backend...",
+        "waiting": "Totalurile vor aparea aici dupa finalizarea calculului din backend.",
+        "recalculating": "Se recalculeaza...",
+        "productsSubtotal": "Subtotal produse / proiect",
+        "productsHelp": "Totalul produselor pe proiect din motorul backend",
+        "servicesSubtotal": "Subtotal servicii / proiect",
+        "servicesHelp": "Totalul serviciilor pe proiect din motorul backend",
+        "totalPerProject": "Total per proiect",
+        "totalPerProjectHelp": "Produse si servicii inainte de multiplicarea unitatilor identice",
+        "multiplier": "Index de multiplicare proiect",
+        "multiplierHelp": "Aplicat apartamentelor, camerelor sau unitatilor identice",
+        "grossTotal": "Total brut",
+        "grossHelp": "Toate proiectele combinate inainte de discount",
+        "discountPercent": "Procent discount",
+        "discountPercentHelp": "Calculat de matricea de discount din backend",
+        "discountAmount": "Valoare discount",
+        "discountAmountHelp": "Aplicata totalului autorizat din backend",
+        "grandTotal": "Total general",
+        "exVat": "EUR - fara TVA",
+        "vatNote": "TVA se adauga la facturare",
+        "footer": "Acest rezumat este randat direct din calculul backend, astfel incat produsele, serviciile, discountul si totalul raman aliniate cu oferta generata."
+      },
+      "products": {
+        "title": "Produse",
+        "defaultName": "Produs",
+        "calculating": "Se calculeaza produsele din backend...",
+        "missingMappings": "Backend-ul a gasit functii necesare care nu au inca mapare completa de produs. Actualizeaza datele master inainte de generarea ofertei.",
+        "waiting": "Produsele calculate de backend vor aparea aici dupa recalcularea configuratiei.",
+        "count": "{{count}} pozitii",
+        "footerLabel": "Subtotal produse / proiect",
+        "footer": "Produsele afisate aici vin direct din calculul backend si folosesc rezultatul autorizat al ofertei.",
+        "footerWarning": "Unele functii configurate au inca mapari de produs lipsa. Oferta ramane blocata pana la completarea datelor master.",
+        "columns": {
+          "photo": "Imagine",
+          "product": "Produs",
+          "quantity": "Cantitate",
+          "unitPrice": "Pret unitar",
+          "subtotal": "Subtotal"
+        }
+      },
+      "services": {
+        "title": "Servicii",
+        "calculating": "Se calculeaza serviciile din backend...",
+        "count": "{{count}} linii de servicii",
+        "empty": "Nu exista servicii incluse in oferta calculata de backend.",
+        "footerLabel": "Subtotal servicii / proiect",
+        "columns": {
+          "service": "Serviciu",
+          "quantity": "Cantitate",
+          "unitPrice": "Pret unitar",
+          "subtotal": "Subtotal"
+        }
+      },
+      "title": "Rezumat proiect",
+      "subtitle": "Revizuiește proiectul final, funcțiile, produsele calculate, serviciile, totalurile și notele ofertei înainte de generarea ofertei.",
+      "badge": "Pasul 07: Rezumat"
+    }
+  },
+  "admin": {
+    "console": "Consolă Admin",
+    "searchPlaceholder": "Caută...",
+    "menu": {
+      "dashboard": "Tablou",
+      "offersMonitoring": "Monitorizare oferte",
+      "masterData": "Date master",
+      "buildingTypes": "Tipuri clădire",
+      "roomTypes": "Tipuri camere",
+      "smartFunctions": "Funcții smart",
+      "productRanges": "Game produse",
+      "colors": "Culori",
+      "productsCatalog": "Catalog produse",
+      "professionalServices": "Servicii profesionale",
+      "rulesContent": "Reguli & Conținut",
+      "discountRules": "Reguli discount",
+      "offerConditions": "Condiții ofertă",
+      "publicDisclaimers": "Disclaimer public",
+      "followupTemplates": "Șabloane follow-up",
+      "system": "Sistem",
+      "employeeManagement": "Angajați",
+      "accessPermissions": "Permisiuni",
+      "globalSettings": "Setări"
+    }
+  },
+  "adminPages": {
+    "dashboard": {
+      "title": "Privire de ansamblu administrativă",
+      "subtitle": "Monitorizează ofertele, echipa și performanța platformei.",
+      "badge": "Platform Admin",
+      "loading": "Se incarca privirea de ansamblu backoffice...",
+      "actionSummary": "Rezumat actiuni",
+      "viewAnalytics": "Vezi analizele",
+      "downloadReport": "Descarcă raport",
+      "stats": {
+        "monthlyRevenue": "Venit lunar",
+        "monthlyRevenueLabel": "Ultimele 30 de zile",
+        "totalOffers": "Total oferte",
+        "totalOffersLabel": "Toate ofertele generate",
+        "pendingReview": "În așteptare",
+        "pendingReviewLabel": "Necesită atenție",
+        "activeUsers": "Utilizatori activi",
+        "activeUsersLabel": "Echipă internă"
+      },
+      "recentOffersTitle": "Oferte tehnice recente",
+      "recentOffersLink": "Toate ofertele",
+      "table": {
+        "idProject": "ID / Nume proiect",
+        "status": "Status",
+        "valueExclVat": "Valoare (fără TVA)"
+      },
+      "quickLinksTitle": "Linkuri rapide",
+      "quickLinks": {
+        "hardwareCatalog": "Catalog hardware",
+        "masterData": "Date master",
+        "teamManagement": "Management echipă"
+      },
+      "alertsTitle": "Alerte sistem",
+      "alerts": {
+        "inventoryTitle": "Alertă stoc",
+        "inventoryBody": "Stoc Smart Hub scăzut (8 bucăți rămase)",
+        "serviceTitle": "Ofertă servicii nouă",
+        "serviceBody": "Cerere pentru proiectul Marina Bay"
+      }
+    },
+    "employees": {
+      "title": "Conturi angajati",
+      "subtitle": "Creeaza si mentine conturile interne de backoffice, parolele si starea de activare pentru membrii echipei.",
+      "badge": "Acces backoffice",
+      "create": "Creeaza angajat",
+      "count": "{{count}} angajati",
+      "loading": "Se incarca angajatii...",
+      "permissionsCount": "{{count}} permisiuni",
+      "active": "Activ",
+      "activeBadge": "Cont activ",
+      "suspended": "Suspendat",
+      "emptyTitle": "Nu exista conturi de angajati",
+      "emptyDesc": "Creeaza conturi de angajati inainte de a atribui permisiuni si a folosi backoffice-ul intern.",
+      "editTitle": "Editeaza contul angajatului",
+      "createTitle": "Creeaza cont angajat",
+      "securityNote": "Credentialele angajatului sunt gestionate prin fluxul securizat din backend.",
+      "save": "Salveaza angajatul",
+      "saveError": "Contul angajatului nu a putut fi salvat.",
+      "deleteError": "Contul angajatului nu a putut fi sters.",
+      "searchPlaceholder": "Cauta dupa nume sau email...",
+      "roleTitle": "Asignare rol",
+      "deleteTitle": "Sterge cont angajat",
+      "deleteAction": "Sterge angajatul",
+      "deleteHeading": "Elimina accesul angajatului",
+      "deleteDescription": "Stergerea acestui cont elimina imediat accesul intern in backoffice. Inregistrarile existente raman neschimbate.",
+      "deleteBadge": "Revocare acces",
+      "fields": {
+        "name": "Nume angajat",
+        "email": "Email angajat",
+        "password": "Parola initiala",
+        "passwordOptional": "Reseteaza parola (optional)",
+        "status": "Status cont"
+      },
+      "placeholders": {
+        "name": "ex. Alex Ionescu",
+        "email": "employee@company.com",
+        "password": "Minimum 8 caractere"
+      },
+      "roles": {
+        "administrator": "Administrator",
+        "engineer": "Inginer",
+        "technicalSales": "Vanzari tehnice",
+        "maintenanceLead": "Responsabil mentenanta"
+      }
+    },
+    "permissions": {
+      "title": "Permisiuni angajati",
+      "subtitle": "Asigneaza permisiunile impuse de backend pentru modulele si rutele de angajati deja prezente in sistem.",
+      "badge": "Acces rute",
+      "save": "Salveaza permisiunile",
+      "saveError": "Permisiunile nu au putut fi salvate.",
+      "loading": "Se incarca permisiunile...",
+      "emptyTitle": "Nu exista conturi de angajati",
+      "emptyDesc": "Creeaza mai intai un cont de angajat, apoi atribuie permisiunile de backoffice necesare.",
+      "employeeAccounts": "Conturi angajati",
+      "auditTitle": "Rezumat permisiuni",
+      "auditBody": "{{name}} are in prezent acces la {{count}} permisiuni.",
+      "noteTitle": "Aplicare in backend",
+      "noteBody": "Actualizarile de permisiuni sunt salvate prin backend si se aplica din nou dupa refresh sau reautentificare.",
+      "mappingTitle": "Mapare permisiuni pentru {{name}}",
+      "mappingSubtitle": "Alege modulele si actiunile permise pentru acest angajat.",
+      "roleBadge": "Rol: {{role}}",
+      "groups": {
+        "core": "Logica de baza",
+        "offers": "Operatiuni comerciale",
+        "hardware": "Ecosistem hardware",
+        "governance": "Guvernanta si personal"
+      },
+      "labels": {
+        "view_master": "Vizualizare date master",
+        "edit_master": "Editare date master",
+        "delete_master": "Stergere date master",
+        "view_offers": "Vizualizare oferte",
+        "edit_offers": "Editare oferte",
+        "delete_offers": "Stergere oferte",
+        "view_hardware": "Vizualizare produse si servicii",
+        "edit_hardware": "Editare produse si servicii",
+        "edit_pricing": "Editare preturi",
+        "manage_employees": "Gestionare angajati si permisiuni",
+        "manage_rules": "Gestionare discount, continut si reguli de follow-up"
+      }
+    },
+    "products": {
+      "title": "Produse",
+      "subtitle": "Gestionează produsele, prețurile și funcțiile.",
+      "badge": "Listă produse",
+      "addNew": "Adaugă produs",
+      "searchPlaceholder": "Caută după cod sau nume...",
+      "count": "{{count}} produse",
+      "syncing": "Se sincronizează catalogul...",
+      "code": "Cod",
+      "productName": "Denumire produs",
+      "ranges": "Game",
+      "price": "Preț",
+      "status": "Status",
+      "actions": "Acțiuni",
+      "noProductsTitle": "Nu există produse",
+      "noProductsDesc": "Încearcă o altă căutare sau adaugă un produs.",
+      "reset": "Resetează",
+      "modal": {
+        "editTitle": "Editează produs",
+        "addTitle": "Adaugă produs",
+        "autoSave": "Modificările se salvează automat",
+        "cancel": "Anulează",
+        "save": "Salvează produs",
+        "code": "Cod produs",
+        "name": "Denumire produs",
+        "price": "Preț (EUR)",
+        "description": "Descriere",
+        "imageUrl": "URL imagine",
+        "ranges": "Game produse",
+        "colors": "Culori",
+        "features": "Funcții produs",
+        "addMapping": "Adaugă mapare",
+        "function": "Funcție",
+        "selectFunction": "Selectează funcția...",
+        "channel": "Canal",
+        "capacity": "Capacitate",
+        "priority": "Prioritate",
+        "scope": "Scope",
+        "scopeRoom": "Cameră",
+        "scopeLevel": "Nivel",
+        "scopeProject": "Proiect",
+        "noFeatures": "Nu există funcții adăugate pentru acest produs.",
+        "deleteTitle": "Șterge produs",
+        "delete": "Șterge",
+        "deleteDesc": "Acest produs va fi șters definitiv din listă."
+      },
+      "errors": {
+        "priceRequired": "Te rugăm să scrii un preț.",
+        "priceNumber": "Prețul trebuie să fie un număr.",
+        "pricePositive": "Prețul trebuie să fie mai mare decât 0.",
+        "codeRequired": "Te rugăm să scrii un cod de produs.",
+        "nameRequired": "Te rugăm să scrii un nume de produs."
+      }
+    },
+    "masterData": {
+      "subtitle": "Gestionează parametrii {{entity}} și regulile de integrare.",
+      "badge": "Management configurare",
+      "newEntity": "Nou {{entity}}",
+      "searchPlaceholder": "Caută tipuri {{entity}}...",
+      "registered": "{{count}} înregistrări",
+      "syncing": "Se sincronizează registrul...",
+      "noRecordsTitle": "Nu există înregistrări",
+      "noRecordsDesc": "Nu au fost găsite intrări pentru {{entity}}.",
+      "clearFilters": "Șterge filtrele",
+      "modal": {
+        "updateTitle": "Actualizează {{entity}}",
+        "defineTitle": "Definește {{entity}} nou",
+        "syncActive": "Sincronizare registru activă",
+        "cancel": "Anulează",
+        "save": "Salvează",
+        "displayName": "Nume afișat",
+        "uniqueCode": "Cod unic",
+        "technicalDescription": "Descriere tehnică",
+        "technicalPlaceholder": "Introdu descrierea sau notele de integrare...",
+        "deleteTitle": "Confirmă ștergerea",
+        "terminate": "Șterge",
+        "areYouSure": "Ești sigur?",
+        "deleteDesc": "Ștergerea va elimina definitiv această înregistrare. Acțiunea nu poate fi anulată.",
+        "irreversible": "ACȚIUNE IREVERSIBILĂ"
+      }
+    }
+  },
+  "offers": {
+    "myOffersTitle": "Ofertele mele",
+    "myOffersSubtitle": "Vezi și gestionează ofertele tale și exportă PDF sau Excel.",
+    "createNewOffer": "Creează ofertă nouă",
+    "searchPlaceholder": "Caută după nume proiect sau ID...",
+    "allOffers": "Toate ofertele",
+    "drafts": "Ciorne",
+    "ready": "Gata",
+    "waiting": "În așteptare",
+    "ordered": "Comandat",
+    "cancelled": "Anulat",
+    "totalOffers": "{{count}} Oferte",
+    "offerId": "ID ofertă",
+    "projectDetails": "Detalii proiect",
+    "structure": "Structură",
+    "status": "Status",
+    "valuation": "Valoare",
+    "actions": "Acțiuni",
+    "rooms": "Camere",
+    "func": "Func",
+    "exclVat": "FĂRĂ TVA",
+    "noOffersTitle": "Nu există oferte",
+    "noOffersDesc": "Încearcă să ajustezi filtrele/căutarea sau creează o configurație nouă.",
+    "newConfiguration": "Configurație nouă",
+    "deleteOfferTitle": "Șterge oferta",
+    "cancel": "Anulează",
+    "confirmDelete": "Confirmă ștergerea",
+    "areYouSure": "Ești sigur?",
+    "deleteOfferDesc": "Ștergerea este permanentă și nu poate fi anulată. Toate datele se vor pierde.",
+    "detail": {
+      "loading": "Se incarca detaliile ofertei...",
+      "notFound": "Oferta nu a fost gasita",
+      "backToOffers": "Inapoi la oferte",
+      "title": "Specificatie tehnica si propunere",
+      "subtitle": "Specificatie completa a proiectului cu evaluare comerciala si lista de echipamente.",
+      "exportPdf": "Exporta propunerea (PDF)",
+      "exportExcel": "Exporta Excel",
+      "rooms": "Camere",
+      "configured": "Configurate",
+      "smartFeatures": "Functii smart",
+      "functionsSelected": "Functii selectate",
+      "billOfMaterials": "Lista tehnica de materiale (BOM)",
+      "lineItems": "{{count}} pozitii",
+      "componentSpec": "Componenta / specificatie",
+      "quantity": "Cantitate",
+      "unitNet": "Pret unitar net",
+      "totalNet": "Total net",
+      "servicesTitle": "Servicii profesionale de implementare",
+      "noServices": "Nu exista servicii profesionale mapate pentru aceasta specificatie.",
+      "financialTitle": "Matrice de evaluare financiara",
+      "productsServices": "Produse + servicii",
+      "perProject": "Per proiect",
+      "grossTotal": "Total brut",
+      "discount": "Discount",
+      "grandTotal": "Total general net",
+      "exclVat": "Exclusiv TVA",
+      "accept": "Accepta specificatia",
+      "validFor": "Propunere valabila 30 de zile calendaristice",
+      "lifecycle": "Angajare proiect si ciclu de viata",
+      "nextContact": "Urmatorul contact",
+      "channel": "Canal de interactiune",
+      "noFollowup": "Nu exista follow-up automat programat pentru acest proiect.",
+      "recordReference": "Referinta inregistrare: {{id}}",
+      "print": "Printeaza",
+      "email": "Email",
+      "edit": "Editeaza",
+      "duplicate": "Duplica",
+      "delete": "Sterge",
+      "established": "Creata: {{date}}",
+      "technicalVerified": "Verificata tehnic",
+      "location": "Nod de stocare securizat",
+      "specificationVersion": "Specificatie v1.02",
+      "quantityShort": "Cant: {{count}}",
+      "calculatedNet": "Net calculat",
+      "noDate": "Fara data setata",
+      "projectFallback": "Proiect",
+      "unknownBuildingType": "Tip de cladire necunoscut",
+      "emailChannel": "Email",
+      "smsChannel": "SMS",
+      "autoGeneratedNote": "Aceasta oferta a fost generata automat pe baza functiilor smart, produselor si serviciilor selectate. Disponibilitatea finala si detaliile de livrare vor fi confirmate de echipa noastra.",
+      "systemTeam": "Echipa sistem",
+      "systemRole": "Flux inginerie"
+    },
+    "adminMonitor": {
+      "title": "Monitorizare globala oferte",
+      "subtitle": "Supraveghere centralizata a tuturor ofertelor de proiect si a ciclului lor de viata.",
+      "searchPlaceholder": "Cauta dupa ID, proiect sau client...",
+      "noDate": "Fara data setata",
+      "noTask": "Fara activitate",
+      "markOrdered": "Marcheaza ca si comandat",
+      "badge": "Monitor vanzari",
+      "loading": "Se sincronizeaza datele tranzactiilor...",
+      "activeReviewers": "Revizori activi",
+      "totalOffers": "{{count}} oferte totale",
+      "followupTitle": "Actiuni necesare: follow-up clienti",
+      "pendingTasks": "{{count}} activitati in asteptare",
+      "reference": "Ref: {{id}}",
+      "snooze": "Amana",
+      "viewHistory": "Vezi istoric",
+      "contactClient": "Contacteaza clientul",
+      "ledgerTitle": "Registru tranzactii",
+      "anonymousClient": "Client anonim",
+      "viewOffer": "Vezi oferta",
+      "download": "Descarca",
+      "channels": {
+        "email": "Email",
+        "sms": "SMS"
+      },
+      "filters": {
+        "allStatuses": "Toate statusurile",
+        "anyDate": "Orice data",
+        "today": "Astazi",
+        "last7Days": "Ultimele 7 zile",
+        "last30Days": "Ultimele 30 de zile",
+        "anyValue": "Orice valoare",
+        "highValue": "> 50k EUR",
+        "mediumValue": "10k EUR - 50k EUR",
+        "lowValue": "< 10k EUR"
+      },
+      "followupStatuses": {
+        "pending": "In asteptare",
+        "snoozed": "Amanat",
+        "completed": "Finalizat",
+        "noContact": "Fara date de contact",
+        "reminded": "Reminder {{count}} trimis"
+      },
+      "followupReasons": {
+        "offerNotOrdered": "Oferta necomandata",
+        "unfinishedConfiguration": "Configuratie nefinalizata"
+      },
+      "systemAlerts": {
+        "title": "Alerte sistem",
+        "stockTitle": "Disponibilitate stoc",
+        "stockBody": "3 comenzi in asteptare pentru alocarea stocului Smart Hub Pro.",
+        "projectionTitle": "Proiectie financiara",
+        "projectionBody": "Proiectiile de venit pentru T1 2026 au fost actualizate pe baza celor mai recente rate de conversie."
+      },
+      "table": {
+        "offerId": "ID oferta",
+        "clientProject": "Client si proiect",
+        "valuation": "Valoare",
+        "status": "Status",
+        "followup": "Follow-up",
+        "actions": "Actiuni"
+      }
+    },
+    "statuses": {
+      "draft": "Ciorna",
+      "inProgress": "In progres",
+      "offerGenerated": "Oferta generata",
+      "offerReady": "Oferta pregatita",
+      "waiting": "In asteptarea aprobarii",
+      "ordered": "Comandat",
+      "cancelled": "Anulat"
+    },
+    "followupReasons": {
+      "offerNotOrdered": "Oferta necomandata",
+      "unfinishedConfiguration": "Configuratie nefinalizata",
+      "processVerification": "Verificare proces"
+    }
+  }
+}

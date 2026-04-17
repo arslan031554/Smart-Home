@@ -1,0 +1,846 @@
+{
+  "app": {
+    "brandName": "Home Solution",
+    "brandProduct": "Configurator"
+  },
+  "nav": {
+    "home": "Home",
+    "configurator": "Configurator",
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "offers": "Offers",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Log In",
+    "getStarted": "Get Started"
+  },
+  "home": {
+    "hero": {
+      "badge": "V2.0 — Neural Matrix Architecture Live",
+      "title": {
+        "part1": "Build Your",
+        "highlight": "Dream Smart Home"
+      },
+      "subtitle": "Easily automate lights, appliances, and security to create a safer, smarter, and more comfortable lifestyle.",
+      "ctaPrimary": "Launch Configurator",
+      "ctaSecondary": "Sign In",
+      "badges": {
+        "noCard": "No credit card",
+        "setupFast": "Setup in minutes",
+        "trial": "30-day free trial"
+      }
+    },
+    "stats": {
+      "activeHomes": "Active Homes",
+      "uptime": "Uptime SLA",
+      "energySaved": "Avg. Energy Saved",
+      "userRating": "User Rating"
+    },
+    "features": {
+      "badge": "Why Choose Us",
+      "title": {
+        "part1": "Everything your",
+        "highlight": "smart home",
+        "part2": "needs"
+      },
+      "subtitle": "A complete platform built from the ground up to make smart home automation accessible, reliable, and extraordinarily beautiful.",
+      "learnMore": "Learn more",
+      "smartAutomation": {
+        "title": "Smart Automation",
+        "desc": "Control lights, appliances and climate automatically based on your habits and schedule."
+      },
+      "energySavings": {
+        "title": "Energy Savings",
+        "desc": "Real-time energy analytics and AI adjustments cut your bills by up to 30%."
+      },
+      "advancedSecurity": {
+        "title": "Advanced Security",
+        "desc": "Enterprise-grade encryption and 24/7 monitoring protect your home and family."
+      },
+      "unifiedDashboard": {
+        "title": "Unified Dashboard",
+        "desc": "One clean dashboard to manage every device, zone, and automation rule."
+      }
+    },
+    "testimonials": {
+      "0": {
+        "quote": "Setting up our smart home took less than a day. The configurator is incredibly intuitive.",
+        "name": "Sarah M.",
+        "role": "Home owner, London"
+      },
+      "1": {
+        "quote": "Energy savings have been remarkable. We cut our electricity bill by 28% in the first month.",
+        "name": "James T.",
+        "role": "Architect, Dubai"
+      },
+      "2": {
+        "quote": "The security integrations give us total peace of mind. Highly recommended.",
+        "name": "Elena R.",
+        "role": "Interior designer, NYC"
+      },
+      "badge": "Community Approval",
+      "title": {
+        "part1": "Loved by",
+        "highlight": "homeowners"
+      }
+    },
+    "cta": {
+      "ribbon": "No credit card needed",
+      "title": {
+        "part1": "Turn your home into a",
+        "highlight": "smart living space."
+      },
+      "subtitle": "Join thousands of homeowners who've already upgraded their lifestyle.",
+      "ctaPrimary": "Start Free",
+      "ctaSecondary": "Sign In"
+    }
+  },
+  "footer": {
+    "tagline": "Design, configure, and automate your perfect smart home with our intuitive platform.",
+    "platform": "Platform",
+    "resources": "Resources",
+    "documentation": "Documentation",
+    "apiAccess": "API Access",
+    "support": "Support",
+    "stayUpdated": "Stay Updated",
+    "stayUpdatedDesc": "Get the latest smart home tips and product updates.",
+    "emailPlaceholder": "operator@neural.net",
+    "subscribe": "Subscribe",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "security": "Security",
+    "copyright": "© 2026 Home Solution Configurator. All rights reserved."
+  },
+  "cookies": {
+    "title": "Privacy & Cookies",
+    "desc": "We use cookies to improve your experience, analyze site traffic, and personalize content. You can accept all or essential only.",
+    "essentialOnly": "Essential Only",
+    "acceptAll": "Accept All"
+  },
+  "errors": {
+    "requestFailed": "Something went wrong. Please try again.",
+    "validationFailed": "Some fields need your attention.",
+    "dashboardLoadFailed": "We could not load the dashboard. Please refresh the page."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "saving": "Saving..."
+  },
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "loginTitle": "Log In to Your Account",
+    "loginSubtitle": "Log in to access your smart home configurator and saved designs.",
+    "email": "Email Address",
+    "password": "Password",
+    "rememberMe": "Remember Me",
+    "forgotPassword": "Forgot password?",
+    "orContinueWith": "Or continue with",
+    "continueAsGuest": "Continue as Guest",
+    "createAccount": "Create an Account",
+    "createAccountBadge": "Start Your Journey",
+    "createAccountSubtitle": "Join us to unlock professional smart home design tools and lifecycle management.",
+    "fullName": "Full Name",
+    "phone": "Phone Number",
+    "company": "Company Name",
+    "confirmPassword": "Confirm Password",
+    "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
+    "newsletter": "Subscribe to our newsletter for the latest updates",
+    "enable2FA": "Enable Two-Factor Authentication",
+    "enable2FADesc": "Add an extra layer of security to your account",
+    "securityVerification": "Security Verification",
+    "recaptchaRequired": "Please complete the security verification.",
+    "alreadyHaveAccount": "Already have an account?",
+    "alreadyHaveAccountPrompt": "Need an account?",
+    "errors": {
+      "loginFailed": "We could not log you in. Please check your details and try again.",
+      "registrationFailed": "We could not create your account. Please check the fields and try again.",
+      "fieldRequired": "Please fill in this field.",
+      "passwordsDontMatch": "The passwords do not match.",
+      "mustAcceptTerms": "You must accept the terms to continue.",
+      "required": "Please fill in this field.",
+      "invalidEmail": "Please enter a valid email address.",
+      "passwordTooShort": "Password is too short.",
+      "otpInvalid": "The code is not correct. Please try again.",
+      "otpExpired": "The code has expired. Please request a new one.",
+      "otpSent": "Code sent via {{channel}}.",
+      "otpSendFailed": "We could not send the code. Please try again."
+    },
+    "verifyTitle": "Account Verification",
+    "verifySubtitle": "Choose how you want to receive your security code to activate your account.",
+    "verifyByEmail": "Verify by Email",
+    "verifyBySms": "Verify by SMS",
+    "otpEmailNotice": "We sent a 6-digit code to {{email}}.",
+    "otpSmsNotice": "We sent a 6-digit code to your linked phone number.",
+    "otpEnterPrompt": "Enter the code below to finish verifying your account.",
+    "timeRemaining": "Time Remaining",
+    "confirmVerification": "Confirm Verification",
+    "resendIn": "Resend code in {{seconds}}s",
+    "resendCode": "Resend Code",
+    "changeVerificationMethod": "Change verification method",
+    "verificationComplete": "Verification Complete",
+    "redirectingAfterVerification": "Your identity has been confirmed. Redirecting...",
+    "linkedPhone": "Linked phone number",
+    "noChannels": "No verification channels available. Please contact support."
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ro": "Romanian"
+  },
+  "dashboardLayout": {
+    "projects": "Projects",
+    "offers": "Offers",
+    "settings": "Settings",
+    "menu": "Workspace",
+    "admin": "Admin",
+    "user": "User",
+    "customer": "Customer",
+    "searchPlaceholder": "Search projects, offers, and settings...",
+    "account": "Account"
+  },
+  "dashboardHome": {
+    "loading": "Loading dashboard...",
+    "retry": "Try again",
+    "welcome": "Welcome back, {{name}}",
+    "startProject": "Start New Project",
+    "recentProjects": "Recent Projects",
+    "viewProjects": "All Projects",
+    "noProjectsTitle": "No projects yet",
+    "noProjectsDesc": "Start a new smart home configuration to see saved projects here.",
+    "open": "Open",
+    "recentOffers": "Recent Offers",
+    "viewOffers": "All Offers",
+    "noOffersTitle": "No offers yet",
+    "noOffersDesc": "Generate an offer from a project to see it here.",
+    "configuratorTitle": "Plan Your Smart Home",
+    "configuratorDesc": "Use the configurator to define rooms, smart functions, and create a saved offer.",
+    "remindersTitle": "Follow-up Reminders",
+    "noReminders": "No reminders at the moment.",
+    "viewOffer": "View offer",
+    "stats": {
+      "activeProjects": "Active Projects",
+      "pendingOffers": "Pending Offers",
+      "offerReady": "Offers Ready",
+      "draftOffers": "Draft Offers"
+    }
+  },
+  "configurator": {
+    "title": "Smart Home Configurator",
+    "loadingMasterData": "Loading configurator master data",
+    "preparingOptions": "Preparing configuration options…",
+    "retry": "Retry",
+    "badgeActive": "System Configuration Active",
+    "badgeComplete": "Configuration Finalised",
+    "completeSubtitle": "Your technical specification has been successfully compiled.",
+    "activeSubtitle": "Define and customise your smart environment through our structured planning process.",
+    "saveDraft": "Save Draft",
+    "module": "Module",
+    "workflowProgress": "Workflow Progress",
+    "realtimeValuation": "Real-time valuation",
+    "estimatedTotal": "Estimated Total (excl. VAT)",
+    "goBack": "Go Back",
+    "continue": "Continue Step",
+    "reviewSummary": "Review Summary",
+    "generateFinalOffer": "Generate Final Offer",
+    "noCompatibleProducts": "No compatible products for range/color. Configure in Admin.",
+    "steps": {
+      "project": "Project",
+      "rooms": "Rooms",
+      "functions": "Functions",
+      "productRange": "Product Range",
+      "color": "Color",
+      "services": "Services",
+      "summary": "Summary",
+      "generating": "Generating",
+      "offerReady": "Offer Ready"
+    },
+    "generateOffer": {
+      "title": "Generating Offer",
+      "subtitle": "We are preparing your smart home offer and documents.",
+      "status": "Status",
+      "nodeStep": "Step",
+      "nodes": {
+        "configuration": "Configuration",
+        "hardware": "Hardware",
+        "services": "Services",
+        "documentation": "Documentation"
+      },
+      "activationTitle": "Create account to finish",
+      "activationBody": "We made your project summary. To save it, download PDF/Excel, and receive the offer by email, please create an account.",
+      "createAccount": "Create Account",
+      "logIn": "Log In",
+      "secureSaved": "Your configuration will be saved to your account.",
+      "secureConnection": "Secure Connection"
+    },
+    "projectDefinition": {
+      "title": "Project Details",
+      "subtitle": "Start by naming the project, selecting the destination type, and defining the core building parameters required for the next configuration steps.",
+      "badge": "Step 01: Project",
+      "clientProfile": {
+        "title": "Client Profile",
+        "subtitle": "Commercial entity or private individual?",
+        "private": "Private Individual",
+        "company": "Business / Company",
+        "companyNameLabel": "Company Name",
+        "companyNamePlaceholder": "e.g. Acme Corp Ltd."
+      },
+      "reference": {
+        "title": "Project Reference",
+        "subtitle": "A descriptive title that identifies this configuration.",
+        "nameLabel": "Project Name",
+        "namePlaceholder": "e.g. Horizon Smart Estate - Block A"
+      },
+      "description": {
+        "title": "Project Description",
+        "optional": "optional",
+        "subtitle": "Additional building or destination context that can be reused later in the project description flow.",
+        "placeholder": "e.g. Residential complex consisting of 10 identical 3-bedroom apartments..."
+      },
+      "buildingType": {
+        "title": "Building Type / Destination",
+        "subtitle": "Determines which room types are available in the next step",
+        "descriptionLabel": "Building Description"
+      },
+      "levels": {
+        "title": "Number of Levels",
+        "subtitle": "Controls room-entry structure in the next step",
+        "inputLabel": "Total Levels"
+      },
+      "area": {
+        "title": "Built-up Area",
+        "subtitle": "Approximate project surface area",
+        "inputLabel": "Area Approx. (m?)",
+        "placeholder": "e.g. 450"
+      },
+      "complexity": {
+        "title": "Project Complexity",
+        "subtitle": "Stored as a project-definition attribute for later use",
+        "inputLabel": "Complexity",
+        "placeholder": "e.g. Standard"
+      },
+      "multiplication": {
+        "title": "Multiplication Index",
+        "subtitle": "Used later by the existing discount and calculation flow",
+        "inputLabel": "Project Multiplication Index",
+        "helper": "For a complex of 10 identical apartments, enter 10. The existing downstream pricing flow will keep using this value."
+      }
+    },
+    "roomsLevels": {
+      "title": "Floors & Rooms",
+      "subtitle": "Define the spatial layout of your building. Add rooms per level and set how many identical rooms exist.",
+      "badge": "Step 02: Building Layout",
+      "summary": {
+        "rooms": "Rooms",
+        "totalUnits": "Total Units"
+      },
+      "missingBuildingType": "Go back to Step {{step}} and select a building type. Room types will be filtered accordingly.",
+      "noRoomTypesForBuilding": "No room types are currently mapped to the selected building type. Update the mapping in master data before continuing.",
+      "levelNames": {
+        "groundFloor": "Ground Floor",
+        "floor": "Floor {{number}}"
+      },
+      "levelSummary": {
+        "roomTypes": "Room types: {{count}}",
+        "totalUnits": "Total units: {{count}}"
+      },
+      "roomCard": {
+        "title": "Room",
+        "unset": "Unset",
+        "removeRoom": "Remove room",
+        "roomType": "Room Type",
+        "identicalRooms": "Number of Identical Rooms",
+        "identicalRoomsHelper": "Functions will be applied to all {{count}} rooms of this type",
+        "newRoomName": "New Room"
+      },
+      "actions": {
+        "addRoom": "Add Room",
+        "addAnotherRoom": "Add Another Room",
+        "addFirstRoom": "Add First Room"
+      },
+      "empty": {
+        "title": "No rooms on this level yet",
+        "subtitle": "Add rooms to configure smart functions for this level."
+      },
+      "repeatedRooms": {
+        "title": "Multiple identical rooms?",
+        "subtitle": "Use the Number of Identical Rooms field to handle repeated rooms (e.g. 10 identical hotel guest rooms). Hardware will be calculated accordingly."
+      }
+    },
+    "servicesStep": {
+      "title": "Professional Services",
+      "subtitle": "Select the additional installation, programming, and support services that should be included in the offer.",
+      "badge": "Step 06: Services",
+      "exVat": "excl. VAT",
+      "added": "Added to offer",
+      "optional": "Optional",
+      "selectedCount": "{{count}} services selected",
+      "subtotal": "Services subtotal excl. VAT",
+      "noteTitle": "Services come from backoffice master data",
+      "noteBody": "Any service, description, or price change made in the admin area will be reflected here and in the generated offer after recalculation.",
+      "footer": "All service prices are shown in EUR excluding VAT and are taken from the backend master data."
+    },
+    "summary": {
+      "generate": {
+        "title": "Generate Offer",
+        "subtitle": "Your configuration is ready. Generate the offer to save the backend totals and project details.",
+        "statusMapping": "Master data update required",
+        "statusWaiting": "Waiting for backend calculation",
+        "statusRefreshing": "Refreshing backend calculation",
+        "statusReady": "All validations passed",
+        "completeMapping": "Complete Product Mapping",
+        "cta": "Generate Offer",
+        "blockedNote": "Generation is blocked until every configured function has a mapped product path",
+        "footer": "Document generation may take a few seconds"
+      },
+      "financial": {
+        "title": "Grand Total",
+        "currencyNote": "All amounts in EUR, excluding VAT",
+        "refreshing": "Refreshing totals",
+        "waiting": "Totals will appear here after the backend calculation completes.",
+        "recalculating": "Recalculating...",
+        "productsSubtotal": "Products Subtotal / Project",
+        "productsHelp": "Per-project product total from the backend engine",
+        "servicesSubtotal": "Services Subtotal / Project",
+        "servicesHelp": "Per-project service total from the backend engine",
+        "totalPerProject": "Total Per Project",
+        "totalPerProjectHelp": "Products and services before multiplying identical units",
+        "multiplier": "Project Multiplication Index",
+        "multiplierHelp": "Applied to identical apartments, rooms, or units",
+        "grossTotal": "Gross Total",
+        "grossHelp": "All projects combined before discount",
+        "discountPercent": "Discount Percent",
+        "discountPercentHelp": "Calculated by the backend discount matrix",
+        "discountAmount": "Discount Amount",
+        "discountAmountHelp": "Applied to the authoritative backend total",
+        "grandTotal": "Grand Total",
+        "exVat": "EUR - Excluding VAT",
+        "vatNote": "VAT to be added at invoice stage",
+        "footer": "This summary is rendered directly from the backend calculation so products, services, discount, and total stay aligned with the generated offer."
+      },
+      "products": {
+        "title": "Products",
+        "defaultName": "Product",
+        "calculating": "Calculating products",
+        "missingMappings": "The backend found required functions that do not have a complete product mapping yet. Update the master data before generating the offer.",
+        "waiting": "Backend-calculated products will appear here after the configuration is recalculated.",
+        "count": "{{count}} line items",
+        "footerLabel": "Products Subtotal / Project",
+        "footer": "Products shown here come directly from the backend calculation and use the authoritative offer result.",
+        "footerWarning": "Some configured functions still have missing product mappings. The offer remains blocked until master data is completed.",
+        "columns": {
+          "photo": "Photo",
+          "product": "Product",
+          "quantity": "Quantity",
+          "unitPrice": "Unit Price",
+          "subtotal": "Subtotal"
+        }
+      },
+      "services": {
+        "title": "Services",
+        "calculating": "Calculating services",
+        "count": "{{count}} service lines",
+        "empty": "No services are currently included in the backend-calculated offer.",
+        "footerLabel": "Services Subtotal / Project",
+        "columns": {
+          "service": "Service",
+          "quantity": "Quantity",
+          "unitPrice": "Unit Price",
+          "subtotal": "Subtotal"
+        }
+      },
+      "title": "Project Summary",
+      "subtitle": "Review the final project, functions, calculated products, services, totals, and offer notes before generating the offer.",
+      "badge": "Step 07: Summary"
+    }
+  },
+  "admin": {
+    "console": "Admin Console",
+    "searchPlaceholder": "Search anything...",
+    "menu": {
+      "dashboard": "Dashboard",
+      "offersMonitoring": "Offers Monitoring",
+      "masterData": "Master Data",
+      "buildingTypes": "Building Types",
+      "roomTypes": "Room Types",
+      "smartFunctions": "Smart Functions",
+      "productRanges": "Product Ranges",
+      "colors": "Colors",
+      "productsCatalog": "Products Catalog",
+      "professionalServices": "Professional Services",
+      "rulesContent": "Rules & Content",
+      "discountRules": "Discount Rules",
+      "offerConditions": "Offer Conditions",
+      "publicDisclaimers": "Public Disclaimers",
+      "followupTemplates": "Follow-up Templates",
+      "system": "System",
+      "employeeManagement": "Employee Management",
+      "accessPermissions": "Access Permissions",
+      "globalSettings": "Global Settings"
+    }
+  },
+  "adminPages": {
+    "dashboard": {
+      "title": "Administrative Overview",
+      "subtitle": "Monitor offers, team activity, and platform performance.",
+      "badge": "Platform Admin",
+      "loading": "Loading backoffice overview...",
+      "actionSummary": "Action Summary",
+      "viewAnalytics": "View Analytics",
+      "downloadReport": "Download Report",
+      "stats": {
+        "monthlyRevenue": "Monthly Revenue",
+        "monthlyRevenueLabel": "Last 30 days",
+        "totalOffers": "Total Offers",
+        "totalOffersLabel": "All generated offers",
+        "pendingReview": "Pending Review",
+        "pendingReviewLabel": "Requires attention",
+        "activeUsers": "Active Users",
+        "activeUsersLabel": "Internal team"
+      },
+      "recentOffersTitle": "Recent Technical Offers",
+      "recentOffersLink": "All Offers",
+      "table": {
+        "idProject": "ID / Project Name",
+        "status": "Status",
+        "valueExclVat": "Value (excl. VAT)"
+      },
+      "quickLinksTitle": "Quick Links",
+      "quickLinks": {
+        "hardwareCatalog": "Hardware Catalog",
+        "masterData": "Master Data",
+        "teamManagement": "Team Management"
+      },
+      "alertsTitle": "System Alerts",
+      "alerts": {
+        "inventoryTitle": "Inventory Alert",
+        "inventoryBody": "Smart Hub stock low (8 units remaining)",
+        "serviceTitle": "New Service Quote",
+        "serviceBody": "Requested for Project Marina Bay"
+      }
+    },
+    "employees": {
+      "title": "Employee Accounts",
+      "subtitle": "Create and maintain internal backoffice accounts, passwords, and activation state for staff members.",
+      "badge": "Backoffice Access",
+      "create": "Create Employee",
+      "count": "{{count}} employees",
+      "loading": "Loading employee accounts...",
+      "permissionsCount": "{{count}} permissions",
+      "active": "Active",
+      "activeBadge": "Active account",
+      "suspended": "Suspended",
+      "emptyTitle": "No employee accounts yet",
+      "emptyDesc": "Create employee accounts before assigning permissions and using the internal backoffice.",
+      "editTitle": "Edit Employee Account",
+      "createTitle": "Create Employee Account",
+      "securityNote": "Employee credentials are handled through the secured backend flow.",
+      "save": "Save Employee",
+      "saveError": "Unable to save employee account.",
+      "deleteError": "Unable to delete employee account.",
+      "searchPlaceholder": "Search by employee name or email...",
+      "roleTitle": "Role Assignment",
+      "deleteTitle": "Delete Employee Account",
+      "deleteAction": "Delete Employee",
+      "deleteHeading": "Remove employee access",
+      "deleteDescription": "Deleting this account immediately removes internal backoffice access. Existing platform records remain unchanged.",
+      "deleteBadge": "Access Revocation",
+      "fields": {
+        "name": "Employee Name",
+        "email": "Employee Email",
+        "password": "Initial Password",
+        "passwordOptional": "Reset Password (optional)",
+        "status": "Account Status"
+      },
+      "placeholders": {
+        "name": "e.g. Alex Ionescu",
+        "email": "employee@company.com",
+        "password": "Minimum 8 characters"
+      },
+      "roles": {
+        "administrator": "Administrator",
+        "engineer": "Engineer",
+        "technicalSales": "Technical Sales",
+        "maintenanceLead": "Maintenance Lead"
+      }
+    },
+    "permissions": {
+      "title": "Employee Permissions",
+      "subtitle": "Assign backend-enforced permissions for the employee modules and routes already present in the system.",
+      "badge": "Route Access",
+      "save": "Save Permissions",
+      "saveError": "Unable to save permission assignments.",
+      "loading": "Loading permission assignments...",
+      "emptyTitle": "No employee accounts available",
+      "emptyDesc": "Create an employee account first, then assign the backoffice permissions needed for that person.",
+      "employeeAccounts": "Employee Accounts",
+      "auditTitle": "Permission Summary",
+      "auditBody": "{{name}} currently has access to {{count}} permission entries.",
+      "noteTitle": "Backend Enforcement",
+      "noteBody": "Permission updates are saved through the backend and applied again after refresh or re-login.",
+      "mappingTitle": "{{name}} Permission Mapping",
+      "mappingSubtitle": "Choose which modules and actions are allowed for this employee.",
+      "roleBadge": "Role: {{role}}",
+      "groups": {
+        "core": "Core System Logic",
+        "offers": "Commercial Operations",
+        "hardware": "Hardware Ecosystem",
+        "governance": "Governance & Personnel"
+      },
+      "labels": {
+        "view_master": "View master data",
+        "edit_master": "Edit master data",
+        "delete_master": "Delete master data",
+        "view_offers": "View offers",
+        "edit_offers": "Edit offers",
+        "delete_offers": "Delete offers",
+        "view_hardware": "View products and services",
+        "edit_hardware": "Edit products and services",
+        "edit_pricing": "Edit pricing",
+        "manage_employees": "Manage employees and permissions",
+        "manage_rules": "Manage discount, content, and follow-up rules"
+      }
+    },
+    "products": {
+      "title": "Products",
+      "subtitle": "Manage your smart home products, prices, and features.",
+      "badge": "Product List",
+      "addNew": "Add New Product",
+      "searchPlaceholder": "Search by code or name...",
+      "count": "{{count}} Products",
+      "syncing": "Synchronizing Hardware Catalog...",
+      "code": "Code",
+      "productName": "Product Name",
+      "ranges": "Ranges",
+      "price": "Price",
+      "status": "Status",
+      "actions": "Actions",
+      "noProductsTitle": "No products found",
+      "noProductsDesc": "Try a different search or add a new product.",
+      "reset": "Reset",
+      "modal": {
+        "editTitle": "Edit Product",
+        "addTitle": "Add New Product",
+        "autoSave": "Changes saved automatically",
+        "cancel": "Cancel",
+        "save": "Save Product",
+        "code": "Product Code",
+        "name": "Product Name",
+        "price": "Price (EUR)",
+        "description": "Description",
+        "imageUrl": "Image URL",
+        "ranges": "Product Ranges",
+        "colors": "Colors",
+        "features": "Product Features",
+        "addMapping": "Add Mapping",
+        "function": "Function",
+        "selectFunction": "Select Function...",
+        "channel": "Channel",
+        "capacity": "Capacity",
+        "priority": "Priority",
+        "scope": "Scope",
+        "scopeRoom": "Room",
+        "scopeLevel": "Level",
+        "scopeProject": "Project",
+        "noFeatures": "No features added for this product.",
+        "deleteTitle": "Delete Product",
+        "delete": "Delete",
+        "deleteDesc": "This will permanently delete this product from your list."
+      },
+      "errors": {
+        "priceRequired": "Please type a price.",
+        "priceNumber": "Price must be a number.",
+        "pricePositive": "Price must be more than 0.",
+        "codeRequired": "Please type a product code.",
+        "nameRequired": "Please type a product name."
+      }
+    },
+    "masterData": {
+      "subtitle": "Manage {{entity}} parameters and system integration rules.",
+      "badge": "Configuration Management",
+      "newEntity": "New {{entity}}",
+      "searchPlaceholder": "Search {{entity}} types...",
+      "registered": "{{count}} Registered Items",
+      "syncing": "Synchronizing Master Registry...",
+      "noRecordsTitle": "No records found",
+      "noRecordsDesc": "No registered {{entity}} entries could be found.",
+      "clearFilters": "Clear Filters",
+      "modal": {
+        "updateTitle": "Update {{entity}}",
+        "defineTitle": "Define New {{entity}}",
+        "syncActive": "Global registry synchronization active",
+        "cancel": "Cancel",
+        "save": "Save Changes",
+        "displayName": "Display Name",
+        "uniqueCode": "Unique Identifier Code",
+        "technicalDescription": "Technical Description",
+        "technicalPlaceholder": "Enter detailed description or integration notes...",
+        "deleteTitle": "Confirm Record Deletion",
+        "terminate": "Terminate Record",
+        "areYouSure": "Are you sure?",
+        "deleteDesc": "Deleting this record will permanently remove it from the system configuration. This action cannot be undone.",
+        "irreversible": "IRREVERSIBLE ACTION"
+      }
+    }
+  },
+  "offers": {
+    "myOffersTitle": "My Offers",
+    "myOffersSubtitle": "View and manage your smart home offers and export PDF or Excel.",
+    "createNewOffer": "Create New Offer",
+    "searchPlaceholder": "Search by project name or ID...",
+    "allOffers": "All Offers",
+    "drafts": "Drafts",
+    "ready": "Ready",
+    "waiting": "Waiting",
+    "ordered": "Ordered",
+    "cancelled": "Cancelled",
+    "totalOffers": "{{count}} Total Offers",
+    "offerId": "Offer ID",
+    "projectDetails": "Project Details",
+    "structure": "Structure",
+    "status": "Status",
+    "valuation": "Valuation",
+    "actions": "Actions",
+    "rooms": "Rooms",
+    "func": "Func",
+    "exclVat": "EXCL. VAT",
+    "noOffersTitle": "No offers found",
+    "noOffersDesc": "Try adjusting your filters or search term, or create a new configuration.",
+    "newConfiguration": "New Configuration",
+    "deleteOfferTitle": "Delete Offer",
+    "cancel": "Cancel",
+    "confirmDelete": "Confirm Delete",
+    "areYouSure": "Are you sure?",
+    "deleteOfferDesc": "Deleting this offer is permanent and cannot be undone. All configuration data will be lost.",
+    "detail": {
+      "loading": "Retrieving offer details...",
+      "notFound": "Offer not found",
+      "backToOffers": "Return to offers",
+      "title": "Technical Specification & Proposal",
+      "subtitle": "Full architectural project specification with commercial valuation and hardware manifest.",
+      "exportPdf": "Export Proposal (PDF)",
+      "exportExcel": "Export Excel",
+      "rooms": "Rooms",
+      "configured": "Configured",
+      "smartFeatures": "Smart Features",
+      "functionsSelected": "Functions Selected",
+      "billOfMaterials": "Technical Bill of Materials (BOM)",
+      "lineItems": "{{count}} Line Items",
+      "componentSpec": "Component Specification",
+      "quantity": "Quantity",
+      "unitNet": "Unit Net",
+      "totalNet": "Total Net",
+      "servicesTitle": "Professional Implementation Services",
+      "noServices": "No professional services mapped to this specification.",
+      "financialTitle": "Financial Valuation Matrix",
+      "productsServices": "Products + Services",
+      "perProject": "Per Project",
+      "grossTotal": "Gross Total",
+      "discount": "Discount",
+      "grandTotal": "Grand Total Net Valuation",
+      "exclVat": "Excluding Statutory VAT",
+      "accept": "Accept Specification",
+      "validFor": "Proposal validated for 30 calendar days",
+      "lifecycle": "Project Engagement & Lifecycle",
+      "nextContact": "Next Contact",
+      "channel": "Engagement Channel",
+      "noFollowup": "No automated follow-up scheduled for this project.",
+      "recordReference": "Record Reference: {{id}}",
+      "print": "Print",
+      "email": "Email",
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "delete": "Delete",
+      "established": "Established: {{date}}",
+      "technicalVerified": "Technical Verified",
+      "location": "Secure Storage Node",
+      "specificationVersion": "Specification v1.02",
+      "quantityShort": "Qty: {{count}}",
+      "calculatedNet": "Calculated Net",
+      "noDate": "No date set",
+      "projectFallback": "Project",
+      "unknownBuildingType": "Unknown building type",
+      "emailChannel": "Email",
+      "smsChannel": "SMS",
+      "autoGeneratedNote": "This offer was generated automatically based on your selected smart home functions, products, and services. Final availability and delivery details will be confirmed by our team.",
+      "systemTeam": "System Team",
+      "systemRole": "Engineering Workflow"
+    },
+    "adminMonitor": {
+      "title": "Global Offer Monitoring",
+      "subtitle": "Centralised oversight of all project offers and transaction life cycles.",
+      "searchPlaceholder": "Search by ID, project or client...",
+      "noDate": "No date set",
+      "noTask": "No task",
+      "markOrdered": "Mark as Ordered",
+      "badge": "Sales Monitor",
+      "loading": "Synchronizing transaction data...",
+      "activeReviewers": "Active Reviewers",
+      "totalOffers": "{{count}} Total Offers",
+      "followupTitle": "Action Required: Customer Follow-ups",
+      "pendingTasks": "{{count}} Tasks Pending",
+      "reference": "Ref: {{id}}",
+      "snooze": "Snooze",
+      "viewHistory": "View History",
+      "contactClient": "Contact Client",
+      "ledgerTitle": "Transaction Ledger",
+      "anonymousClient": "Anonymous Client",
+      "viewOffer": "View offer",
+      "download": "Download",
+      "channels": {
+        "email": "Email",
+        "sms": "SMS"
+      },
+      "filters": {
+        "allStatuses": "All Statuses",
+        "anyDate": "Any Date",
+        "today": "Today",
+        "last7Days": "Last 7 Days",
+        "last30Days": "Last 30 Days",
+        "anyValue": "Any Value",
+        "highValue": "> EUR 50k",
+        "mediumValue": "EUR 10k - EUR 50k",
+        "lowValue": "< EUR 10k"
+      },
+      "followupStatuses": {
+        "pending": "Pending",
+        "snoozed": "Snoozed",
+        "completed": "Completed",
+        "noContact": "No contact data",
+        "reminded": "Reminder {{count}} sent"
+      },
+      "followupReasons": {
+        "offerNotOrdered": "Offer not ordered",
+        "unfinishedConfiguration": "Unfinished configuration"
+      },
+      "systemAlerts": {
+        "title": "System Alerts",
+        "stockTitle": "Stock Availability",
+        "stockBody": "3 pending orders awaiting Smart Hub Pro stock allocation.",
+        "projectionTitle": "Financial Projection",
+        "projectionBody": "Q1 2026 revenue projections updated based on latest conversion rates."
+      },
+      "table": {
+        "offerId": "Offer ID",
+        "clientProject": "Client & Project",
+        "valuation": "Valuation",
+        "status": "Status",
+        "followup": "Follow-up",
+        "actions": "Actions"
+      }
+    },
+    "statuses": {
+      "draft": "Draft",
+      "inProgress": "In Progress",
+      "offerGenerated": "Offer Generated",
+      "offerReady": "Offer Ready",
+      "waiting": "Waiting Approval",
+      "ordered": "Ordered",
+      "cancelled": "Cancelled"
+    },
+    "followupReasons": {
+      "offerNotOrdered": "Offer not ordered",
+      "unfinishedConfiguration": "Unfinished configuration",
+      "processVerification": "Process verification"
+    }
+  }
+}
