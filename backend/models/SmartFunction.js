@@ -26,6 +26,21 @@ SmartFunction.init({
         type: DataTypes.TEXT,
         allowNull: true
     },
+    inputChannelCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    outputChannelCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    generalChannelCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
     translations: {
         type: DataTypes.JSONB,
         allowNull: false,

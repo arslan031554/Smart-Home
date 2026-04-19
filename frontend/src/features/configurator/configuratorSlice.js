@@ -44,6 +44,7 @@ function applyHydratedConfiguratorState(state, snapshot = {}) {
     if (snapshot.range !== undefined) state.range = snapshot.range;
     if (snapshot.color !== undefined) state.color = snapshot.color;
     if (snapshot.customerComments !== undefined) state.customerComments = snapshot.customerComments;
+    if (snapshot.currentProjectId !== undefined) state.currentProjectId = snapshot.currentProjectId;
     if (snapshot.currentOfferId !== undefined) state.currentOfferId = snapshot.currentOfferId;
     if (snapshot.currentStep !== undefined) {
         state.currentStep = Math.max(state.currentStep || 1, clampConfiguratorStep(snapshot.currentStep));
@@ -68,6 +69,20 @@ function buildProjectInfoFromOffer(offer, levels) {
     };
 }
 
+function buildProjectInfoFromProject(project, levels) {
+    return {
+        name: project?.name || '',
+        buildingType: project?.buildingType?.id || project?.buildingTypeId || '',
+        levelsCount: Math.max(1, parseInt((project?.levelsCount ?? levels.length ?? 1), 10) || 1),
+        area: project?.builtUpArea ?? '',
+        description: project?.description || '',
+        projectComplexity: project?.projectComplexity || '',
+        projectMultiplicationIndex: Math.max(1, parseInt((project?.multiplicationIndex ?? 1), 10) || 1),
+        clientType: 'private',
+        companyName: '',
+    };
+}
+
 function extractOfferConfiguratorState(offer) {
     const snapshot = offer?.calculationSnapshot || {};
     const levels = normalizeConfiguratorLevels(Array.isArray(snapshot.levels) ? snapshot.levels : []);
@@ -83,12 +98,51 @@ function extractOfferConfiguratorState(offer) {
 
     return {
         id: offer?.id || null,
+        projectId: offer?.projectId || null,
         levels,
         services: selectedServiceIds,
         range: snapshot.selectedRangeId ?? snapshot.rangeId ?? snapshot.range ?? null,
         color: snapshot.selectedColorId ?? snapshot.colorId ?? snapshot.color ?? null,
         customerComments: offer?.customerComments ?? snapshot.customerComments ?? '',
         projectInfo: buildProjectInfoFromOffer(offer, levels),
+    };
+}
+
+function extractProjectConfiguratorState(project) {
+    const levels = normalizeConfiguratorLevels(
+        Array.isArray(project?.levels)
+            ? project.levels.map((level) => ({
+                id: level.id,
+                name: level.name,
+                rooms: Array.isArray(level.rooms)
+                    ? level.rooms.map((room) => ({
+                        id: room.id,
+                        type: room.roomTypeId || room.roomType?.id || '',
+                        roomTypeId: room.roomTypeId || room.roomType?.id || '',
+                        name: room.name || room.roomType?.name || 'Room',
+                        roomCount: normalizeRoomCount(room.roomCount ?? room.count),
+                        functions: Array.isArray(room.functionSelections)
+                            ? room.functionSelections.map((selection) => ({
+                                id: selection.smartFunctionId || selection.smartFunction?.id,
+                                smartFunctionId: selection.smartFunctionId || selection.smartFunction?.id,
+                                quantity: normalizeRoomCount(selection.quantity),
+                            }))
+                            : [],
+                    }))
+                    : [],
+            }))
+            : []
+    );
+
+    return {
+        id: project?.id || null,
+        projectId: project?.id || null,
+        levels,
+        services: [],
+        range: project?.selectedRangeId ?? null,
+        color: project?.selectedColorId ?? null,
+        customerComments: '',
+        projectInfo: buildProjectInfoFromProject(project, levels),
     };
 }
 
@@ -122,6 +176,7 @@ export const syncConfiguratorDraft = createAsyncThunk(
                 range: normalized.rangeId,
                 color: normalized.colorId,
                 customerComments: normalized.customerComments,
+                currentProjectId: configurator.currentProjectId || null,
                 currentOfferId: configurator.currentOfferId || null,
                 currentStep: configurator.currentStep || 1,
                 language: normalized.language || configurator.calculation?.language || 'en',
@@ -180,6 +235,7 @@ export const syncGuestConfiguratorDraft = createAsyncThunk(
                 range: normalized.rangeId,
                 color: normalized.colorId,
                 customerComments: normalized.customerComments,
+                currentProjectId: configurator.currentProjectId || null,
                 currentOfferId: configurator.currentOfferId || null,
                 currentStep: configurator.currentStep || 1,
                 language: normalized.language || configurator.calculation?.language || 'en',
@@ -202,6 +258,18 @@ export const attachGuestDraftToAccount = createAsyncThunk(
             const response = await api.post('/configurator-drafts/current/attach', { guestSessionId }, {
                 headers: { 'x-guest-session-id': guestSessionId },
             });
+            return response.data.data;
+        } catch (error) {
+            return rejectWithValue(normalizeApiError(error));
+        }
+    }
+);
+
+export const loadProjectWorkspace = createAsyncThunk(
+    'configurator/loadProjectWorkspace',
+    async (projectId, { rejectWithValue }) => {
+        try {
+            const response = await api.get(`/projects/${projectId}`);
             return response.data.data;
         } catch (error) {
             return rejectWithValue(normalizeApiError(error));
@@ -243,6 +311,7 @@ const initialState = {
     customerComments: '',
     status: 'idle',
     isGuest: false,
+    currentProjectId: null,
     currentOfferId: null,
     calculation: null,
     isCalculating: false,
@@ -433,6 +502,7 @@ const configuratorSlice = createSlice({
             state.color = reopened.color;
             state.customerComments = reopened.customerComments;
             state.projectInfo = { ...state.projectInfo, ...reopened.projectInfo };
+            state.currentProjectId = reopened.projectId || null;
             state.currentOfferId = reopened.id;
             state.currentStep = 1;
             state.calculation = null;
@@ -474,6 +544,20 @@ const configuratorSlice = createSlice({
                 if (!snap) return;
                 applyHydratedConfiguratorState(state, snap);
             })
+            .addCase(loadProjectWorkspace.fulfilled, (state, action) => {
+                const workspace = extractProjectConfiguratorState(action.payload || {});
+                state.levels = workspace.levels.length ? workspace.levels : [{ id: 1, name: 'Ground Floor', rooms: [] }];
+                state.services = workspace.services;
+                state.range = workspace.range;
+                state.color = workspace.color;
+                state.customerComments = workspace.customerComments;
+                state.projectInfo = { ...state.projectInfo, ...workspace.projectInfo };
+                state.currentProjectId = workspace.projectId || null;
+                state.currentOfferId = null;
+                state.currentStep = 1;
+                state.calculation = null;
+                state.calcError = null;
+            })
             .addCase(attachGuestDraftToAccount.fulfilled, (state, action) => {
                 const snap = action.payload?.snapshot;
                 if (!snap) return;
@@ -487,6 +571,7 @@ const configuratorSlice = createSlice({
                 state.color = reopened.color;
                 state.customerComments = reopened.customerComments;
                 state.projectInfo = { ...state.projectInfo, ...reopened.projectInfo };
+                state.currentProjectId = reopened.projectId || null;
                 state.currentOfferId = reopened.id;
                 state.currentStep = 1;
                 state.calculation = null;

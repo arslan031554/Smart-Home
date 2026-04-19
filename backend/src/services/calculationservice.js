@@ -16,6 +16,43 @@ const normalizeRoomCount = (value) => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 };
 
+function collectSelectedFunctionIds(levels = []) {
+    const ids = new Set();
+    (Array.isArray(levels) ? levels : []).forEach((level) => {
+        (Array.isArray(level.rooms) ? level.rooms : []).forEach((room) => {
+            const selections = Array.isArray(room.functionSelections)
+                ? room.functionSelections
+                : (Array.isArray(room.functions) ? room.functions : []);
+            selections.forEach((selection) => {
+                const smartFunctionId = selection?.smartFunctionId ?? selection?.id;
+                if (smartFunctionId) ids.add(smartFunctionId);
+            });
+        });
+    });
+    return Array.from(ids);
+}
+
+function resolveFunctionDemand(functionMeta = {}, selection = {}) {
+    const explicitInput = safeNum(functionMeta?.inputChannelCount, 0);
+    const explicitOutput = safeNum(functionMeta?.outputChannelCount, 0);
+    const explicitGeneral = safeNum(functionMeta?.generalChannelCount, 0);
+
+    if ((explicitInput + explicitOutput + explicitGeneral) > 0) {
+        return {
+            input: Math.max(0, explicitInput),
+            output: Math.max(0, explicitOutput),
+            general: Math.max(0, explicitGeneral),
+        };
+    }
+
+    const channelType = String(functionMeta?.channelType || selection?.channelType || 'GENERAL').toUpperCase();
+    return {
+        input: channelType === 'IN' ? 1 : 0,
+        output: channelType === 'OUT' ? 1 : 0,
+        general: channelType === 'GENERAL' ? 1 : 0,
+    };
+}
+
 
 function summarizeRequirements(requirements = {}) {
     const summary = { room: {}, level: {}, project: {} };
@@ -99,7 +136,20 @@ export const calculateOffer = async (projectData) => {
     const language = normalizeBusinessLanguage(projectData.language);
 
     const compatibleProductIds = await getCompatibleProductIds(selectedRangeId, selectedColorId);
-    const requirements = aggregateRequirements(levels);
+    const { SmartFunction } = (await import('../../models/index.js')).default;
+    const selectedFunctionIds = collectSelectedFunctionIds(levels);
+    const smartFunctionRows = selectedFunctionIds.length
+        ? await SmartFunction.findAll({
+            where: { id: { [Op.in]: selectedFunctionIds } },
+            attributes: ['id', 'channelType', 'inputChannelCount', 'outputChannelCount', 'generalChannelCount'],
+        })
+        : [];
+    const smartFunctionDemandMap = new Map((smartFunctionRows || []).map((row) => {
+        const plain = row.toJSON ? row.toJSON() : row;
+        return [plain.id, plain];
+    }));
+
+    const requirements = aggregateRequirements(levels, smartFunctionDemandMap);
     const {
         products: allocatedProducts,
         unmetRequirements,
@@ -148,7 +198,7 @@ function isValidUuid(value) {
 /**
  * Aggregates function counts; safe for missing rooms/functions.
  */
-const aggregateRequirements = (levels) => {
+const aggregateRequirements = (levels, smartFunctionDemandMap = new Map()) => {
     const requirements = {
         room: {},
         level: {},
@@ -169,9 +219,16 @@ const aggregateRequirements = (levels) => {
                 const funcId = f?.smartFunctionId ?? f?.id;
                 if (!funcId) return;
                 const qty = Math.max(0, safeNum(f.quantity, 1)) * roomCount;
-                requirements.room[roomId][funcId] = (requirements.room[roomId][funcId] || 0) + qty;
-                requirements.level[levelId][funcId] = (requirements.level[levelId][funcId] || 0) + qty;
-                requirements.project.project[funcId] = (requirements.project.project[funcId] || 0) + qty;
+                const demand = resolveFunctionDemand(smartFunctionDemandMap.get(funcId), f);
+                if (demand.input > 0) {
+                    requirements.room[roomId][funcId] = (requirements.room[roomId][funcId] || 0) + (qty * demand.input);
+                }
+                if (demand.output > 0) {
+                    requirements.level[levelId][funcId] = (requirements.level[levelId][funcId] || 0) + (qty * demand.output);
+                }
+                if (demand.general > 0) {
+                    requirements.project.project[funcId] = (requirements.project.project[funcId] || 0) + (qty * demand.general);
+                }
             });
         });
     });
@@ -394,7 +451,11 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
     };
     if (Array.isArray(compatibleProductIds)) {
         if (compatibleProductIds.length === 0) {
-            return [];
+            return {
+                products: [],
+                unmetRequirements: [],
+                allocationDiagnostics: [],
+            };
         }
         mappingOptions.where.productId = { [Op.in]: compatibleProductIds };
     }
@@ -538,23 +599,6 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
             Object.keys(entityReqs || {}).forEach((funcId) => requiredFunctionIds.add(funcId));
         });
     });
-    const smartFunctionRows = requiredFunctionIds.size
-        ? await (await import('../../models/index.js')).default.SmartFunction.findAll({
-            where: { id: { [Op.in]: Array.from(requiredFunctionIds) } },
-            attributes: ['id', 'channelType'],
-        })
-        : [];
-    const smartFunctionChannelMap = new Map((smartFunctionRows || []).map((row) => {
-        const plain = row.toJSON ? row.toJSON() : row;
-        return [plain.id, plain.channelType || 'GENERAL'];
-    }));
-
-    const inferExpectedScopes = (channelType) => {
-        const normalized = String(channelType || 'GENERAL').toUpperCase();
-        if (normalized === 'IN') return ['room'];
-        if (normalized === 'OUT') return ['level'];
-        return ['project'];
-    };
 
     for (const funcId of requiredFunctionIds) {
         const mappingsForFunc = funcMappings[funcId] || [];
@@ -564,9 +608,14 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
             level: mappingsForFunc.filter(m => m.calculationScope === 'level' && channelAllowed(m, 'level')),
             project: mappingsForFunc.filter(m => m.calculationScope === 'project' && channelAllowed(m, 'project'))
         };
-        const scopesToEvaluate = mappingsForFunc.length
-            ? ['room', 'level', 'project'].filter((scope) => scopeGroups[scope].length > 0)
-            : inferExpectedScopes(smartFunctionChannelMap.get(funcId));
+        const scopesWithRequirements = ['room', 'level', 'project'].filter((scope) => {
+            const scopeData = requirements[scope] || {};
+            return Object.values(scopeData).some((entityReqs) => safeNum(entityReqs?.[funcId]) > 0);
+        });
+        const scopesToEvaluate = Array.from(new Set([
+            ...scopesWithRequirements,
+            ...['room', 'level', 'project'].filter((scope) => scopeGroups[scope].length > 0)
+        ]));
 
         for (const scope of scopesToEvaluate) {
             const scopeMappings = scopeGroups[scope];
@@ -721,9 +770,6 @@ const calculateTotals = async (products, services, multiplicationIndex) => {
         grandTotal
     };
 };
-
-
-
 
 
 

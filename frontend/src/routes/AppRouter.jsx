@@ -134,6 +134,10 @@ const router = createBrowserRouter([
                     {id: 'OUT', name: 'OUT (Per Level)'}, 
                     {id: 'GENERAL', name: 'GENERAL (Per Project)'}
                 ]},
+                { name: 'inputChannelCount', label: 'Input Channels / Selection', type: 'number', placeholder: '0' },
+                { name: 'outputChannelCount', label: 'Output Channels / Selection', type: 'number', placeholder: '0' },
+                { name: 'generalChannelCount', label: 'General Channels / Selection', type: 'number', placeholder: '0' },
+                { name: 'sortOrder', label: 'Display Order', type: 'number', placeholder: '0' },
                 { name: 'icon', label: 'Visual Identity (Icon)', type: 'select', options: [
                     {id: 'Sun', name: 'Sun (Lighting)'},
                     {id: 'Thermometer', name: 'Thermometer (Climate)'},
@@ -162,7 +166,9 @@ const router = createBrowserRouter([
                     {id: 'per_level', name: 'Per Level'},
                     {id: 'per_product_qty', name: 'Per Product Quantity'},
                     {id: 'per_function_qty', name: 'Per Function Quantity'}
-                ] }
+                ] },
+                { name: 'smartFunctions', label: 'Assigned Smart Functions', type: 'multiselect', sourceKey: 'smartFunctions' },
+                { name: 'isOptionalForCustomer', label: 'Optional for customer', type: 'toggle', default: true },
             ]} /></AdminPermissionRoute> },
             { path: 'discounts', element: <AdminPermissionRoute permission="manage_rules"><MasterDataManagement title="Discount Rules" entityName="Rule" icon={Percent} storeKey="discounts" extraFields={[{ name: 'minMultiplier', label: 'Min Units', type: 'number', placeholder: '0' }, { name: 'maxMultiplier', label: 'Max Units', type: 'number', placeholder: '1000' }, { name: 'discountPercent', label: 'Discount %', type: 'number', placeholder: '0' }, { name: 'isActive', label: 'Active', type: 'toggle', default: true }]} /></AdminPermissionRoute> },
             { path: 'conditions', element: <AdminPermissionRoute permission="manage_rules"><MasterDataManagement title="Offer Conditions" entityName="Condition" icon={FileText} storeKey="conditions" formFields={[

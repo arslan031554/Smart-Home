@@ -15,11 +15,22 @@ const SERVICE_ICONS = {
     design: Lightbulb,
 };
 
+function resolveServiceIcon(service = {}) {
+    const haystack = `${service.code || ''} ${service.name || ''}`.toLowerCase();
+    if (haystack.includes('install')) return Briefcase;
+    if (haystack.includes('maint')) return ShieldCheck;
+    if (haystack.includes('cloud')) return Radio;
+    if (haystack.includes('train')) return GraduationCap;
+    if (haystack.includes('design')) return Lightbulb;
+    if (haystack.includes('program') || haystack.includes('config')) return Settings;
+    return SERVICE_ICONS[String(service.id || '').toLowerCase()] || Settings;
+}
+
 export default function ServicesStep() {
     const dispatch = useDispatch();
     const { t, i18n } = useTranslation();
-    const { services: selectedServices } = useSelector((state) => state.configurator);
-    const services = useSelector((state) => state.admin.publicServices) || [];
+    const { services: selectedServices, levels } = useSelector((state) => state.configurator);
+    const servicesFromStore = useSelector((state) => state.admin.publicServices);
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const formatCurrency = (value) => new Intl.NumberFormat(locale, {
         style: 'currency',
@@ -27,10 +38,37 @@ export default function ServicesStep() {
         maximumFractionDigits: 0,
     }).format(Number(value || 0));
 
-    const handleToggle = (service) => dispatch(toggleService(service.id));
+    const projectFunctionIds = React.useMemo(() => {
+        const ids = new Set();
+        (Array.isArray(levels) ? levels : []).forEach((level) => {
+            (Array.isArray(level.rooms) ? level.rooms : []).forEach((room) => {
+                const roomFunctions = Array.isArray(room.functions) ? room.functions : [];
+                roomFunctions.forEach((selection) => {
+                    const smartFunctionId = selection?.smartFunctionId || selection?.id;
+                    if (smartFunctionId) ids.add(smartFunctionId);
+                });
+            });
+        });
+        return ids;
+    }, [levels]);
 
-    const selectedTotal = services
-        .filter((service) => selectedServices.includes(service.id))
+    const visibleServices = React.useMemo(() => {
+        const services = Array.isArray(servicesFromStore) ? servicesFromStore : [];
+        return services.filter((service) => {
+        const mappedFunctions = Array.isArray(service.smartFunctions) ? service.smartFunctions : [];
+        if (mappedFunctions.length === 0) return true;
+        return mappedFunctions.some((smartFunctionId) => projectFunctionIds.has(smartFunctionId));
+        });
+    }, [projectFunctionIds, servicesFromStore]);
+
+    const handleToggle = (service) => {
+        if (service?.isOptionalForCustomer === false) return;
+        dispatch(toggleService(service.id));
+    };
+
+    const activeServices = visibleServices.filter((service) => service?.isOptionalForCustomer === false || selectedServices.includes(service.id));
+
+    const selectedTotal = activeServices
         .reduce((acc, service) => acc + Number(service.price || 0), 0);
 
     return (
@@ -42,15 +80,17 @@ export default function ServicesStep() {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {services.map((service) => {
-                    const isSelected = selectedServices.includes(service.id);
-                    const Icon = SERVICE_ICONS[service.id] || Settings;
+                {visibleServices.map((service) => {
+                    const isMandatory = service?.isOptionalForCustomer === false;
+                    const isSelected = isMandatory || selectedServices.includes(service.id);
+                    const Icon = resolveServiceIcon(service);
                     return (
                         <Card
                             key={service.id}
                             onClick={() => handleToggle(service)}
                             className={clsx(
-                                'p-8 border-2 cursor-pointer transition-all duration-300 group relative overflow-hidden active:scale-[0.98]',
+                                'group relative overflow-hidden border-2 p-8 transition-all duration-300 active:scale-[0.98]',
+                                isMandatory ? 'cursor-default' : 'cursor-pointer',
                                 isSelected
                                     ? 'border-primary-500 bg-white shadow-premium ring-2 ring-primary-500/10'
                                     : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-md'
@@ -80,7 +120,9 @@ export default function ServicesStep() {
                                             variant={isSelected ? 'success' : 'neutral'}
                                             className={clsx('text-[10px] font-bold border-none px-2.5 py-1', isSelected ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400')}
                                         >
-                                            {isSelected
+                                            {isMandatory
+                                                ? t('configurator.servicesStep.mandatory', { defaultValue: 'Always included' })
+                                                : isSelected
                                                 ? t('configurator.servicesStep.added', { defaultValue: 'Added to offer' })
                                                 : t('configurator.servicesStep.optional', { defaultValue: 'Optional' })}
                                         </Badge>
@@ -99,13 +141,13 @@ export default function ServicesStep() {
                 })}
             </div>
 
-            {selectedServices.length > 0 && (
+            {activeServices.length > 0 && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-7 py-5 bg-primary-950 text-white rounded-2xl shadow-xl">
                     <div className="flex items-center gap-3">
                         <Check className="w-5 h-5 text-emerald-400" />
                         <span className="text-sm font-bold">
                             {t('configurator.servicesStep.selectedCount', {
-                                count: selectedServices.length,
+                                count: activeServices.length,
                                 defaultValue: '{{count}} services selected',
                             })}
                         </span>
@@ -116,6 +158,14 @@ export default function ServicesStep() {
                     </div>
                 </div>
             )}
+
+            {visibleServices.length === 0 ? (
+                <Card className="p-6 border border-slate-100 bg-white shadow-none">
+                    <p className="text-sm text-slate-500">
+                        {t('configurator.servicesStep.noRelevantServices', { defaultValue: 'No services are currently mapped to the selected smart-home functions.' })}
+                    </p>
+                </Card>
+            ) : null}
 
             <Card className="p-8 bg-primary-50 border border-primary-100 shadow-none">
                 <div className="flex items-start gap-4">

@@ -1,10 +1,11 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateProjectInfo } from '../../features/configurator/configuratorSlice';
-import { Building, Home, Briefcase, Store, Hotel, FileText, MapPin, Hash, Layers, Target, Info, PencilLine, Gauge } from 'lucide-react';
+import { Building, Home, Briefcase, Store, Hotel, FileText, MapPin, Hash, Layers, Target, Info, PencilLine, Gauge, ShieldCheck, UserPlus, LogIn } from 'lucide-react';
 import { clsx } from 'clsx';
-import { Card, SectionTitle, Input, Badge } from '../common/UIComponents';
+import { Card, SectionTitle, Input, Badge, Button } from '../common/UIComponents';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 const LocalInput = React.memo(({ name, value, onChange, ...props }) => {
     const [localVal, setLocalVal] = React.useState(value ?? '');
@@ -34,9 +35,15 @@ const BUILDING_ICONS = {
 
 export default function ProjectDefinitionStep({ validationErrors = {} }) {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { t } = useTranslation();
     const { projectInfo } = useSelector((state) => state.configurator);
-    const BUILDING_TYPES = useSelector((state) => state.admin.buildingTypes) || [];
+    const buildingTypesFromStore = useSelector((state) => state.admin.buildingTypes);
+    const { isAuthenticated, user } = useSelector((state) => state.auth);
+    const BUILDING_TYPES = React.useMemo(
+        () => (Array.isArray(buildingTypesFromStore) ? buildingTypesFromStore : []),
+        [buildingTypesFromStore]
+    );
 
     const selectedBuildingType = React.useMemo(
         () => BUILDING_TYPES.find((type) => type.id === projectInfo.buildingType) || null,
@@ -59,6 +66,60 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                 subtitle={t('configurator.projectDefinition.subtitle')}
                 badge={t('configurator.projectDefinition.badge')}
             />
+
+            <Card className="rounded-[2rem] border border-primary-100 bg-primary-50 p-6">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-primary-200 bg-white text-primary-700 shadow-soft">
+                            <ShieldCheck className="h-5 w-5" />
+                        </div>
+                            <div className="space-y-2">
+                                <div className="flex flex-wrap items-center gap-3">
+                                <h4 className="text-lg font-semibold text-textPrimary">
+                                    {t('configurator.projectDefinition.accountAccess.title', { defaultValue: 'Account & Offer Access' })}
+                                </h4>
+                                <Badge variant={isAuthenticated ? 'success' : 'info'}>
+                                    {isAuthenticated
+                                        ? t('configurator.projectDefinition.accountAccess.connected', { defaultValue: 'Account Connected' })
+                                        : t('configurator.projectDefinition.accountAccess.guestMode', { defaultValue: 'Guest Start Enabled' })}
+                                </Badge>
+                            </div>
+                            <p className="max-w-2xl text-sm leading-relaxed text-textSecondary">
+                                {isAuthenticated
+                                    ? t('configurator.projectDefinition.accountAccess.connectedBody', {
+                                        defaultValue: 'Your verified customer account stores the final offer, PDFs, reminders, and future edits under {{email}}.',
+                                        email: user?.email || t('auth.account', { defaultValue: 'your account' }),
+                                    })
+                                    : t('configurator.projectDefinition.accountAccess.guestBody', {
+                                        defaultValue: 'The project can start without an account. Before the final offer is generated, the customer must create or log into an account, complete the email or SMS verification step, and the saved guest configuration will be attached automatically.',
+                                    })}
+                            </p>
+                        </div>
+                    </div>
+
+                    {!isAuthenticated ? (
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                            <Button
+                                size="lg"
+                                className="gap-2"
+                                onClick={() => navigate('/auth/register', { state: { returnTo: '/configurator', returnStep: 1 } })}
+                            >
+                                <UserPlus className="h-4.5 w-4.5" />
+                                {t('auth.createAccount', { defaultValue: 'Create Account' })}
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                size="lg"
+                                className="gap-2"
+                                onClick={() => navigate('/auth/login', { state: { returnTo: '/configurator', returnStep: 1 } })}
+                            >
+                                <LogIn className="h-4.5 w-4.5" />
+                                {t('nav.login', { defaultValue: 'Log In' })}
+                            </Button>
+                        </div>
+                    ) : null}
+                </div>
+            </Card>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <Card className="rounded-[2rem] p-7">

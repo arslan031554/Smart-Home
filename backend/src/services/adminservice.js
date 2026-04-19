@@ -3,12 +3,13 @@ import sequelize from '../config/database.js';
 import { serializeProductForApi } from '../serializers/productserializer.js';
 import { serializeRoomTypeForApi } from '../serializers/roomtypeserializer.js';
 import { serializeSmartFunctionForApi } from '../serializers/smartfunctionserializer.js';
+import { serializeServiceForApi } from '../serializers/serviceserializer.js';
 import { normalizeTranslations } from '../utils/localization.js';
 import bcrypt from 'bcryptjs';
 import { Op, fn, col } from 'sequelize';
 import { getDefaultPermissionsForEmployeeRole, normalizePermissions } from '../constants/adminpermissions.js';
 
-const { RoomType, BuildingType, ProductRange, Color, ProductFunctionMapping, SmartFunction, User, Offer } = models;
+const { RoomType, BuildingType, ProductRange, Color, ProductFunctionMapping, SmartFunction, Service, User, Offer } = models;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** Include options for models that have relations needed in list/detail */
@@ -26,6 +27,9 @@ function getDefaultIncludes(modelName) {
             { model: ProductFunctionMapping, as: 'mappings', include: [{ model: SmartFunction, as: 'smartFunction', attributes: ['id', 'name', 'code'] }] }
         ];
     }
+    if (modelName === 'Service') {
+        return [{ model: SmartFunction, as: 'smartFunctions', attributes: ['id', 'name'], through: { attributes: [] } }];
+    }
     return [];
 }
 
@@ -41,6 +45,7 @@ export const getAll = async (modelName, options = {}) => {
     if (modelName === 'Product') return rows.map((row) => serializeProductForApi(row));
     if (modelName === 'RoomType') return rows.map((row) => serializeRoomTypeForApi(row));
     if (modelName === 'SmartFunction') return rows.map((row) => serializeSmartFunctionForApi(row));
+    if (modelName === 'Service') return rows.map((row) => serializeServiceForApi(row));
     return rows;
 };
 
@@ -53,6 +58,7 @@ export const getById = async (modelName, id, options = {}) => {
     if (modelName === 'Product' && row) return serializeProductForApi(row);
     if (modelName === 'RoomType' && row) return serializeRoomTypeForApi(row);
     if (modelName === 'SmartFunction' && row) return serializeSmartFunctionForApi(row);
+    if (modelName === 'Service' && row) return serializeServiceForApi(row);
     return row;
 };
 
@@ -121,6 +127,7 @@ const normalizePayload = (modelName, data) => {
     if (modelName === 'Service') {
         if (d.price !== undefined) { d.unitPriceEurExVat = Number(d.price); delete d.price; }
         if (d.type !== undefined) { d.pricingMode = d.type; delete d.type; }
+        delete d.smartFunctions;
         if (!d.code && d.name) {
             d.code = d.name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').toUpperCase().slice(0, 32) || `SVC-${Date.now()}`;
         }
@@ -264,6 +271,10 @@ export const create = async (modelName, data) => {
     }
     const roomTypeIds = modelName === 'SmartFunction' ? (data.roomTypes || []) : null;
     const buildingTypeIds = modelName === 'RoomType' ? (data.buildingTypes || []) : null;
+    const serviceFunctionIds = modelName === 'Service' ? (data.smartFunctions || []) : null;
+    if (modelName === 'Service' && Array.isArray(serviceFunctionIds)) {
+        await assertIdsExist({ model: SmartFunction, ids: serviceFunctionIds, fieldName: 'smartFunctions' });
+    }
     const record = await models[modelName].create(normalizePayload(modelName, data));
     if (modelName === 'SmartFunction' && Array.isArray(roomTypeIds)) {
         await record.setRoomTypes(roomTypeIds);
@@ -271,10 +282,14 @@ export const create = async (modelName, data) => {
     if (modelName === 'RoomType' && Array.isArray(buildingTypeIds)) {
         await record.setBuildingTypes(buildingTypeIds);
     }
-    if (modelName === 'SmartFunction' || modelName === 'RoomType') {
+    if (modelName === 'Service' && Array.isArray(serviceFunctionIds)) {
+        await record.setSmartFunctions(serviceFunctionIds);
+    }
+    if (modelName === 'SmartFunction' || modelName === 'RoomType' || modelName === 'Service') {
         const row = await models[modelName].findByPk(record.id, { include: getDefaultIncludes(modelName) });
         if (modelName === 'RoomType') return serializeRoomTypeForApi(row);
         if (modelName === 'SmartFunction') return serializeSmartFunctionForApi(row);
+        if (modelName === 'Service') return serializeServiceForApi(row);
         return row;
     }
     return record;
@@ -286,6 +301,12 @@ export const update = async (modelName, id, data) => {
     }
     const roomTypeIds = modelName === 'SmartFunction' ? (data.roomTypes || []) : null;
     const buildingTypeIds = modelName === 'RoomType' ? (data.buildingTypes || []) : null;
+    const serviceFunctionIds = modelName === 'Service' && Object.prototype.hasOwnProperty.call(data, 'smartFunctions')
+        ? (data.smartFunctions || [])
+        : null;
+    if (modelName === 'Service' && serviceFunctionIds !== null) {
+        await assertIdsExist({ model: SmartFunction, ids: serviceFunctionIds, fieldName: 'smartFunctions' });
+    }
     const record = await models[modelName].findByPk(id);
     if (!record) throw new Error(`${modelName} not found`);
     await record.update(normalizePayload(modelName, data));
@@ -295,10 +316,14 @@ export const update = async (modelName, id, data) => {
     if (modelName === 'RoomType' && buildingTypeIds !== null) {
         await record.setBuildingTypes(Array.isArray(buildingTypeIds) ? buildingTypeIds : []);
     }
-    if (modelName === 'SmartFunction' || modelName === 'RoomType') {
+    if (modelName === 'Service' && serviceFunctionIds !== null) {
+        await record.setSmartFunctions(Array.isArray(serviceFunctionIds) ? serviceFunctionIds : []);
+    }
+    if (modelName === 'SmartFunction' || modelName === 'RoomType' || modelName === 'Service') {
         const row = await models[modelName].findByPk(id, { include: getDefaultIncludes(modelName) });
         if (modelName === 'RoomType') return serializeRoomTypeForApi(row);
         if (modelName === 'SmartFunction') return serializeSmartFunctionForApi(row);
+        if (modelName === 'Service') return serializeServiceForApi(row);
         return row;
     }
     return record;

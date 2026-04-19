@@ -40,6 +40,7 @@ export function clearGuestSessionId() {
 
 function normalizeStoredSnapshot(snapshot = {}) {
     return {
+        currentProjectId: snapshot.currentProjectId || null,
         projectInfo: snapshot.projectInfo || {},
         levels: Array.isArray(snapshot.levels) ? snapshot.levels : [],
         services: Array.isArray(snapshot.services) ? snapshot.services : [],

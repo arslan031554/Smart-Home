@@ -43,6 +43,7 @@ export function normalizeConfiguratorLevels(levels = []) {
 
 export function buildNormalizedOfferPayload(configuratorState = {}) {
     return {
+        projectId: configuratorState.currentProjectId || null,
         levels: normalizeConfiguratorLevels(configuratorState.levels || []),
         projectInfo: configuratorState.projectInfo || {},
         rangeId: configuratorState.range ?? null,

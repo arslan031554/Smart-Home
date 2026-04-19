@@ -72,6 +72,7 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             customerComments: offerData.customerComments || null,
         });
         const payload = {
+            projectId: offerData.projectId || normalized.projectId || null,
             projectInfo: normalized.projectInfo,
             levels: normalized.levels,
             rangeId: normalized.rangeId,

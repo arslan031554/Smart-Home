@@ -5,6 +5,7 @@ import RoomFunctionSelection from '../../models/RoomFunctionSelection.js';
 import RoomType from '../../models/RoomType.js';
 import SmartFunction from '../../models/SmartFunction.js';
 import BuildingType from '../../models/BuildingType.js';
+import { Op } from 'sequelize';
 
 const normalizeNullableString = (value) => {
     if (value === undefined) return undefined;
@@ -22,6 +23,28 @@ const normalizePositiveInt = (value, fallback = 1) => {
     const parsed = parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
+
+const normalizeWorkspaceLevels = (levels = []) => (
+    Array.isArray(levels)
+        ? levels.map((level, levelOrder) => ({
+            name: normalizeNullableString(level?.name) || `Level ${levelOrder + 1}`,
+            levelOrder,
+            rooms: Array.isArray(level?.rooms)
+                ? level.rooms.map((room) => ({
+                    roomTypeId: normalizeNullableString(room?.roomTypeId ?? room?.type),
+                    name: normalizeNullableString(room?.name) || 'Room',
+                    roomCount: normalizePositiveInt(room?.roomCount ?? room?.count, 1),
+                    functionSelections: Array.isArray(room?.functionSelections || room?.functions)
+                        ? (room.functionSelections || room.functions).map((selection) => ({
+                            smartFunctionId: normalizeNullableString(selection?.smartFunctionId ?? selection?.id),
+                            quantity: normalizePositiveInt(selection?.quantity, 1),
+                        })).filter((selection) => selection.smartFunctionId)
+                        : [],
+                })).filter((room) => room.roomTypeId)
+                : [],
+        }))
+        : []
+);
 
 const normalizeProjectPayload = (projectData = {}) => {
     const payload = {};
@@ -61,9 +84,9 @@ const createNotFoundError = (entityName) => {
     return error;
 };
 
-async function ensureProjectOwnership(projectId, userId) {
+async function ensureProjectOwnership(projectId, userId, transaction = undefined) {
     if (!userId) return;
-    const project = await Project.findByPk(projectId, { attributes: ['id', 'userId'] });
+    const project = await Project.findByPk(projectId, { attributes: ['id', 'userId'], transaction });
     if (!project || project.userId !== userId) throw createNotFoundError('Project');
 }
 
@@ -89,6 +112,88 @@ async function ensureSelectionOwnership(selectionId, userId) {
 
 export const createProject = async (userId, projectData) => {
     return await Project.create({ ...normalizeProjectPayload(projectData), userId });
+};
+
+export const syncProjectWorkspace = async (projectId, workspaceData = {}, userId = null, transaction = undefined) => {
+    await ensureProjectOwnership(projectId, userId, transaction);
+
+    const project = await Project.findByPk(projectId, { transaction });
+    if (!project) throw createNotFoundError('Project');
+
+    const normalizedLevels = normalizeWorkspaceLevels(workspaceData.levels);
+    const projectPayload = normalizeProjectPayload({
+        ...(workspaceData.projectInfo || {}),
+        levelsCount: normalizedLevels.length || workspaceData.projectInfo?.levelsCount || project.levelsCount || 1,
+        selectedRangeId: workspaceData.selectedRangeId ?? workspaceData.rangeId ?? workspaceData.range ?? project.selectedRangeId,
+        selectedColorId: workspaceData.selectedColorId ?? workspaceData.colorId ?? workspaceData.color ?? project.selectedColorId,
+    });
+
+    await project.update({
+        ...projectPayload,
+        status: 'active',
+    }, { transaction });
+
+    const existingLevels = await ProjectLevel.findAll({
+        where: { projectId },
+        attributes: ['id'],
+        transaction,
+    });
+    const levelIds = existingLevels.map((level) => level.id);
+
+    if (levelIds.length) {
+        const existingRooms = await ProjectRoom.findAll({
+            where: { projectLevelId: { [Op.in]: levelIds } },
+            attributes: ['id'],
+            transaction,
+        });
+        const roomIds = existingRooms.map((room) => room.id);
+
+        if (roomIds.length) {
+            await RoomFunctionSelection.destroy({
+                where: { projectRoomId: { [Op.in]: roomIds } },
+                transaction,
+            });
+            await ProjectRoom.destroy({
+                where: { id: { [Op.in]: roomIds } },
+                transaction,
+            });
+        }
+
+        await ProjectLevel.destroy({
+            where: { id: { [Op.in]: levelIds } },
+            transaction,
+        });
+    }
+
+    for (const levelData of normalizedLevels) {
+        const level = await ProjectLevel.create({
+            projectId,
+            name: levelData.name,
+            levelOrder: levelData.levelOrder,
+        }, { transaction });
+
+        for (const roomData of levelData.rooms) {
+            const room = await ProjectRoom.create({
+                projectLevelId: level.id,
+                roomTypeId: roomData.roomTypeId,
+                name: roomData.name,
+                roomCount: roomData.roomCount,
+            }, { transaction });
+
+            if (roomData.functionSelections.length) {
+                await RoomFunctionSelection.bulkCreate(
+                    roomData.functionSelections.map((selection) => ({
+                        projectRoomId: room.id,
+                        smartFunctionId: selection.smartFunctionId,
+                        quantity: selection.quantity,
+                    })),
+                    { transaction }
+                );
+            }
+        }
+    }
+
+    return project;
 };
 
 export const getMyProjects = async (userId = null) => {

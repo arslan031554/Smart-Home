@@ -50,6 +50,13 @@ export default function GenerateOfferStep() {
     ];
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            setProgress(100);
+            setCurrentPhase(t('configurator.generateOffer.activationTitle', { defaultValue: 'Create account to finish' }));
+            setShowActivationPrompt(true);
+            return undefined;
+        }
+
         const totalDuration = 4000;
         const intervalTime = 100;
         const stepsCount = totalDuration / intervalTime;
@@ -64,9 +71,7 @@ export default function GenerateOfferStep() {
                 if (next >= 100) {
                     clearInterval(timer);
                     setTimeout(() => {
-                        if (!isAuthenticated) {
-                            setShowActivationPrompt(true);
-                        } else if (finalizeOfferRef.current) {
+                        if (finalizeOfferRef.current) {
                             finalizeOfferRef.current();
                         }
                     }, 800);
@@ -77,7 +82,7 @@ export default function GenerateOfferStep() {
         }, intervalTime);
 
         return () => clearInterval(timer);
-    }, [dispatch, isAuthenticated]);
+    }, [dispatch, isAuthenticated, t]);
 
     const finalizeOffer = useCallback(async () => {
         setGenError(null);
@@ -85,6 +90,7 @@ export default function GenerateOfferStep() {
             ? configurator.levels
             : [{ id: 1, name: 'Ground Floor', rooms: [] }];
         const payload = {
+            projectId: configurator.currentProjectId || null,
             projectInfo: configurator.projectInfo || {},
             levels,
             rangeId: configurator.range ?? null,
@@ -185,7 +191,9 @@ export default function GenerateOfferStep() {
                     </div>
                     <div className="space-y-3">
                         <h3 className="font-heading text-4xl font-semibold text-textPrimary">{t('configurator.generateOffer.activationTitle')}</h3>
-                        <p className="mx-auto max-w-2xl text-sm leading-relaxed text-textSecondary">{t('configurator.generateOffer.activationBody')}</p>
+                        <p className="mx-auto max-w-2xl text-sm leading-relaxed text-textSecondary">
+                            {t('configurator.generateOffer.activationBody', { defaultValue: 'Create or log into the real customer account to continue. The registration flow uses reCAPTCHA plus email or SMS OTP verification, and your saved guest steps will be restored after activation.' })}
+                        </p>
                     </div>
 
                     <div className="mt-8 grid gap-4 md:grid-cols-2">

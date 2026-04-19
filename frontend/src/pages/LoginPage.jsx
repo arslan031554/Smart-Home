@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Globe, UserCheck } from 'lucide-react';
-import { Button, Input, Checkbox, Badge } from '../components/common/UIComponents';
+import { Button, Input, Checkbox, Badge, Alert } from '../components/common/UIComponents';
 import { useDispatch, useSelector } from 'react-redux';
 import { startGuestSession, login, clearError } from '../features/auth/authSlice';
 import { attachGuestDraftToAccount, resetConfigurator } from '../features/configurator/configuratorSlice';
@@ -17,6 +17,7 @@ export default function LoginPage() {
     const returnState = location.state?.returnTo
         ? { returnTo: location.state.returnTo, returnStep: location.state.returnStep }
         : null;
+    const isReturningToConfigurator = location.state?.returnTo === '/configurator';
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
@@ -76,6 +77,19 @@ export default function LoginPage() {
                     <div className="rounded-2xl border border-red-500/18 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                         {t(error)}
                     </div>
+                ) : null}
+
+                {isReturningToConfigurator ? (
+                    <Alert variant="info">
+                        <div className="space-y-1">
+                            <p className="font-semibold text-textPrimary">
+                                {t('auth.resumeConfiguratorTitle', { defaultValue: 'Resume your saved configuration' })}
+                            </p>
+                            <p>
+                                {t('auth.resumeConfiguratorBody', { defaultValue: 'Sign in to attach the guest project to the customer account. If your account needs email or SMS verification, we will bring you back to the configurator immediately after that step.' })}
+                            </p>
+                        </div>
+                    </Alert>
                 ) : null}
 
                 <div className="space-y-5">

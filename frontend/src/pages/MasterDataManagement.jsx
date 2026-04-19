@@ -109,6 +109,33 @@ const ENTITY_CONFIG = {
     followupTemplates: { fetch: fetchFollowupTemplates, add: addFollowupTemplate, update: updateFollowupTemplate, delete: deleteFollowupTemplate },
 };
 
+const RELATION_DETAIL_KEYS = {
+    buildingTypes: 'buildingTypeDetails',
+    roomTypes: 'roomTypeDetails',
+    smartFunctions: 'smartFunctionDetails',
+};
+
+function getRelationshipLabels(item, fieldName) {
+    const detailKey = RELATION_DETAIL_KEYS[fieldName];
+    const detailedRelations = detailKey && Array.isArray(item?.[detailKey]) ? item[detailKey] : [];
+
+    if (detailedRelations.length > 0) {
+        return detailedRelations
+            .map((relation) => relation?.name || relation?.code || relation?.id || null)
+            .filter(Boolean);
+    }
+
+    const rawRelations = Array.isArray(item?.[fieldName]) ? item[fieldName] : [];
+    return rawRelations
+        .map((relation) => {
+            if (typeof relation === 'object') {
+                return relation?.name || relation?.code || relation?.id || null;
+            }
+            return relation || null;
+        })
+        .filter(Boolean);
+}
+
 export default function MasterDataManagement({
     title,
     entityName,
@@ -160,6 +187,16 @@ export default function MasterDataManagement({
             dispatch(config.fetch());
         }
     }, [dispatch, config]);
+
+    useEffect(() => {
+        extraFields.forEach((field) => {
+            if (!field?.sourceKey) return;
+            const dependencyConfig = ENTITY_CONFIG[field.sourceKey];
+            if (dependencyConfig?.fetch) {
+                dispatch(dependencyConfig.fetch());
+            }
+        });
+    }, [dispatch, extraFields]);
 
     const handleOpenForm = (item = null) => {
         setFormErrors({});
@@ -421,11 +458,15 @@ export default function MasterDataManagement({
 
                                 {storeKey === 'smartFunctions' && (
                                     <div className="pt-4 border-t border-white/8 space-y-1">
-                                        <p className="text-[10px] font-semibold text-textSecondary uppercase tracking-widest">Attached Room Types: {(item.roomTypes || []).length}</p>
-                                        {(item.roomTypes || []).length > 0 ? (
-                                            <p className="text-xs font-medium text-textSecondary leading-snug">
-                                                {(item.roomTypes || []).map((r) => (typeof r === 'object' && r?.name ? r.name : r)).join(', ')}
-                                            </p>
+                                        <p className="text-[10px] font-semibold text-textSecondary uppercase tracking-widest">Attached Room Types: {getRelationshipLabels(item, 'roomTypes').length}</p>
+                                        {getRelationshipLabels(item, 'roomTypes').length > 0 ? (
+                                            <div className="flex flex-wrap gap-2 pt-1">
+                                                {getRelationshipLabels(item, 'roomTypes').map((roomTypeName) => (
+                                                    <Badge key={`${item.id}-${roomTypeName}`} variant="neutral" className="text-[9px] uppercase font-bold px-2.5 py-1">
+                                                        {roomTypeName}
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         ) : (
                                             <p className="text-xs font-medium text-textSecondary italic">None</p>
                                         )}

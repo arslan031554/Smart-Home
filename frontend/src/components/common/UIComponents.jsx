@@ -283,16 +283,19 @@ export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = 'ma
                     initial={{ opacity: 0, scale: 0.96, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                    className={cn('premium-panel relative flex w-full flex-col overflow-hidden rounded-[2rem] border border-white/10', maxWidth)}
+                    className={cn(
+                        'premium-panel relative flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-[2rem] border border-white/10 sm:max-h-[calc(100vh-3rem)]',
+                        maxWidth
+                    )}
                 >
-                    <div className="flex items-center justify-between border-b border-white/8 px-8 py-6">
+                    <div className="flex flex-shrink-0 items-center justify-between border-b border-white/8 px-8 py-6">
                         <h3 className="text-2xl font-heading font-semibold text-textPrimary">{title}</h3>
                         <button onClick={onClose} className="rounded-full border border-white/8 p-2 text-textSecondary transition-colors hover:border-primary-500/20 hover:text-primary-300">
                             <X className="h-5 w-5" />
                         </button>
                     </div>
-                    <div className="max-h-[70vh] overflow-y-auto px-8 py-7 text-textSecondary">{children}</div>
-                    {footer ? <div className="flex items-center justify-end gap-3 border-t border-white/8 px-8 py-5">{footer}</div> : null}
+                    <div className="min-h-0 flex-1 overflow-y-auto px-8 py-7 text-textSecondary">{children}</div>
+                    {footer ? <div className="flex flex-shrink-0 items-center justify-end gap-3 border-t border-white/8 px-8 py-5">{footer}</div> : null}
                 </motion.div>
             </div>
         ) : null}

@@ -17,6 +17,9 @@ export const smartFunctionValidator = [
     body('code').trim().notEmpty().withMessage('Code is required').isLength({ max: 60 }).withMessage('Code must be at most 60 characters'),
     body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 120 }).withMessage('Name must be at most 120 characters'),
     body('channelType').optional().isIn(['IN', 'OUT', 'GENERAL']).withMessage('Invalid channel type'),
+    body('inputChannelCount').optional().isInt({ min: 0 }).withMessage('Input channel count must be a non-negative integer'),
+    body('outputChannelCount').optional().isInt({ min: 0 }).withMessage('Output channel count must be a non-negative integer'),
+    body('generalChannelCount').optional().isInt({ min: 0 }).withMessage('General channel count must be a non-negative integer'),
     body('sortOrder').optional().isInt({ min: 0 }).withMessage('Sort order must be a non-negative integer'),
     body('roomTypes').optional().isArray().withMessage('roomTypes must be an array'),
     body('roomTypes.*').optional().isUUID().withMessage('Each room type ID must be a valid UUID'),
@@ -142,8 +145,12 @@ export const serviceValidator = [
     body('code').optional().trim().notEmpty().withMessage('Code must be non-empty when provided').isLength({ max: 60 }).withMessage('Code must be at most 60 characters'),
     body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 200 }).withMessage('Name must be at most 200 characters'),
     body('unitPriceEurExVat').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+    body('price').optional().isFloat({ min: 0 }).withMessage('Price must be a positive number'),
     body('pricingMode').optional().isIn(['fixed_project', 'per_room', 'per_level', 'per_product_qty', 'per_function_qty']).withMessage('Invalid pricing mode'),
+    body('type').optional().isIn(['fixed_project', 'per_room', 'per_level', 'per_product_qty', 'per_function_qty']).withMessage('Invalid pricing mode'),
     body('isOptionalForCustomer').optional().isBoolean().withMessage('isOptionalForCustomer must be a boolean'),
+    body('smartFunctions').optional().isArray().withMessage('smartFunctions must be an array'),
+    body('smartFunctions.*').optional().isUUID().withMessage('Each smart function ID must be a valid UUID'),
     validate
 ];
 

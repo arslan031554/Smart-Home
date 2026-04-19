@@ -26,7 +26,7 @@ import {
 } from '@/components/common/UIComponents';
 import { StatusBadge } from '@/components/offers/StatusBadge';
 import api from '@/utils/api';
-import { resetConfigurator } from '@/features/configurator/configuratorSlice';
+import { loadProjectWorkspace, resetConfigurator } from '@/features/configurator/configuratorSlice';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
@@ -55,6 +55,7 @@ export default function ProjectDetailPage() {
     const [offers, setOffers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [launchingConfigurator, setLaunchingConfigurator] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -91,9 +92,17 @@ export default function ProjectDetailPage() {
         maximumFractionDigits: 0,
     }).format(Number(value || 0));
 
-    const handleStartProject = () => {
+    const handleStartProject = async () => {
+        if (!id) return;
+        setLaunchingConfigurator(true);
         dispatch(resetConfigurator());
-        navigate('/configurator');
+        const result = await dispatch(loadProjectWorkspace(id));
+        setLaunchingConfigurator(false);
+        if (loadProjectWorkspace.fulfilled.match(result)) {
+            navigate('/configurator');
+        } else {
+            setError(result.payload?.message || t('projects.detail.launchError', { defaultValue: 'Failed to open the configurator for this project.' }));
+        }
     };
 
     if (loading) {
@@ -151,7 +160,7 @@ export default function ProjectDetailPage() {
 
                         <SectionTitle
                             title={project.name}
-                            subtitle={t('projects.detail.subtitle', { defaultValue: 'Project definition, building details, and generated offers for this smart-home workspace.' })}
+                            subtitle={t('projects.detail.subtitle', { defaultValue: 'Project definition, building details, and all offer variants generated from this smart-home workspace.' })}
                             badge={t('projects.detail.reference', { defaultValue: 'Project Reference' })}
                             className="mb-0"
                         />
@@ -184,9 +193,11 @@ export default function ProjectDetailPage() {
                         </div>
                     </div>
 
-                    <Button size="lg" className="gap-2" onClick={handleStartProject}>
-                        <Plus className="h-4.5 w-4.5" />
-                        {t('projects.detail.createOffer', { defaultValue: 'Create Offer via Configurator' })}
+                    <Button size="lg" className="gap-2" onClick={handleStartProject} disabled={launchingConfigurator}>
+                        {launchingConfigurator ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Plus className="h-4.5 w-4.5" />}
+                        {offers.length > 0
+                            ? t('projects.detail.createAnotherOffer', { defaultValue: 'Create Another Offer' })
+                            : t('projects.detail.createOffer', { defaultValue: 'Create Offer via Configurator' })}
                     </Button>
                 </div>
             </div>
@@ -237,7 +248,7 @@ export default function ProjectDetailPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <SectionTitle
                         title={t('projects.detail.offersTitle', { defaultValue: 'Offers for This Project' })}
-                        subtitle={t('projects.detail.offersSubtitle', { defaultValue: 'Generated offers linked to this project workspace.' })}
+                        subtitle={t('projects.detail.offersSubtitle', { defaultValue: 'This project can host multiple offers that reuse the same building definition while comparing different ranges, colors, and smart-home configurations.' })}
                         badge={t('projects.detail.offers', { defaultValue: 'Offers' })}
                         className="mb-0"
                     />

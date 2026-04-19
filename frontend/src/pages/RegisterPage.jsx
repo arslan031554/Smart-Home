@@ -23,6 +23,7 @@ export default function RegisterPage() {
     const recaptchaMode = String(import.meta.env.VITE_RECAPTCHA_MODE || 'live').trim().toLowerCase();
     const isRecaptchaMock = recaptchaMode === 'mock';
     const invalidProductionRecaptchaConfig = import.meta.env.PROD && isRecaptchaMock;
+    const isReturningToConfigurator = location.state?.returnTo === '/configurator';
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -135,6 +136,19 @@ export default function RegisterPage() {
                     </div>
                 ) : null}
 
+                {isReturningToConfigurator ? (
+                    <Alert variant="info" icon={ShieldAlert}>
+                        <div className="space-y-1">
+                            <p className="font-semibold text-textPrimary">
+                                {t('auth.activationCheckpointTitle', { defaultValue: 'Complete the customer account to continue' })}
+                            </p>
+                            <p>
+                                {t('auth.activationCheckpointBody', { defaultValue: 'Your guest configuration is already saved. Finish reCAPTCHA and the email/SMS OTP verification here, and we will send you back to the configurator with the saved steps attached to the real account.' })}
+                            </p>
+                        </div>
+                    </Alert>
+                ) : null}
+
                 <Card className={sectionCardClass}>
                     <div className="space-y-6">
                         <SectionBlock
@@ -145,7 +159,6 @@ export default function RegisterPage() {
                             <Input label={t('auth.fullName')} name="fullName" value={formData.fullName} onChange={handleChange} placeholder="John Doe" icon={User} required error={formErrors.fullName} />
                             <Input label={t('auth.email')} type="email" name="email" value={formData.email} onChange={handleChange} placeholder="you@email.com" icon={Mail} required error={formErrors.email} />
                             <Input label={t('auth.phone')} type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" icon={Phone} required error={formErrors.phone} />
-                            <Input label={t('auth.company')} name="companyName" value={formData.companyName} onChange={handleChange} placeholder="Acme Electronics" icon={Building2} error={formErrors.companyName} />
                         </div>
 
                         <div className="space-y-3">
@@ -199,6 +212,16 @@ export default function RegisterPage() {
                                 })}
                             </div>
                         </div>
+                    </div>
+                </Card>
+
+                <Card className={sectionCardClass}>
+                    <div className="space-y-6">
+                        <SectionBlock
+                            title={t('auth.companyData', 'Company Data')}
+                            subtitle={t('auth.companyDataDesc', 'Optional business information stored on the customer account and reused in project and offer records.')}
+                        />
+                        <Input label={t('auth.company')} name="companyName" value={formData.companyName} onChange={handleChange} placeholder="Acme Electronics" icon={Building2} error={formErrors.companyName} />
                     </div>
                 </Card>
 

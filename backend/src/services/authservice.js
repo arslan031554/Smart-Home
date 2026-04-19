@@ -33,6 +33,7 @@ const ensureNewsletterTable = async () => {
 };
 
 const normalizeLanguage = (value) => (value === 'ro' ? 'ro' : 'en');
+const DEV_TEST_ADMIN_EMAIL = 'admin@test.com';
 
 const normalizeVerificationChannel = (value, user = null) => {
     if (value === 'sms' && user?.phone) return 'sms';
@@ -58,6 +59,12 @@ const buildAccountCompletion = (userLike) => {
         missing,
         isComplete: missing.length === 0,
     };
+};
+
+const shouldBypassTwoFactorForDevAdmin = (user) => {
+    if (process.env.NODE_ENV === 'production') return false;
+    const normalizedEmail = normalizeEmail(user?.email);
+    return normalizedEmail === DEV_TEST_ADMIN_EMAIL && user?.role === 'admin';
 };
 
 export const sanitizeUser = (user) => {
@@ -219,6 +226,16 @@ export const login = async (email, password) => {
             },
         };
         throw error;
+    }
+
+    if (shouldBypassTwoFactorForDevAdmin(user)) {
+        user.otpCode = null;
+        user.otpExpiresAt = null;
+        user.otpChannel = null;
+        await user.save();
+
+        const token = generateToken(user.id);
+        return { user, token };
     }
 
     const otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {

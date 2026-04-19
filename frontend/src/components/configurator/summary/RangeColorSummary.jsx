@@ -4,8 +4,14 @@ import { Card } from '../../common/UIComponents';
 import { Palette, Box, Check, Star } from 'lucide-react';
 
 export default function RangeColorSummary({ range: rangeId, color: colorId }) {
-    const productRanges = useSelector(state => state.admin.productRanges) || [];
-    const colors = useSelector(state => state.admin.colors) || [];
+    const productRanges = useSelector((state) => {
+        const adminRanges = state.admin.productRanges || [];
+        return adminRanges.length > 0 ? adminRanges : (state.admin.publicProductRanges || []);
+    });
+    const colors = useSelector((state) => {
+        const adminColors = state.admin.colors || [];
+        return adminColors.length > 0 ? adminColors : (state.admin.publicColors || []);
+    });
 
     const range = productRanges.find(r => r.id === rangeId);
     const color = colors.find(c => c.id === colorId);

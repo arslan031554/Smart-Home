@@ -56,7 +56,17 @@ async function seed() {
     console.log(`Room types: ${roomTypes.length}`);
 
     for (const row of smartFunctions) {
-        await SmartFunction.findOrCreate({ where: { code: row.code }, defaults: row });
+        const [smartFunction, created] = await SmartFunction.findOrCreate({ where: { code: row.code }, defaults: row });
+        if (!created) {
+            await smartFunction.update({
+                channelType: row.channelType ?? smartFunction.channelType,
+                inputChannelCount: row.inputChannelCount ?? smartFunction.inputChannelCount ?? 0,
+                outputChannelCount: row.outputChannelCount ?? smartFunction.outputChannelCount ?? 0,
+                generalChannelCount: row.generalChannelCount ?? smartFunction.generalChannelCount ?? 0,
+                sortOrder: row.sortOrder ?? smartFunction.sortOrder,
+                icon: row.icon ?? smartFunction.icon,
+            });
+        }
     }
     console.log(`Smart functions: ${smartFunctions.length}`);
 
@@ -110,8 +120,29 @@ async function seed() {
     const adminHash = await bcrypt.hash('Admin@12345', 10);
     const userHash = await bcrypt.hash('User@12345', 10);
     const testUsers = [
-        { email: 'admin@test.com', passwordHash: adminHash, role: 'admin', isVerified: true, fullName: 'Test Admin' },
-        { email: 'user@test.com', passwordHash: userHash, role: 'customer', isVerified: true, fullName: 'Test User', phone: '+15550000001' },
+        {
+            email: 'admin@test.com',
+            passwordHash: adminHash,
+            role: 'admin',
+            isActive: true,
+            isVerified: true,
+            fullName: 'Test Admin',
+            termsAccepted: true,
+            cookiesAccepted: true,
+            preferredVerificationChannel: 'email',
+        },
+        {
+            email: 'user@test.com',
+            passwordHash: userHash,
+            role: 'customer',
+            isActive: true,
+            isVerified: true,
+            fullName: 'Test User',
+            phone: '+15550000001',
+            termsAccepted: true,
+            cookiesAccepted: true,
+            preferredVerificationChannel: 'email',
+        },
     ];
     for (const u of testUsers) {
         const [user, created] = await User.findOrCreate({
@@ -122,10 +153,14 @@ async function seed() {
             await user.update({
                 passwordHash: u.passwordHash,
                 isVerified: true,
+                isActive: true,
                 role: u.role,
                 otpCode: null,
                 otpExpiresAt: null,
                 otpChannel: null,
+                termsAccepted: true,
+                cookiesAccepted: true,
+                preferredVerificationChannel: 'email',
             });
         }
     }

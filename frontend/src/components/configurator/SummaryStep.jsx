@@ -2,7 +2,10 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { SectionTitle, AnimatedPageWrapper } from '../common/UIComponents';
 import ProjectSummaryCard from './summary/ProjectSummaryCard';
+import RoomsSummary from './summary/RoomsSummary';
+import RoomFunctionsSummary from './summary/RoomFunctionsSummary';
 import FunctionsSummary from './summary/FunctionsSummary';
+import RangeColorSummary from './summary/RangeColorSummary';
 import ProductsTable from './summary/ProductsTable';
 import ServicesTable from './summary/ServicesTable';
 import FinancialSummary from './summary/FinancialSummary';
@@ -14,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function SummaryStep() {
     const { t } = useTranslation();
-    const { projectInfo, levels, customerComments } = useSelector(state => state.configurator);
+    const { projectInfo, levels, range, color, customerComments } = useSelector(state => state.configurator);
     const levelsCount = levels?.length || 0;
 
     return (
@@ -26,7 +29,10 @@ export default function SummaryStep() {
             />
 
             <ProjectSummaryCard projectInfo={projectInfo} levelsCount={levelsCount} />
+            <RoomsSummary levels={levels} />
+            <RoomFunctionsSummary levels={levels} />
             <FunctionsSummary levels={levels} />
+            <RangeColorSummary range={range} color={color} />
             <ProductsTable />
             <ServicesTable />
             <FinancialSummary />

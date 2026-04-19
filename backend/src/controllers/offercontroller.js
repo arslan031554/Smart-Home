@@ -150,6 +150,10 @@ export const createOfferFromConfig = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const body = req.body || {};
+    const requestedProjectId =
+      body.projectId && isValidUuid(String(body.projectId).trim())
+        ? String(body.projectId).trim()
+        : null;
     const projectInfo = body.projectInfo || {};
     const levels = normalizeLevelsPayload(body.levels);
     const rangeId = body.rangeId ?? body.selectedRangeId ?? null;
@@ -185,39 +189,24 @@ export const createOfferFromConfig = async (req, res, next) => {
     const builtUpArea =
       numArea != null && !Number.isNaN(numArea) ? numArea : null;
 
-    let defaultRoomTypeId = null;
-    const project = await projectService.createProject(userId, {
-      name: projectName,
-      buildingTypeId,
-      levelsCount: levels.length,
-      multiplicationIndex: Number(multiplicationIndex) || 1,
-      builtUpArea,
-      projectComplexity: projectInfo.projectComplexity
-        ? String(projectInfo.projectComplexity)
-        : null,
-      description: projectInfo.description
-        ? String(projectInfo.description)
-        : null,
-      selectedRangeId,
-      selectedColorId,
-    });
+    let projectId = requestedProjectId;
+    if (projectId) {
+      let defaultRoomTypeId = null;
+      const normalizedLevels = levels.map((level) => ({
+        ...level,
+        rooms: (Array.isArray(level.rooms) ? level.rooms : []).map((roomData) => {
+          const rawRoomTypeId = roomData.type || roomData.roomTypeId;
+          return {
+            ...roomData,
+            roomTypeId:
+              rawRoomTypeId && isValidUuid(rawRoomTypeId) ? rawRoomTypeId : null,
+          };
+        }),
+      }));
 
-    for (let i = 0; i < levels.length; i++) {
-      const levelData = levels[i];
-      const level = await projectService.addLevel(
-        project.id,
-        {
-          name: levelData.name || `Level ${i + 1}`,
-          levelOrder: i,
-        },
-        userId
-      );
-      const rooms = levelData.rooms || [];
-      for (const roomData of rooms) {
-        const rawRoomTypeId = roomData.type || roomData.roomTypeId;
-        let roomTypeId =
-          rawRoomTypeId && isValidUuid(rawRoomTypeId) ? rawRoomTypeId : null;
-        if (!roomTypeId) {
+      for (const level of normalizedLevels) {
+        for (const room of level.rooms) {
+          if (room.roomTypeId) continue;
           if (!defaultRoomTypeId) {
             const first = await RoomType.findOne({
               order: [["name", "ASC"]],
@@ -225,35 +214,108 @@ export const createOfferFromConfig = async (req, res, next) => {
             });
             defaultRoomTypeId = first?.id || null;
           }
-          roomTypeId = defaultRoomTypeId;
+          room.roomTypeId = defaultRoomTypeId;
         }
-        if (!roomTypeId) continue;
-        const room = await projectService.addRoom(
-          level.id,
+        level.rooms = level.rooms.filter((room) => room.roomTypeId);
+      }
+
+      await projectService.syncProjectWorkspace(
+        projectId,
+        {
+          projectInfo: {
+            ...projectInfo,
+            name: projectName,
+            buildingType: buildingTypeId,
+            levelsCount: levels.length,
+            builtUpArea,
+            area: builtUpArea,
+            projectMultiplicationIndex: Number(multiplicationIndex) || 1,
+            projectComplexity: projectInfo.projectComplexity
+              ? String(projectInfo.projectComplexity)
+              : null,
+            description: projectInfo.description
+              ? String(projectInfo.description)
+              : null,
+          },
+          levels: normalizedLevels,
+          rangeId: selectedRangeId,
+          colorId: selectedColorId,
+        },
+        userId
+      );
+    } else {
+      let defaultRoomTypeId = null;
+      const project = await projectService.createProject(userId, {
+        name: projectName,
+        buildingTypeId,
+        levelsCount: levels.length,
+        multiplicationIndex: Number(multiplicationIndex) || 1,
+        builtUpArea,
+        projectComplexity: projectInfo.projectComplexity
+          ? String(projectInfo.projectComplexity)
+          : null,
+        description: projectInfo.description
+          ? String(projectInfo.description)
+          : null,
+        selectedRangeId,
+        selectedColorId,
+      });
+      projectId = project.id;
+
+      for (let i = 0; i < levels.length; i++) {
+        const levelData = levels[i];
+        const level = await projectService.addLevel(
+          project.id,
           {
-            name: roomData.name || "Room",
-            roomTypeId,
-            roomCount: normalizeRoomCount(roomData.roomCount ?? roomData.count),
+            name: levelData.name || `Level ${i + 1}`,
+            levelOrder: i,
           },
           userId
         );
-        const funcs = roomData.functions || roomData.functionSelections || [];
-        for (const f of funcs) {
-          const rawFuncId = f.smartFunctionId || f.id;
-          if (!rawFuncId || !isValidUuid(rawFuncId)) continue;
-          await projectService.addFunctionSelection(
-            room.id,
+        const rooms = levelData.rooms || [];
+        for (const roomData of rooms) {
+          const rawRoomTypeId = roomData.type || roomData.roomTypeId;
+          let roomTypeId =
+            rawRoomTypeId && isValidUuid(rawRoomTypeId) ? rawRoomTypeId : null;
+          if (!roomTypeId) {
+            if (!defaultRoomTypeId) {
+              const first = await RoomType.findOne({
+                order: [["name", "ASC"]],
+                attributes: ["id"],
+              });
+              defaultRoomTypeId = first?.id || null;
+            }
+            roomTypeId = defaultRoomTypeId;
+          }
+          if (!roomTypeId) continue;
+          const room = await projectService.addRoom(
+            level.id,
             {
-              smartFunctionId: rawFuncId,
-              quantity: Math.max(1, parseInt(f.quantity, 10) || 1),
+              name: roomData.name || "Room",
+              roomTypeId,
+              roomCount: normalizeRoomCount(roomData.roomCount ?? roomData.count),
             },
             userId
           );
+          const funcs = roomData.functions || roomData.functionSelections || [];
+          for (const f of funcs) {
+            const rawFuncId = f.smartFunctionId || f.id;
+            if (!rawFuncId || !isValidUuid(rawFuncId)) continue;
+            await projectService.addFunctionSelection(
+              room.id,
+              {
+                smartFunctionId: rawFuncId,
+                quantity: Math.max(1, parseInt(f.quantity, 10) || 1),
+              },
+              userId
+            );
+          }
         }
       }
     }
 
     const offerData = normalizeOfferPayload({
+      projectId,
       levels,
       rangeId,
       colorId,
@@ -263,7 +325,7 @@ export const createOfferFromConfig = async (req, res, next) => {
       customerComments: body.customerComments,
     });
     offerData.status = 'offer_ready';
-    const offer = await offerService.createOffer(project.id, offerData, req.user);
+    const offer = await offerService.createOffer(projectId, offerData, req.user);
     await configuratorDraftService.completeCurrentDraft({ userId, offerId: offer.id });
 
     // Auto-email PDF to customer (requirement). Fire-and-forget.
@@ -439,7 +501,6 @@ export const exportPdf = async (req, res, next) => {
     next(error);
   }
 };
-
 
 
 

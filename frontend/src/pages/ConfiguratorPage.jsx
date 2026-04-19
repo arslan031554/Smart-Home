@@ -93,6 +93,12 @@ export default function ConfiguratorPage() {
     }, [location.state?.returnStep, location.pathname, dispatch, navigate]);
 
     useEffect(() => {
+        if (!isAuthenticated && currentStep > 7) {
+            dispatch(setStep(7));
+        }
+    }, [currentStep, dispatch, isAuthenticated]);
+
+    useEffect(() => {
         if (!isAuthenticated) return;
         dispatch(attachGuestDraftToAccount())
             .unwrap()
@@ -283,6 +289,19 @@ export default function ConfiguratorPage() {
         }
 
         if (currentStep === 7) {
+            if (!isAuthenticated) {
+                const activationTarget = typeof document !== 'undefined'
+                    ? document.getElementById('summary-account-activation')
+                    : null;
+
+                if (activationTarget) {
+                    activationTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    scrollToStepContent();
+                }
+                return;
+            }
+
             advanceToStep(8);
             return;
         }
@@ -330,7 +349,9 @@ export default function ConfiguratorPage() {
     const primaryActionLabel = currentStep === 6
         ? t('configurator.reviewSummary')
         : currentStep === 7
-            ? t('configurator.generateFinalOffer')
+            ? isAuthenticated
+                ? t('configurator.generateFinalOffer')
+                : t('configurator.activateAccountToContinue', { defaultValue: 'Activate Account to Continue' })
             : t('configurator.continue');
     const formatCurrency = (value) => new Intl.NumberFormat(locale, {
         style: 'currency',

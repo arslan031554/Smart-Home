@@ -51,7 +51,20 @@ router.get('/smart-functions', async (req, res, next) => {
         const language = getLanguage(req);
         const rows = await models.SmartFunction.findAll({
             where: { isActive: true },
-            attributes: ['id', 'code', 'name', 'icon', 'description', 'translations', 'channelType', 'sortOrder', 'isActive'],
+            attributes: [
+                'id',
+                'code',
+                'name',
+                'icon',
+                'description',
+                'translations',
+                'channelType',
+                'inputChannelCount',
+                'outputChannelCount',
+                'generalChannelCount',
+                'sortOrder',
+                'isActive'
+            ],
             include: [
                 { model: models.RoomType, as: 'roomTypes', attributes: ['id', 'name', 'description', 'translations'], through: { attributes: [] } }
             ],
@@ -100,13 +113,32 @@ router.get('/services', async (req, res, next) => {
         const rows = await models.Service.findAll({
             where: { isActive: true },
             attributes: ['id', 'code', 'name', 'description', 'translations', 'unitPriceEurExVat', 'pricingMode', 'isOptionalForCustomer', 'isActive'],
+            include: [
+                { model: models.SmartFunction, as: 'smartFunctions', attributes: ['id', 'name', 'description', 'translations'], through: { attributes: [] } }
+            ],
             order: [['name', 'ASC']]
         });
         const data = (rows || []).map((row) => {
             const localized = serializeLocalizedEntity(row, { language, fields: ['name', 'description'] });
             return {
                 ...localized,
-                price: localized.unitPriceEurExVat != null && Number.isFinite(Number(localized.unitPriceEurExVat)) ? Number(localized.unitPriceEurExVat) : 0
+                price: localized.unitPriceEurExVat != null && Number.isFinite(Number(localized.unitPriceEurExVat)) ? Number(localized.unitPriceEurExVat) : 0,
+                type: localized.pricingMode || 'fixed_project',
+                smartFunctions: (Array.isArray(localized.smartFunctions) ? localized.smartFunctions : [])
+                    .map((smartFunction) => (typeof smartFunction === 'object' && smartFunction?.id ? smartFunction.id : smartFunction))
+                    .filter(Boolean),
+                smartFunctionDetails: (Array.isArray(localized.smartFunctions) ? localized.smartFunctions : [])
+                    .map((smartFunction) => {
+                        if (typeof smartFunction !== 'object') return null;
+                        const localizedSmartFunction = serializeLocalizedEntity(smartFunction, {
+                            language,
+                            fields: ['name', 'description']
+                        });
+                        return localizedSmartFunction?.id
+                            ? { id: localizedSmartFunction.id, name: localizedSmartFunction.name }
+                            : null;
+                    })
+                    .filter(Boolean)
             };
         });
         res.status(200).json({ success: true, message: 'Services fetched', data });
