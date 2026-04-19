@@ -81,10 +81,7 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             customerComments: normalized.customerComments,
             language,
         };
-        const offerId = offerData.offerId || offerData.id || null;
-        const response = offerId
-            ? await api.put(`/offers/${offerId}/from-config`, payload)
-            : await api.post('/offers/from-config', payload);
+        const response = await api.post('/offers/from-config', payload);
         try {
             await api.post('/configurator-drafts/current/complete', { offerId: response.data.data?.id || null });
         } catch (_) {

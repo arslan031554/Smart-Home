@@ -4,7 +4,10 @@ import OfferService from '../../models/OfferService.js';
 import OfferFollowup from '../../models/OfferFollowup.js';
 import Project from '../../models/Project.js';
 import BuildingType from '../../models/BuildingType.js';
+import Product from '../../models/Product.js';
+import Service from '../../models/Service.js';
 import User from '../../models/User.js';
+import { randomBytes } from 'crypto';
 import * as calculationService from './calculationservice.js';
 import * as followupService from './followupservice.js';
 import sequelize from '../config/database.js';
@@ -18,6 +21,28 @@ function normalizePositiveNumber(value, fallback = 0) {
 
 function normalizeString(value, fallback = '') {
     return typeof value === 'string' ? value : fallback;
+}
+
+function buildOfferReferenceCandidate(date = new Date()) {
+    const pad = (value) => String(value).padStart(2, '0');
+    const datePart = `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}`;
+    const timePart = `${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}`;
+    const randomPart = randomBytes(2).toString('hex').toUpperCase();
+    return `OFF-${datePart}-${timePart}-${randomPart}`;
+}
+
+async function generateUniqueOfferNumber(transaction = null) {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+        const offerNumber = buildOfferReferenceCandidate();
+        const existing = await Offer.findOne({
+            where: { offerNumber },
+            attributes: ['id'],
+            transaction,
+        });
+        if (!existing) return offerNumber;
+    }
+
+    return `OFF-${Date.now()}-${randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
 function normalizeProjectInfo(projectInfo = {}, project = null, levels = [], language = 'en') {
@@ -203,6 +228,69 @@ function assertOfferAccess(offer, actor) {
     if (offer.project?.user?.id !== actor.id) throw createAccessError();
 }
 
+async function enrichOfferLineItems(offer) {
+    if (!offer) return offer;
+
+    const language = normalizeBusinessLanguage(offer?.calculationSnapshot?.language);
+    const productIds = (Array.isArray(offer.products) ? offer.products : []).map((item) => item?.productId).filter(Boolean);
+    const serviceIds = (Array.isArray(offer.services) ? offer.services : []).map((item) => item?.serviceId).filter(Boolean);
+
+    if (!productIds.length && !serviceIds.length) return offer;
+
+    const [products, services] = await Promise.all([
+        productIds.length
+            ? Product.findAll({ where: { id: productIds }, attributes: ['id', 'name', 'description', 'translations', 'imageUrl'] })
+            : Promise.resolve([]),
+        serviceIds.length
+            ? Service.findAll({ where: { id: serviceIds }, attributes: ['id', 'code', 'name', 'description', 'translations'] })
+            : Promise.resolve([]),
+    ]);
+
+    const productMap = new Map((products || []).map((item) => {
+        const plain = item.toJSON ? item.toJSON() : item;
+        return [plain.id, plain];
+    }));
+    const serviceMap = new Map((services || []).map((item) => {
+        const plain = item.toJSON ? item.toJSON() : item;
+        return [plain.id, plain];
+    }));
+
+    (Array.isArray(offer.products) ? offer.products : []).forEach((item) => {
+        const product = productMap.get(item?.productId);
+        const imageUrl = product?.imageUrl || null;
+        if (item?.setDataValue) {
+            item.setDataValue('imageUrl', imageUrl);
+        } else if (item) {
+            item.imageUrl = imageUrl;
+        }
+
+        if (product?.description && !String(item?.productDescription || '').trim()) {
+            const description = getLocalizedValue(product, 'description', language, product.description || '');
+            if (item?.setDataValue) {
+                item.setDataValue('productDescription', description);
+            } else if (item) {
+                item.productDescription = description;
+            }
+        }
+    });
+
+    (Array.isArray(offer.services) ? offer.services : []).forEach((item) => {
+        const service = serviceMap.get(item?.serviceId);
+        const description = service ? getLocalizedValue(service, 'description', language, service.description || '') : '';
+        const code = service?.code || null;
+
+        if (item?.setDataValue) {
+            item.setDataValue('description', description);
+            item.setDataValue('serviceCode', code);
+        } else if (item) {
+            item.description = description;
+            item.serviceCode = code;
+        }
+    });
+
+    return offer;
+}
+
 async function assertProjectAccess(projectId, actor, transaction) {
     if (!actor || actor.role === 'admin' || actor.role === 'employee') return;
     const project = await Project.findByPk(projectId, {
@@ -220,7 +308,7 @@ export const createOffer = async (projectId, offerData, actor = null) => {
         await assertProjectAccess(projectId, actor, transaction);
         const project = await getProjectContext(projectId, transaction);
         const snapshot = buildStoredCalculationSnapshot(offerData, project, calculation);
-        const offerNumber = `OFFER-${Date.now()}`;
+        const offerNumber = await generateUniqueOfferNumber(transaction);
         const desiredStatus = isValidOfferStatus(offerData?.status) ? normalizeOfferStatus(offerData.status) : 'offer_ready';
 
         const offer = await Offer.create({
@@ -301,6 +389,7 @@ export const getOfferById = async (id, actor = null) => {
         ],
     });
     assertOfferAccess(offer, actor);
+    await enrichOfferLineItems(offer);
     return offer;
 };
 
@@ -386,10 +475,11 @@ export const duplicateOffer = async (id, actor = null) => {
             discountAmount: normalizePositiveNumber(originalPlain.discountAmount),
             grandTotal: normalizePositiveNumber(originalPlain.grandTotal),
         });
+        const offerNumber = await generateUniqueOfferNumber(transaction);
 
         const newOffer = await Offer.create({
             projectId: originalPlain.projectId,
-            offerNumber: `OFFER-${Date.now()}-CLONE`,
+            offerNumber,
             status: 'draft',
             customerComments: originalPlain.customerComments,
             productsSubtotal: normalizePositiveNumber(originalPlain.productsSubtotal),

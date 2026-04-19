@@ -68,6 +68,7 @@ export default function AdminOffersMonitor() {
 
     const filteredOffers = offers.filter((offer) => {
         const matchesSearch = (offer.projectName || '').toLowerCase().includes(searchTerm.toLowerCase())
+            || (offer.offerNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
             || (offer.id || '').toLowerCase().includes(searchTerm.toLowerCase())
             || (offer.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || offer.status === statusFilter;
@@ -91,7 +92,9 @@ export default function AdminOffersMonitor() {
         dispatch(updateOfferStatus({ id, status: newStatus }));
     };
 
-    const handleDownloadOffer = async (offerId) => {
+    const handleDownloadOffer = async (offer) => {
+        const offerId = offer?.id;
+        if (!offerId) return;
         setDownloadingOfferId(offerId);
         try {
             const response = await api.get(`/offers/${offerId}/export/pdf`, { responseType: 'blob' });
@@ -99,7 +102,7 @@ export default function AdminOffersMonitor() {
             const url = window.URL.createObjectURL(blob);
             const anchor = document.createElement('a');
             anchor.href = url;
-            anchor.download = `offer-${offerId}.pdf`;
+            anchor.download = `offer-${offer?.offerNumber || offerId}.pdf`;
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
@@ -259,6 +262,7 @@ export default function AdminOffersMonitor() {
                                                 {offer.projectName}
                                             </h3>
                                             <div className="space-y-1">
+                                                <p className="text-sm font-medium text-primary-300">{offer.offerNumber || offer.id}</p>
                                                 <p className="text-sm text-textSecondary">{t('offers.adminMonitor.reference', { id: offer.id })}</p>
                                                 <p className="text-sm text-textSecondary">
                                                     {offer.customerName || t('offers.adminMonitor.anonymousClient')}
@@ -292,7 +296,7 @@ export default function AdminOffersMonitor() {
                                                 disabled={!offer.customerEmail}
                                                 onClick={() => {
                                                     if (!offer.customerEmail) return;
-                                                    window.location.href = `mailto:${offer.customerEmail}?subject=${encodeURIComponent(`Offer follow-up: ${offer.projectName || offer.id}`)}`;
+                                                    window.location.href = `mailto:${offer.customerEmail}?subject=${encodeURIComponent(`Offer follow-up: ${offer.offerNumber || offer.projectName || offer.id}`)}`;
                                                 }}
                                             >
                                                 <Mail className="h-4 w-4" />
@@ -367,8 +371,9 @@ export default function AdminOffersMonitor() {
                                 {filteredOffers.map((offer) => (
                                     <tr key={offer.id} className="transition-colors hover:bg-white/5">
                                         <td className="px-6 py-5">
-                                            <p className="text-sm font-medium text-textPrimary">#{offer.id}</p>
-                                            <p className="mt-1 text-sm text-textSecondary">{formatDate(offer.createdAt)}</p>
+                                            <p className="text-sm font-medium text-textPrimary">{offer.offerNumber || offer.id}</p>
+                                            <p className="mt-1 text-sm text-textSecondary">{offer.id}</p>
+                                            <p className="mt-2 text-sm text-textSecondary">{formatDate(offer.createdAt)}</p>
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-3">
@@ -415,7 +420,7 @@ export default function AdminOffersMonitor() {
                                                     </button>
                                                 </Link>
                                                 <button
-                                                    onClick={() => handleDownloadOffer(offer.id)}
+                                                    onClick={() => handleDownloadOffer(offer)}
                                                     className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
                                                     title={t('offers.adminMonitor.download')}
                                                     disabled={downloadingOfferId === offer.id}
