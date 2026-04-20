@@ -62,10 +62,29 @@ const buildAccountCompletion = (userLike) => {
 };
 
 const shouldBypassTwoFactorForDevAdmin = (user) => {
-    if (process.env.NODE_ENV === 'production') return false;
+    if (process.env.NODE_ENV === 'production' || notificationService.isRealOtpDeliveryRequired()) return false;
     const normalizedEmail = normalizeEmail(user?.email);
     return normalizedEmail === DEV_TEST_ADMIN_EMAIL && user?.role === 'admin';
 };
+
+function assertOtpDeliveryIsReal(delivery, channel) {
+    if (!notificationService.isRealOtpDeliveryRequired()) return;
+    if (!delivery) {
+        const error = new Error(`Real OTP delivery via ${channel} is required, but no delivery result was returned.`);
+        error.statusCode = 503;
+        throw error;
+    }
+    if (delivery.mocked) {
+        const error = new Error(`Real OTP delivery via ${channel} is required. Disable mock mode and configure live credentials.`);
+        error.statusCode = 503;
+        throw error;
+    }
+    if (!delivery.delivered) {
+        const error = new Error(`OTP delivery via ${channel} failed. Please verify the live ${channel.toUpperCase()} provider configuration.`);
+        error.statusCode = 502;
+        throw error;
+    }
+}
 
 export const sanitizeUser = (user) => {
     if (!user) return null;
@@ -110,6 +129,16 @@ async function issueVerificationOtpForUser(user, channelInput, options = {}) {
         } else {
             delivery = await notificationService.sendOtpEmail(user.email, otp);
         }
+    } catch (error) {
+        user.otpCode = previousOtpCode;
+        user.otpExpiresAt = previousOtpExpiresAt;
+        user.otpChannel = previousOtpChannel;
+        await user.save();
+        throw error;
+    }
+
+    try {
+        assertOtpDeliveryIsReal(delivery, channel);
     } catch (error) {
         user.otpCode = previousOtpCode;
         user.otpExpiresAt = previousOtpExpiresAt;

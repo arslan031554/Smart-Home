@@ -43,7 +43,7 @@ function applyCorsHeaders(req, res) {
     }
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept-Language, x-guest-session-id');
 }
 
 const corsOptions = {
@@ -57,7 +57,7 @@ const corsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept-Language', 'x-guest-session-id'],
     optionsSuccessStatus: 204,
 };
 

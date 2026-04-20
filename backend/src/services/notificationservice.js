@@ -14,6 +14,12 @@ const envFlag = (name, fallback = false) => {
 };
 
 const isProduction = () => process.env.NODE_ENV === 'production';
+const requireRealOtpDelivery = () => envFlag('REQUIRE_REAL_OTP_DELIVERY', false) || isProduction();
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TWILIO_SID_REGEX = /^AC[a-zA-Z0-9]{32}$/;
+const SENDGRID_KEY_REGEX = /^SG\.[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+$/;
+const E164_REGEX = /^\+[1-9]\d{7,14}$/;
 
 function buildProviderConfigError(provider, message) {
     const publicMessages = {
@@ -64,10 +70,38 @@ function maybeLogOtp({ channel, destination, otp, result }) {
 
 function normalizePhone(phone) {
     if (!phone || typeof phone !== 'string') return '';
-    const digits = phone.replace(/\D/g, '');
+    const trimmed = String(phone).trim();
+    if (trimmed.startsWith('+')) {
+        const digits = trimmed.replace(/\D/g, '');
+        return digits ? `+${digits}` : '';
+    }
+    const digits = trimmed.replace(/\D/g, '');
     if (!digits) return '';
-    if (phone.trim().startsWith('+')) return `+${digits}`;
     return digits.startsWith('0') ? `+${digits.slice(1)}` : `+${digits}`;
+}
+
+function validateEmailAddress(email) {
+    return EMAIL_REGEX.test(String(email || '').trim());
+}
+
+function validateTwilioCredentials(accountSid, fromNumber) {
+    if (!TWILIO_SID_REGEX.test(String(accountSid || '').trim())) {
+        return 'TWILIO_ACCOUNT_SID must start with AC and be a valid live Account SID.';
+    }
+    if (!E164_REGEX.test(String(fromNumber || '').trim())) {
+        return 'TWILIO_PHONE_NUMBER must be in E.164 format, for example +15551234567.';
+    }
+    return null;
+}
+
+function validateSendGridCredentials(apiKey, fromEmail) {
+    if (!SENDGRID_KEY_REGEX.test(String(apiKey || '').trim())) {
+        return 'SENDGRID_API_KEY must be a valid live SendGrid API key.';
+    }
+    if (!validateEmailAddress(fromEmail)) {
+        return 'SENDGRID_FROM_EMAIL must be a valid sender email address.';
+    }
+    return null;
 }
 
 function getSendGridState() {
@@ -99,6 +133,17 @@ function getSendGridState() {
     }
 
     if (configured) {
+        const validationError = validateSendGridCredentials(apiKey, fromEmail);
+        if (validationError) {
+            return {
+                provider: SENDGRID_PROVIDER,
+                mode: 'misconfigured',
+                configured: true,
+                reason: validationError,
+                apiKey,
+                fromEmail,
+            };
+        }
         return {
             provider: SENDGRID_PROVIDER,
             mode: 'live',
@@ -153,6 +198,18 @@ function getTwilioState() {
     }
 
     if (configured) {
+        const validationError = validateTwilioCredentials(accountSid, fromNumber);
+        if (validationError) {
+            return {
+                provider: TWILIO_PROVIDER,
+                mode: 'misconfigured',
+                configured: true,
+                reason: validationError,
+                accountSid,
+                authToken,
+                fromNumber,
+            };
+        }
         return {
             provider: TWILIO_PROVIDER,
             mode: 'live',
@@ -212,7 +269,12 @@ export function getNotificationIntegrationStatus() {
             reason: sms.reason,
         },
         otpDebugLogging: envFlag('NOTIFICATION_LOG_OTP', false) && !isProduction(),
+        requireRealOtpDelivery: requireRealOtpDelivery(),
     };
+}
+
+export function isRealOtpDeliveryRequired() {
+    return requireRealOtpDelivery();
 }
 
 export const sendEmail = async (to, subject, text, html, attachments = null) => {

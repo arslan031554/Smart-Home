@@ -28,3 +28,9 @@ This package now includes the migration:
 - exact PDF visual approval
 - final Excel business approval
 - end-to-end hosting validation
+
+## OTP hardening
+- signup already requires OTP verification before token issuance
+- login already requires OTP verification before token issuance
+- set `REQUIRE_REAL_OTP_DELIVERY=true` to reject mocked OTP delivery and require live Twilio/SendGrid delivery
+- in production, the server already refuses to boot unless Twilio/SendGrid/reCAPTCHA are live-ready
