@@ -42,6 +42,9 @@ const errorHandler = (err, req, res, next) => {
     let message = err?.publicMessage || err?.message || 'Something went wrong';
     let fieldErrors = null;
     const isKnownIntegrationError = ['SENDGRID_ERROR', 'TWILIO_ERROR', 'RECAPTCHA_ERROR', 'SENDGRID_CONFIG_ERROR', 'TWILIO_CONFIG_ERROR', 'RECAPTCHA_CONFIG_ERROR'].includes(err?.code);
+    const visibleIntegrationMessage = process.env.NODE_ENV !== 'production' && err?.providerMessage
+        ? err.providerMessage
+        : err?.publicMessage;
 
     // Custom validation errors thrown by services/controllers
     if (err && (err.statusCode || err.code === 'VALIDATION_ERROR')) {
@@ -81,14 +84,14 @@ const errorHandler = (err, req, res, next) => {
     // Notification and verification provider failures -> surface as integration issues.
     if (err.code === 'SENDGRID_ERROR' || err.code === 'TWILIO_ERROR' || err.code === 'RECAPTCHA_ERROR') {
         statusCode = 502;
-        if (err.code === 'SENDGRID_ERROR') message = err.publicMessage || 'Email delivery is temporarily unavailable. Please try again later or use SMS if available.';
-        if (err.code === 'TWILIO_ERROR') message = err.publicMessage || 'SMS delivery is temporarily unavailable. Please try again later or use email if available.';
-        if (err.code === 'RECAPTCHA_ERROR') message = err.publicMessage || 'Security verification is temporarily unavailable. Please try again later.';
+        if (err.code === 'SENDGRID_ERROR') message = visibleIntegrationMessage || 'Email delivery is temporarily unavailable. Please try again later or use SMS if available.';
+        if (err.code === 'TWILIO_ERROR') message = visibleIntegrationMessage || 'SMS delivery is temporarily unavailable. Please try again later or use email if available.';
+        if (err.code === 'RECAPTCHA_ERROR') message = visibleIntegrationMessage || 'Security verification is temporarily unavailable. Please try again later.';
     }
 
     if (err.code === 'SENDGRID_CONFIG_ERROR' || err.code === 'TWILIO_CONFIG_ERROR' || err.code === 'RECAPTCHA_CONFIG_ERROR') {
         statusCode = 503;
-        message = err.publicMessage || 'A required external integration is not configured.';
+        message = visibleIntegrationMessage || 'A required external integration is not configured.';
     }
 
     if (statusCode === 500 && process.env.NODE_ENV !== 'production') {

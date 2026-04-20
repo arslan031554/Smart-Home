@@ -34,6 +34,7 @@ const ensureNewsletterTable = async () => {
 
 const normalizeLanguage = (value) => (value === 'ro' ? 'ro' : 'en');
 const DEV_TEST_ADMIN_EMAIL = 'admin@test.com';
+const REGISTRATION_VERIFICATION_CHANNEL = 'email';
 
 const normalizeVerificationChannel = (value, user = null) => {
     if (value === 'sms' && user?.phone) return 'sms';
@@ -166,7 +167,6 @@ export const register = async (userData, context = {}) => {
         agreeTerms,
         newsletter,
         cookiesAccepted,
-        verificationChannel,
         preferredLanguage,
     } = userData || {};
 
@@ -198,45 +198,25 @@ export const register = async (userData, context = {}) => {
         newsletterSubscribed: Boolean(newsletter),
         cookiesAccepted: Boolean(cookiesAccepted),
         preferredLanguage: normalizeLanguage(preferredLanguage),
-        preferredVerificationChannel: verificationChannel === 'sms' ? 'sms' : 'email',
+        preferredVerificationChannel: REGISTRATION_VERIFICATION_CHANNEL,
     });
 
     let otpDelivery = null;
     let deliveryError = null;
-    const availableChannels = [];
-    if (user.phone) availableChannels.push('sms');
-    if (user.email) availableChannels.push('email');
 
     try {
-        otpDelivery = await issueVerificationOtpForUser(user, verificationChannel, {
+        otpDelivery = await issueVerificationOtpForUser(user, REGISTRATION_VERIFICATION_CHANNEL, {
             allowVerified: false,
             reason: 'account_verification',
         });
     } catch (error) {
-        // If preferred channel fails, try alternative
         deliveryError = error.message;
-        if (availableChannels.length > 0) {
-            const alternativeChannel = verificationChannel === 'sms' && availableChannels.includes('email')
-                ? 'email'
-                : availableChannels.includes('sms')
-                ? 'sms'
-                : availableChannels[0];
-            try {
-                otpDelivery = await issueVerificationOtpForUser(user, alternativeChannel, {
-                    allowVerified: false,
-                    reason: 'account_verification',
-                });
-                deliveryError = null;
-            } catch (altError) {
-                deliveryError = altError.message;
-            }
-        }
     }
 
     return {
         user,
         verification: {
-            channel: otpDelivery?.channel || verificationChannel,
+            channel: otpDelivery?.channel || REGISTRATION_VERIFICATION_CHANNEL,
             delivery: otpDelivery?.delivery || null,
             error: deliveryError,
         },

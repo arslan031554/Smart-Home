@@ -15,6 +15,7 @@ const envFlag = (name, fallback = false) => {
 
 const isProduction = () => process.env.NODE_ENV === 'production';
 const requireRealOtpDelivery = () => envFlag('REQUIRE_REAL_OTP_DELIVERY', false) || isProduction();
+const shouldExposeProviderMessage = () => !isProduction();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TWILIO_SID_REGEX = /^AC[a-zA-Z0-9]{32}$/;
@@ -26,10 +27,12 @@ function buildProviderConfigError(provider, message) {
         [SENDGRID_PROVIDER]: 'Email delivery is not configured correctly for this environment.',
         [TWILIO_PROVIDER]: 'SMS delivery is not configured correctly for this environment.',
     };
-    const error = new Error(publicMessages[provider] || 'External delivery is not configured correctly.');
+    const publicMessage = publicMessages[provider] || 'External delivery is not configured correctly.';
+    const visibleMessage = shouldExposeProviderMessage() && message ? message : publicMessage;
+    const error = new Error(visibleMessage);
     error.code = `${provider}_CONFIG_ERROR`;
     error.statusCode = 503;
-    error.publicMessage = error.message;
+    error.publicMessage = publicMessage;
     error.providerMessage = message;
     return error;
 }
@@ -39,10 +42,12 @@ function buildProviderDeliveryError(provider, message, statusCode = 502) {
         [SENDGRID_PROVIDER]: 'Email delivery is temporarily unavailable. Please try again later or use SMS if available.',
         [TWILIO_PROVIDER]: 'SMS delivery is temporarily unavailable. Please try again later or use email if available.',
     };
-    const error = new Error(publicMessages[provider] || 'External delivery is temporarily unavailable. Please try again later.');
+    const publicMessage = publicMessages[provider] || 'External delivery is temporarily unavailable. Please try again later.';
+    const visibleMessage = shouldExposeProviderMessage() && message ? message : publicMessage;
+    const error = new Error(visibleMessage);
     error.code = `${provider}_ERROR`;
     error.statusCode = statusCode;
-    error.publicMessage = error.message;
+    error.publicMessage = publicMessage;
     error.providerMessage = message;
     return error;
 }
@@ -95,20 +100,23 @@ function validateTwilioCredentials(accountSid, fromNumber) {
 }
 
 function validateSendGridCredentials(apiKey, fromEmail) {
-    if (!SENDGRID_KEY_REGEX.test(String(apiKey || '').trim())) {
-        return 'SENDGRID_API_KEY must be a valid live SendGrid API key.';
-    }
     if (!validateEmailAddress(fromEmail)) {
         return 'SENDGRID_FROM_EMAIL must be a valid sender email address.';
+    }
+    if (!String(apiKey || '').trim()) {
+        return 'SENDGRID_API_KEY is required when SENDGRID_MOCK_MODE=false.';
+    }
+    if (!SENDGRID_KEY_REGEX.test(String(apiKey || '').trim())) {
+        return 'SENDGRID_API_KEY must be a valid live SendGrid API key.';
     }
     return null;
 }
 
 function getSendGridState() {
-    const apiKey = process.env.SENDGRID_API_KEY;
-    const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+    const apiKey = String(process.env.SENDGRID_API_KEY || '').trim();
+    const fromEmail = String(process.env.SENDGRID_FROM_EMAIL || '').trim();
     const forceMock = envFlag('SENDGRID_MOCK_MODE', false);
-    const configured = Boolean(apiKey && fromEmail);
+    const configured = Boolean(fromEmail) && (forceMock || Boolean(apiKey));
 
     if (forceMock && isProduction()) {
         return {
@@ -122,33 +130,43 @@ function getSendGridState() {
     }
 
     if (forceMock) {
-        return {
-            provider: SENDGRID_PROVIDER,
-            mode: 'mock',
-            configured,
-            reason: 'Mock mode forced by SENDGRID_MOCK_MODE.',
-            apiKey,
-            fromEmail,
-        };
-    }
-
-    if (configured) {
-        const validationError = validateSendGridCredentials(apiKey, fromEmail);
-        if (validationError) {
+        if (!fromEmail) {
             return {
                 provider: SENDGRID_PROVIDER,
                 mode: 'misconfigured',
-                configured: true,
-                reason: validationError,
+                configured: false,
+                reason: 'SENDGRID_FROM_EMAIL is required.',
+                apiKey,
+                fromEmail,
+            };
+        }
+        if (!validateEmailAddress(fromEmail)) {
+            return {
+                provider: SENDGRID_PROVIDER,
+                mode: 'misconfigured',
+                configured: false,
+                reason: 'SENDGRID_FROM_EMAIL must be a valid sender email address.',
                 apiKey,
                 fromEmail,
             };
         }
         return {
             provider: SENDGRID_PROVIDER,
-            mode: 'live',
+            mode: 'mock',
             configured: true,
-            reason: null,
+            reason: 'Mock mode forced by SENDGRID_MOCK_MODE.',
+            apiKey,
+            fromEmail,
+        };
+    }
+
+    const validationError = validateSendGridCredentials(apiKey, fromEmail);
+    if (validationError) {
+        return {
+            provider: SENDGRID_PROVIDER,
+            mode: 'misconfigured',
+            configured,
+            reason: validationError,
             apiKey,
             fromEmail,
         };
@@ -156,11 +174,9 @@ function getSendGridState() {
 
     return {
         provider: SENDGRID_PROVIDER,
-        mode: isProduction() ? 'misconfigured' : 'mock',
-        configured: false,
-        reason: isProduction()
-            ? 'SENDGRID_API_KEY and SENDGRID_FROM_EMAIL are required in production.'
-            : 'SendGrid credentials missing outside production; email delivery will stay in mock mode.',
+        mode: 'live',
+        configured: true,
+        reason: null,
         apiKey,
         fromEmail,
     };
@@ -262,6 +278,7 @@ export function getNotificationIntegrationStatus() {
             mode: email.mode,
             configured: email.configured,
             reason: email.reason,
+            senderEmail: email.fromEmail || null,
         },
         sms: {
             mode: sms.mode,
@@ -277,11 +294,50 @@ export function isRealOtpDeliveryRequired() {
     return requireRealOtpDelivery();
 }
 
+export function getConfiguredEmailSender() {
+    return String(process.env.SENDGRID_FROM_EMAIL || '').trim() || null;
+}
+
+function buildEmailPayload(to, from, subject, text, html, attachments = null) {
+    const msg = {
+        to,
+        from,
+        subject,
+        text,
+        html,
+    };
+    if (Array.isArray(attachments) && attachments.length) {
+        msg.attachments = attachments;
+    }
+    return msg;
+}
+
+function getEmailPayloadLog(msg) {
+    return {
+        to: msg.to,
+        from: msg.from,
+        subject: msg.subject,
+        text: msg.text,
+        html: msg.html,
+        attachments: Array.isArray(msg.attachments)
+            ? msg.attachments.map((attachment) => ({
+                filename: attachment.filename,
+                type: attachment.type,
+                disposition: attachment.disposition,
+                contentLength: typeof attachment.content === 'string' ? attachment.content.length : null,
+            }))
+            : [],
+    };
+}
+
 export const sendEmail = async (to, subject, text, html, attachments = null) => {
     const state = ensureLiveSendGrid();
+    const msg = buildEmailPayload(to, state.fromEmail, subject, text, html, attachments);
+
+    console.info(`[SendGrid] Using from email ${msg.from} (${state.mode} mode) for recipient ${msg.to}`);
 
     if (state.mode === 'mock') {
-        maybeLogMock(SENDGRID_PROVIDER, { to, subject });
+        maybeLogMock(SENDGRID_PROVIDER, getEmailPayloadLog(msg));
         return buildDeliveryResult({
             provider: SENDGRID_PROVIDER,
             to,
@@ -291,21 +347,10 @@ export const sendEmail = async (to, subject, text, html, attachments = null) => 
         });
     }
 
-    const msg = {
-        to,
-        from: state.fromEmail,
-        subject,
-        text,
-        html,
-    };
-    if (Array.isArray(attachments) && attachments.length) {
-        msg.attachments = attachments;
-    }
-
     try {
         const [response] = await sgMail.send(msg);
         const messageId = response?.headers?.['x-message-id'] || response?.headers?.['X-Message-Id'] || null;
-        console.info(`[SendGrid] Email sent to ${to}`);
+        console.info(`[SendGrid] Email sent to ${to} from ${msg.from}`);
         return buildDeliveryResult({
             provider: SENDGRID_PROVIDER,
             to,
@@ -415,6 +460,21 @@ export const sendReminderSms = async (phone, message) => {
 
 export const sendReminderEmail = async (email, subject, body) => {
     return sendEmail(email, subject, body, `<p>${String(body || '').replace(/\n/g, '<br>')}</p>`);
+};
+
+export const sendTestEmail = async ({ to, subject, text, html } = {}) => {
+    const sender = getConfiguredEmailSender();
+    const finalSubject = String(subject || '').trim() || 'Smart Home Configurator SendGrid Test';
+    const finalText = String(text || '').trim() || `This is a SendGrid test email from ${sender || 'the configured sender email'}.`;
+    const finalHtml = String(html || '').trim() || `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #4F46E5;">SendGrid Test Email</h2>
+            <p>This test email was generated by the Smart Home Configurator backend.</p>
+            <p><strong>Configured sender:</strong> ${sender || 'missing'}</p>
+            <p style="color: #6B7280; font-size: 14px;">If you received this message, the SendGrid email path is working.</p>
+        </div>
+    `;
+    return sendEmail(to, finalSubject, finalText, finalHtml);
 };
 
 export const sendOfferPdfEmail = async ({ to, customerName, offerNumber, offerUrl, pdfBuffer, language = 'en' }) => {

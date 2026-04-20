@@ -8,7 +8,6 @@ import { resetConfigurator } from '../features/configurator/configuratorSlice';
 import { useTranslation } from 'react-i18next';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { normalizeApiError } from '../utils/normalizeApiError';
-import { clsx } from 'clsx';
 
 const sectionCardClass = 'rounded-[1.9rem] p-6 sm:p-7';
 
@@ -36,7 +35,6 @@ export default function RegisterPage() {
         invoiceAddress: '',
         agreeTerms: false,
         newsletter: false,
-        verificationChannel: 'email',
         recaptchaToken: '',
     });
     const [recaptchaError, setRecaptchaError] = useState(null);
@@ -87,7 +85,7 @@ export default function RegisterPage() {
         const payload = {
             ...formData,
             company: formData.companyName,
-            verificationChannel: formData.verificationChannel,
+            verificationChannel: 'email',
             preferredLanguage: (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en',
             recaptchaToken: isRecaptchaMock ? (formData.recaptchaToken || 'mock-token') : formData.recaptchaToken,
             cookiesAccepted: Boolean(cookieConsent),
@@ -95,33 +93,19 @@ export default function RegisterPage() {
         const resultAction = await dispatch(registerUser(payload));
         if (registerUser.fulfilled.match(resultAction)) {
             const { data } = resultAction.payload;
-            const finalChannel = data?.verification?.channel || formData.verificationChannel || 'email';
-            const hasDeliveryError = data?.verification?.error || data?.deliveryError;
-            
-            // If there was a delivery error, go to choose-verification to let user try both channels
-            if (hasDeliveryError) {
-                navigate('/auth/choose-verification', {
-                    state: {
-                        email: data.user.email,
-                        availableChannels: Array.from(new Set(data.availableChannels || [])),
-                        verificationReason: 'account_verification',
-                        deliveryError: hasDeliveryError,
-                        delivery: data?.verification?.delivery || null,
-                        ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
-                    },
-                });
-            } else {
-                // If no delivery error, go directly to OTP entry
-                navigate('/auth/verify-otp', {
-                    state: {
-                        email: data.user.email,
-                        channel: finalChannel,
-                        availableChannels: Array.from(new Set(data.availableChannels || [])),
-                        message: t('auth.errors.otpSent', { channel: finalChannel === 'sms' ? 'SMS' : 'Email' }),
-                        ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
-                    },
-                });
-            }
+            const deliveryError = data?.verification?.error || data?.deliveryError || null;
+
+            navigate('/auth/verify-otp', {
+                state: {
+                    email: data.user.email,
+                    channel: 'email',
+                    availableChannels: ['email'],
+                    verificationReason: 'account_verification',
+                    deliveryError,
+                    message: deliveryError ? null : t('auth.errors.otpSent', { channel: 'Email' }),
+                    ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
+                },
+            });
         } else {
             const ne = normalizeApiError(resultAction.payload);
             if (ne.errors?.recaptchaToken) {
@@ -160,7 +144,7 @@ export default function RegisterPage() {
                                 {t('auth.activationCheckpointTitle', { defaultValue: 'Complete the customer account to continue' })}
                             </p>
                             <p>
-                                {t('auth.activationCheckpointBody', { defaultValue: 'Your guest configuration is already saved. Finish reCAPTCHA and the email/SMS OTP verification here, and we will send you back to the configurator with the saved steps attached to the real account.' })}
+                                {t('auth.activationCheckpointBody', { defaultValue: 'Your guest configuration is already saved. Finish reCAPTCHA and the email OTP verification here, and we will send you back to the configurator with the saved steps attached to the real account.' })}
                             </p>
                         </div>
                     </Alert>
@@ -182,52 +166,20 @@ export default function RegisterPage() {
                             <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
                                 {t('auth.verificationMethod', 'Verification Method')}
                             </label>
-                            <div className="grid gap-3 md:grid-cols-2">
-                                {[
-                                    {
-                                        key: 'email',
-                                        icon: Mail,
-                                        title: t('auth.verifyByEmail'),
-                                        desc: t('auth.verificationMethodEmailDesc', 'Send the verification code to the email address entered above.'),
-                                    },
-                                    {
-                                        key: 'sms',
-                                        icon: Phone,
-                                        title: t('auth.verifyBySms'),
-                                        desc: t('auth.verificationMethodSmsDesc', 'Send the verification code to the mobile phone number entered above.'),
-                                    },
-                                ].map((option) => {
-                                    const isActive = formData.verificationChannel === option.key;
-                                    const Icon = option.icon;
-
-                                    return (
-                                        <button
-                                            key={option.key}
-                                            type="button"
-                                            onClick={() => setFormData((prev) => ({ ...prev, verificationChannel: option.key }))}
-                                            className={clsx(
-                                                'rounded-[1.5rem] border px-4 py-4 text-left transition-all duration-300',
-                                                isActive
-                                                    ? 'border-primary-500/30 bg-primary-500/10 text-textPrimary shadow-soft'
-                                                    : 'border-white/8 bg-white/5 text-textSecondary hover:border-primary-500/18 hover:bg-white/8',
-                                            )}
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className={clsx(
-                                                    'mt-0.5 flex h-11 w-11 items-center justify-center rounded-2xl border',
-                                                    isActive ? 'border-primary-500/18 bg-primary-500/12 text-primary-300' : 'border-white/8 bg-[#1d1d1d] text-textSecondary',
-                                                )}>
-                                                    <Icon className="h-5 w-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-semibold text-textPrimary">{option.title}</p>
-                                                    <p className="mt-1 text-xs leading-relaxed text-textSecondary">{option.desc}</p>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <Alert variant="info" icon={Mail}>
+                                <div className="space-y-1">
+                                    <p className="font-semibold text-textPrimary">{t('auth.verifyByEmail')}</p>
+                                    <p>{t('auth.registrationEmailOtpOnly', 'New account registrations currently use email OTP verification only.')}</p>
+                                    <p>
+                                        {formData.email
+                                            ? t('auth.registrationEmailOtpOnlyAddress', {
+                                                email: formData.email,
+                                                defaultValue: `After signup, we will send the 6-digit code to ${formData.email}.`,
+                                            })
+                                            : t('auth.registrationEmailOtpOnlyHint', 'Enter your email above and we will send the 6-digit code there after signup.')}
+                                    </p>
+                                </div>
+                            </Alert>
                         </div>
                     </div>
                 </Card>
@@ -272,7 +224,7 @@ export default function RegisterPage() {
                         <Alert variant="info" icon={ShieldAlert}>
                             <div className="space-y-1">
                                 <p className="font-semibold text-textPrimary">{t('auth.verificationRequiredTitle', 'Account verification is required')}</p>
-                                <p>{t('auth.verificationRequiredDesc', 'After registration, your account is activated through the existing email or SMS OTP verification flow before you can finalize and store offers.')}</p>
+                                <p>{t('auth.verificationRequiredDesc', 'After registration, your account is activated through the email OTP verification flow before you can finalize and store offers.')}</p>
                             </div>
                         </Alert>
 
