@@ -15,14 +15,24 @@ export default function VerifyOtpPage() {
     const dispatch = useDispatch();
     const { t } = useTranslation();
 
-    const { email, channel = 'email', message: initialMessage, returnTo, returnStep, verificationReason = 'account_verification' } = location.state || {};
+    const {
+        email,
+        channel = 'email',
+        message: initialMessage,
+        returnTo,
+        returnStep,
+        verificationReason = 'account_verification',
+        deliveryError = null,
+        availableChannels = ['email'],
+    } = location.state || {};
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [step, setStep] = useState(2);
-    const [timer, setTimer] = useState(60);
+    const [timer, setTimer] = useState(deliveryError ? 0 : 60);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [successMessage, setSuccessMessage] = useState(initialMessage || null);
+    const [deliveryWarning, setDeliveryWarning] = useState(deliveryError || null);
+    const [successMessage, setSuccessMessage] = useState(deliveryError ? null : (initialMessage || null));
     const inputs = useRef([]);
 
     useEffect(() => {
@@ -104,11 +114,13 @@ export default function VerifyOtpPage() {
         const resultAction = await dispatch(resendOtp({ email, channel }));
         setIsLoading(false);
         if (resendOtp.fulfilled.match(resultAction)) {
+            setDeliveryWarning(null);
             setSuccessMessage(t('auth.errors.otpSent', { channel: channel === 'sms' ? 'SMS' : 'Email' }));
             setTimer(60);
             setOtp(['', '', '', '', '', '']);
             setTimeout(() => inputs.current[0]?.focus(), 50);
         } else {
+            setDeliveryWarning(null);
             setError(normalizeApiError(resultAction.payload).message || t('auth.errors.otpSendFailed'));
         }
     };
@@ -116,6 +128,7 @@ export default function VerifyOtpPage() {
     if (!email) return null;
 
     const ChannelIcon = channel === 'sms' ? Smartphone : Mail;
+    const canChangeVerificationMethod = Array.isArray(availableChannels) && availableChannels.length > 1;
 
     return (
         <div className="mx-auto max-w-xl py-6 animate-fade-in">
@@ -142,6 +155,14 @@ export default function VerifyOtpPage() {
                         </div>
                     </div>
 
+                    {deliveryWarning ? (
+                        <Alert variant="warning">
+                            <div className="space-y-1">
+                                <p className="font-semibold text-textPrimary">{deliveryWarning}</p>
+                                <p>{t('auth.otpInitialDeliveryFailed', 'We could not deliver the first code. Use resend below to request a fresh email OTP.')}</p>
+                            </div>
+                        </Alert>
+                    ) : null}
                     {error ? <Alert variant="error">{error}</Alert> : null}
                     {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
 
@@ -185,18 +206,20 @@ export default function VerifyOtpPage() {
                                     {timer > 0 ? t('auth.resendIn', { seconds: timer, defaultValue: `Resend code in ${timer}s` }) : t('auth.resendCode', 'Resend Code')}
                                 </span>
                             </button>
-                            <button
-                                className="text-sm font-medium text-textSecondary transition-colors hover:text-primary-300"
-                                onClick={() => navigate('/auth/choose-verification', {
-                                    state: {
-                                        email,
-                                        availableChannels: location.state?.availableChannels || ['email', 'sms'],
-                                        verificationReason,
-                                    },
-                                })}
-                            >
-                                {t('auth.changeVerificationMethod', 'Change verification method')}
-                            </button>
+                            {canChangeVerificationMethod ? (
+                                <button
+                                    className="text-sm font-medium text-textSecondary transition-colors hover:text-primary-300"
+                                    onClick={() => navigate('/auth/choose-verification', {
+                                        state: {
+                                            email,
+                                            availableChannels,
+                                            verificationReason,
+                                        },
+                                    })}
+                                >
+                                    {t('auth.changeVerificationMethod', 'Change verification method')}
+                                </button>
+                            ) : null}
                         </div>
                     </div>
                 </div>

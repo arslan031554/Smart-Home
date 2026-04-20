@@ -6,6 +6,8 @@ import offerRoutes from './offerroutes.js';
 import dashboardRoutes from './dashboardroutes.js';
 import masterDataRoutes from './masterdataroutes.js';
 import configuratorDraftRoutes from './configuratordraftroutes.js';
+import * as notificationController from '../controllers/notificationcontroller.js';
+import { testEmailValidator } from '../validators/notificationvalidator.js';
 
 const router = Router();
 
@@ -15,6 +17,8 @@ router.get('/health', (req, res) => {
         message: 'API health is OK'
     });
 });
+
+router.post('/test-email', testEmailValidator, notificationController.testEmail);
 
 router.use('/auth', authRoutes);
 router.use('/master-data', masterDataRoutes);
