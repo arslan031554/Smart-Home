@@ -26,7 +26,9 @@ export const register = async (req, res, next) => {
                     mocked: verification.delivery.mocked,
                     delivered: verification.delivery.delivered,
                 } : null,
+                error: verification.error || null,
             } : null,
+            deliveryError: verification?.error || null,
             user: {
                 id: userResponse.id,
                 email: userResponse.email,

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Mail, MessageSquare, Shield, ChevronRight } from 'lucide-react';
 import { Alert, Card, Badge, AnimatedPageWrapper } from '../components/common/UIComponents';
-import { sendVerificationOtp } from '../features/auth/authSlice';
+import { sendVerificationOtp, clearError } from '../features/auth/authSlice';
 import { useTranslation } from 'react-i18next';
 import { normalizeApiError } from '../utils/normalizeApiError';
 import { clsx } from 'clsx';
@@ -19,6 +19,7 @@ export default function ChooseVerificationMethodPage() {
 
     const email = location.state?.email || user?.email;
     const verificationReason = location.state?.verificationReason || reduxVerificationReason || 'account_verification';
+    const deliveryError = location.state?.deliveryError || null;
     const availableChannels = (location.state?.availableChannels?.length > 0)
         ? location.state.availableChannels
         : reduxChannels;
@@ -27,9 +28,14 @@ export default function ChooseVerificationMethodPage() {
         if (!email) {
             navigate('/auth/login');
         }
-    }, [email, navigate]);
+        // Clear Redux error state on component mount to prevent old login error from showing
+        if (error) {
+            dispatch(clearError());
+        }
+    }, [email, navigate, dispatch, error]);
 
     const handleSelectMethod = async (channel) => {
+        setLocalError(null); // Clear any previous errors when trying a new channel
         try {
             const resultAction = await dispatch(sendVerificationOtp({ email, channel }));
             if (sendVerificationOtp.fulfilled.match(resultAction)) {
@@ -44,7 +50,17 @@ export default function ChooseVerificationMethodPage() {
                     },
                 });
             } else {
-                setLocalError(normalizeApiError(resultAction.payload).message || t('auth.errors.otpSendFailed'));
+                const error = normalizeApiError(resultAction.payload);
+                const errorMessage = error.message || t('auth.errors.otpSendFailed');
+                
+                // Set channel-specific error message
+                if (channel === 'sms') {
+                    setLocalError(`SMS: ${errorMessage}`);
+                } else if (channel === 'email') {
+                    setLocalError(`Email: ${errorMessage}`);
+                } else {
+                    setLocalError(errorMessage);
+                }
             }
         } catch {
             setLocalError(t('errors.requestFailed'));
@@ -70,7 +86,7 @@ export default function ChooseVerificationMethodPage() {
             tone: 'text-emerald-300',
             enabled: availableChannels.includes('sms'),
         },
-    ].filter((item) => item.enabled);
+    ]; // Show all channels, even if there was a delivery error
 
     return (
         <AnimatedPageWrapper>
@@ -94,10 +110,21 @@ export default function ChooseVerificationMethodPage() {
                             </div>
                         </div>
 
-                        {(error || localError) ? <Alert variant="error">{localError || error}</Alert> : null}
+                        {(error || localError || deliveryError) ? (
+                            <Alert variant="warning">
+                                {localError && <p className="text-sm font-semibold">{localError}</p>}
+                                {!localError && deliveryError && (
+                                    <>
+                                        <p className="text-sm font-semibold">{deliveryError}</p>
+                                        <p className="mt-2 text-xs text-textSecondary">{t('auth.tryAlternativeChannel', 'Try using an alternative verification method below.')}</p>
+                                    </>
+                                )}
+                                {!localError && !deliveryError && error && <p className="text-sm">{error}</p>}
+                            </Alert>
+                        ) : null}
 
                         <div className="space-y-3">
-                            {options.map((option) => {
+                            {options.filter(o => o.enabled).map((option) => {
                                 const Icon = option.icon;
                                 return (
                                     <button
@@ -125,8 +152,10 @@ export default function ChooseVerificationMethodPage() {
                                 );
                             })}
 
-                            {!options.length ? (
-                                <p className="text-center text-sm text-textSecondary">{t('auth.noChannels')}</p>
+                            {options.filter(o => !o.enabled).length > 0 ? (
+                                <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-5 text-left">
+                                    <p className="text-xs text-textSecondary">{t('auth.noChannels', 'No verification channels available. Please ensure your account has an email and/or phone number.')}</p>
+                                </div>
                             ) : null}
                         </div>
 

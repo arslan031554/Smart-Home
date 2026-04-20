@@ -201,16 +201,44 @@ export const register = async (userData, context = {}) => {
         preferredVerificationChannel: verificationChannel === 'sms' ? 'sms' : 'email',
     });
 
-    const otpDelivery = await issueVerificationOtpForUser(user, verificationChannel, {
-        allowVerified: false,
-        reason: 'account_verification',
-    });
+    let otpDelivery = null;
+    let deliveryError = null;
+    const availableChannels = [];
+    if (user.phone) availableChannels.push('sms');
+    if (user.email) availableChannels.push('email');
+
+    try {
+        otpDelivery = await issueVerificationOtpForUser(user, verificationChannel, {
+            allowVerified: false,
+            reason: 'account_verification',
+        });
+    } catch (error) {
+        // If preferred channel fails, try alternative
+        deliveryError = error.message;
+        if (availableChannels.length > 0) {
+            const alternativeChannel = verificationChannel === 'sms' && availableChannels.includes('email')
+                ? 'email'
+                : availableChannels.includes('sms')
+                ? 'sms'
+                : availableChannels[0];
+            try {
+                otpDelivery = await issueVerificationOtpForUser(user, alternativeChannel, {
+                    allowVerified: false,
+                    reason: 'account_verification',
+                });
+                deliveryError = null;
+            } catch (altError) {
+                deliveryError = altError.message;
+            }
+        }
+    }
 
     return {
         user,
         verification: {
-            channel: otpDelivery.channel,
-            delivery: otpDelivery.delivery,
+            channel: otpDelivery?.channel || verificationChannel,
+            delivery: otpDelivery?.delivery || null,
+            error: deliveryError,
         },
     };
 };
@@ -232,22 +260,49 @@ export const login = async (email, password) => {
     const preferredVerificationChannel = normalizeVerificationChannel(user.preferredVerificationChannel, user);
 
     if (!user.isVerified) {
-        const otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
-            allowVerified: false,
-            reason: 'account_verification',
-        });
+        let otpDelivery = null;
+        let deliveryError = null;
+        try {
+            otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
+                allowVerified: false,
+                reason: 'account_verification',
+            });
+        } catch (error) {
+            // If preferred channel fails, still allow user to try other channels
+            deliveryError = error.message;
+            // Try to send to any available channel
+            if (availableChannels.length > 0) {
+                const alternativeChannel = preferredVerificationChannel === 'sms' && availableChannels.includes('email')
+                    ? 'email'
+                    : availableChannels.includes('sms')
+                    ? 'sms'
+                    : availableChannels[0];
+                try {
+                    otpDelivery = await issueVerificationOtpForUser(user, alternativeChannel, {
+                        allowVerified: false,
+                        reason: 'account_verification',
+                    });
+                    deliveryError = null; // Success with alternative channel
+                } catch (altError) {
+                    // Both channels failed, but still let user try manual selection
+                    deliveryError = altError.message;
+                }
+            }
+        }
+
         const error = new Error('Verification required');
         error.statusCode = 403;
         error.data = {
             requiresVerification: true,
             verificationReason: 'account_verification',
-            availableChannels,
+            availableChannels, // Always show both channels even if delivery had issues
             preferredVerificationChannel,
             delivery: otpDelivery?.delivery ? {
                 provider: otpDelivery.delivery.provider,
                 mocked: otpDelivery.delivery.mocked,
                 delivered: otpDelivery.delivery.delivered,
             } : null,
+            deliveryError, // Include error message if any
             user: {
                 id: user.id,
                 email: user.email,
@@ -258,22 +313,49 @@ export const login = async (email, password) => {
     }
 
     // ALL users (including admin) MUST verify with OTP on login - no exceptions
-    const otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
-        allowVerified: true,
-        reason: 'login_2fa',
-    });
+    let otpDelivery = null;
+    let deliveryError = null;
+    try {
+        otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
+            allowVerified: true,
+            reason: 'login_2fa',
+        });
+    } catch (error) {
+        // If preferred channel fails, still allow user to try other channels
+        deliveryError = error.message;
+        // Try to send to any available channel
+        if (availableChannels.length > 0) {
+            const alternativeChannel = preferredVerificationChannel === 'sms' && availableChannels.includes('email')
+                ? 'email'
+                : availableChannels.includes('sms')
+                ? 'sms'
+                : availableChannels[0];
+            try {
+                otpDelivery = await issueVerificationOtpForUser(user, alternativeChannel, {
+                    allowVerified: true,
+                    reason: 'login_2fa',
+                });
+                deliveryError = null; // Success with alternative channel
+            } catch (altError) {
+                // Both channels failed, but still let user try manual selection
+                deliveryError = altError.message;
+            }
+        }
+    }
+
     const error = new Error('Two-factor verification required');
     error.statusCode = 403;
     error.data = {
         requiresVerification: true,
         verificationReason: 'login_2fa',
-        availableChannels,
+        availableChannels, // Always show both channels even if delivery had issues
         preferredVerificationChannel,
         delivery: otpDelivery?.delivery ? {
             provider: otpDelivery.delivery.provider,
             mocked: otpDelivery.delivery.mocked,
             delivered: otpDelivery.delivery.delivered,
         } : null,
+        deliveryError, // Include error message if any
         user: {
             id: user.id,
             email: user.email,

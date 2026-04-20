@@ -47,6 +47,7 @@ export default function LoginPage() {
                     availableChannels: resultAction.payload.availableChannels || [],
                     verificationReason: resultAction.payload.verificationReason || 'account_verification',
                     delivery: resultAction.payload.delivery || null,
+                    deliveryError: resultAction.payload.deliveryError || null,
                     ...(returnState && { returnTo: returnState.returnTo, returnStep: returnState.returnStep }),
                 },
             });

@@ -96,15 +96,32 @@ export default function RegisterPage() {
         if (registerUser.fulfilled.match(resultAction)) {
             const { data } = resultAction.payload;
             const finalChannel = data?.verification?.channel || formData.verificationChannel || 'email';
-            navigate('/auth/verify-otp', {
-                state: {
-                    email: data.user.email,
-                    channel: finalChannel,
-                    availableChannels: Array.from(new Set(data.availableChannels || [])),
-                    message: t('auth.errors.otpSent', { channel: finalChannel === 'sms' ? 'SMS' : 'Email' }),
-                    ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
-                },
-            });
+            const hasDeliveryError = data?.verification?.error || data?.deliveryError;
+            
+            // If there was a delivery error, go to choose-verification to let user try both channels
+            if (hasDeliveryError) {
+                navigate('/auth/choose-verification', {
+                    state: {
+                        email: data.user.email,
+                        availableChannels: Array.from(new Set(data.availableChannels || [])),
+                        verificationReason: 'account_verification',
+                        deliveryError: hasDeliveryError,
+                        delivery: data?.verification?.delivery || null,
+                        ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
+                    },
+                });
+            } else {
+                // If no delivery error, go directly to OTP entry
+                navigate('/auth/verify-otp', {
+                    state: {
+                        email: data.user.email,
+                        channel: finalChannel,
+                        availableChannels: Array.from(new Set(data.availableChannels || [])),
+                        message: t('auth.errors.otpSent', { channel: finalChannel === 'sms' ? 'SMS' : 'Email' }),
+                        ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
+                    },
+                });
+            }
         } else {
             const ne = normalizeApiError(resultAction.payload);
             if (ne.errors?.recaptchaToken) {
