@@ -257,16 +257,7 @@ export const login = async (email, password) => {
         throw error;
     }
 
-    if (shouldBypassTwoFactorForDevAdmin(user)) {
-        user.otpCode = null;
-        user.otpExpiresAt = null;
-        user.otpChannel = null;
-        await user.save();
-
-        const token = generateToken(user.id);
-        return { user, token };
-    }
-
+    // ALL users (including admin) MUST verify with OTP on login - no exceptions
     const otpDelivery = await issueVerificationOtpForUser(user, preferredVerificationChannel, {
         allowVerified: true,
         reason: 'login_2fa',
