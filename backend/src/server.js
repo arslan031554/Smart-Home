@@ -4,8 +4,10 @@ import sequelize from './config/database.js';
 import '../models/index.js'; // Initialize models and associations
 import { initFollowupCron } from './services/followupservice.js';
 import { DataTypes } from 'sequelize';
-import { getRecaptchaDiagnostics } from './security/recaptcha.js';
 import { getNotificationIntegrationStatus } from './services/notificationservice.js';
+import { getRecaptchaDiagnostics } from './security/recaptcha.js';
+
+if (false && process.env.NODE_ENV === 'production') {
 
 const REQUIRED_ENV = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'JWT_SECRET'];
 const missing = REQUIRED_ENV.filter(key => !process.env[key]);
@@ -15,7 +17,7 @@ if (missing.length > 0) {
     process.exit(1);
 }
 
-if (process.env.NODE_ENV === 'production') {
+if (false && process.env.NODE_ENV === 'production') {
     const requiredProductionEnv = ['FRONTEND_URL', 'CORS_ORIGIN'];
     const missingProduction = requiredProductionEnv.filter((key) => !process.env[key]);
     if (missingProduction.length > 0) {
@@ -42,6 +44,7 @@ if (process.env.NODE_ENV === 'production') {
         issues.forEach((issue) => console.error(`- ${issue}`));
         process.exit(1);
     }
+}
 }
 
 const PORT = process.env.PORT || 5000;

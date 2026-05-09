@@ -298,14 +298,23 @@ export function getConfiguredEmailSender() {
     return String(process.env.SENDGRID_FROM_EMAIL || '').trim() || null;
 }
 
-function buildEmailPayload(to, from, subject, text, html, attachments = null) {
+function buildEmailPayload(to, from, subject, text, html, attachments = null, templateId = null, templateData = null) {
     const msg = {
         to,
         from,
-        subject,
-        text,
-        html,
     };
+
+    if (templateId) {
+        msg.templateId = templateId;
+        if (templateData) {
+            msg.dynamicTemplateData = templateData;
+        }
+    } else {
+        msg.subject = subject;
+        msg.text = text;
+        msg.html = html;
+    }
+
     if (Array.isArray(attachments) && attachments.length) {
         msg.attachments = attachments;
     }
@@ -319,6 +328,8 @@ function getEmailPayloadLog(msg) {
         subject: msg.subject,
         text: msg.text,
         html: msg.html,
+        templateId: msg.templateId,
+        dynamicTemplateData: msg.dynamicTemplateData,
         attachments: Array.isArray(msg.attachments)
             ? msg.attachments.map((attachment) => ({
                 filename: attachment.filename,
@@ -330,9 +341,9 @@ function getEmailPayloadLog(msg) {
     };
 }
 
-export const sendEmail = async (to, subject, text, html, attachments = null) => {
+export const sendEmail = async (to, subject, text, html, attachments = null, templateId = null, templateData = null) => {
     const state = ensureLiveSendGrid();
-    const msg = buildEmailPayload(to, state.fromEmail, subject, text, html, attachments);
+    const msg = buildEmailPayload(to, state.fromEmail, subject, text, html, attachments, templateId, templateData);
 
     console.info(`[SendGrid] Using from email ${msg.from} (${state.mode} mode) for recipient ${msg.to}`);
 
@@ -409,7 +420,23 @@ export const sendSms = async (to, body) => {
     }
 };
 
-export const sendOtpEmail = async (email, otpCode) => {
+export const sendOtpEmail = async (email, otpCode, recipientName = null) => {
+    const templateId = process.env.SENDGRID_OTP_TEMPLATE_ID;
+    const displayName = String(recipientName || '').trim() || String(email || '').split('@')[0] || 'there';
+    const templateData = {
+        name: displayName,
+        otp: otpCode,
+        expiryMinutes: 10,
+        year: new Date().getFullYear(),
+    };
+
+    if (templateId) {
+        const result = await sendEmail(email, null, null, null, null, templateId, templateData);
+        maybeLogOtp({ channel: 'email', destination: email, otp: otpCode, result });
+        return result;
+    }
+
+    // Fallback to plain email if no template configured
     const subject = 'Your Verification Code';
     const text = `Your verification code is: ${otpCode}. It will expire in 10 minutes.`;
     const html = `

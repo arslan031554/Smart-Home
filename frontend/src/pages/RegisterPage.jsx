@@ -36,6 +36,7 @@ export default function RegisterPage() {
         agreeTerms: false,
         newsletter: false,
         recaptchaToken: '',
+        verificationChannel: 'email',
     });
     const [recaptchaError, setRecaptchaError] = useState(null);
     const [formErrors, setFormErrors] = useState({});
@@ -85,7 +86,7 @@ export default function RegisterPage() {
         const payload = {
             ...formData,
             company: formData.companyName,
-            verificationChannel: 'email',
+            verificationChannel: formData.verificationChannel,
             preferredLanguage: (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en',
             recaptchaToken: isRecaptchaMock ? (formData.recaptchaToken || 'mock-token') : formData.recaptchaToken,
             cookiesAccepted: Boolean(cookieConsent),
@@ -98,11 +99,11 @@ export default function RegisterPage() {
             navigate('/auth/verify-otp', {
                 state: {
                     email: data.user.email,
-                    channel: 'email',
-                    availableChannels: ['email'],
+                    channel: formData.verificationChannel,
+                    availableChannels: [formData.verificationChannel],
                     verificationReason: 'account_verification',
                     deliveryError,
-                    message: deliveryError ? null : t('auth.errors.otpSent', { channel: 'Email' }),
+                    message: deliveryError ? null : t('auth.errors.otpSent', { channel: formData.verificationChannel === 'email' ? 'Email' : 'Phone' }),
                     ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
                 },
             });
@@ -166,17 +167,57 @@ export default function RegisterPage() {
                             <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
                                 {t('auth.verificationMethod', 'Verification Method')}
                             </label>
-                            <Alert variant="info" icon={Mail}>
+                            <div className="space-y-3">
+                                <div className="flex items-center space-x-3">
+                                    <input
+                                        type="radio"
+                                        id="verify-email"
+                                        name="verificationChannel"
+                                        value="email"
+                                        checked={formData.verificationChannel === 'email'}
+                                        onChange={handleChange}
+                                        className="h-4 w-4 text-primary-300 focus:ring-primary-300"
+                                    />
+                                    <label htmlFor="verify-email" className="flex items-center gap-2 text-sm text-textPrimary">
+                                        <Mail className="h-4 w-4" />
+                                        {t('auth.verifyByEmail', 'Verify by Email')}
+                                    </label>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <input
+                                        type="radio"
+                                        id="verify-sms"
+                                        name="verificationChannel"
+                                        value="sms"
+                                        checked={formData.verificationChannel === 'sms'}
+                                        onChange={handleChange}
+                                        className="h-4 w-4 text-primary-300 focus:ring-primary-300"
+                                    />
+                                    <label htmlFor="verify-sms" className="flex items-center gap-2 text-sm text-textPrimary">
+                                        <Phone className="h-4 w-4" />
+                                        {t('auth.verifyByPhone', 'Verify by Phone')}
+                                    </label>
+                                </div>
+                            </div>
+                            <Alert variant="info" icon={formData.verificationChannel === 'email' ? Mail : Phone}>
                                 <div className="space-y-1">
-                                    <p className="font-semibold text-textPrimary">{t('auth.verifyByEmail')}</p>
-                                    <p>{t('auth.registrationEmailOtpOnly', 'New account registrations currently use email OTP verification only.')}</p>
+                                    <p className="font-semibold text-textPrimary">
+                                        {formData.verificationChannel === 'email' ? t('auth.verifyByEmail') : t('auth.verifyByPhone')}
+                                    </p>
                                     <p>
-                                        {formData.email
-                                            ? t('auth.registrationEmailOtpOnlyAddress', {
-                                                email: formData.email,
-                                                defaultValue: `After signup, we will send the 6-digit code to ${formData.email}.`,
-                                            })
-                                            : t('auth.registrationEmailOtpOnlyHint', 'Enter your email above and we will send the 6-digit code there after signup.')}
+                                        {formData.verificationChannel === 'email'
+                                            ? (formData.email
+                                                ? t('auth.registrationEmailOtpOnlyAddress', {
+                                                    email: formData.email,
+                                                    defaultValue: `After signup, we will send the 6-digit code to ${formData.email}.`,
+                                                })
+                                                : t('auth.registrationEmailOtpOnlyHint', 'Enter your email above and we will send the 6-digit code there after signup.'))
+                                            : (formData.phone
+                                                ? t('auth.registrationPhoneOtpOnlyAddress', {
+                                                    phone: formData.phone,
+                                                    defaultValue: `After signup, we will send the 6-digit code to ${formData.phone}.`,
+                                                })
+                                                : t('auth.registrationPhoneOtpOnlyHint', 'Enter your phone above and we will send the 6-digit code there after signup.'))}
                                     </p>
                                 </div>
                             </Alert>

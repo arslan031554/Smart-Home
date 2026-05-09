@@ -11,7 +11,9 @@ export const register = async (req, res, next) => {
         });
         const userResponse = authService.sanitizeUser(user);
 
-        const availableChannels = user.email ? ['email'] : [];
+        const availableChannels = [];
+        if (user.email) availableChannels.push('email');
+        if (user.phone) availableChannels.push('sms');
 
         sendResponse(res, 201, true, 'Registration successful. Verification required.', {
             requiresVerification: true,

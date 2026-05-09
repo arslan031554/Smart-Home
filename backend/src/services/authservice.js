@@ -128,7 +128,7 @@ async function issueVerificationOtpForUser(user, channelInput, options = {}) {
         if (channel === 'sms') {
             delivery = await notificationService.sendOtpSms(user.phone, otp);
         } else {
-            delivery = await notificationService.sendOtpEmail(user.email, otp);
+            delivery = await notificationService.sendOtpEmail(user.email, otp, user.fullName);
         }
     } catch (error) {
         user.otpCode = previousOtpCode;
