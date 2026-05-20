@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, useParams } from 'react-router-dom';
 import RootLayout from '../layouts/RootLayout';
 import AuthLayout from '../layouts/AuthLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -24,6 +24,14 @@ import OfferDetailPage from '../pages/OfferDetailPage';
 import ProjectsListPage from '../pages/ProjectsListPage';
 import ProjectDetailPage from '../pages/ProjectDetailPage';
 import NotFoundPage from '../pages/NotFoundPage';
+import PresentationLayout from '../presentation/PresentationLayout';
+import PresentationHomePage from '../presentation/pages/HomePage';
+import PresentationAboutPage from '../presentation/pages/AboutPage';
+import PresentationServicesPage from '../presentation/pages/ServicesPage';
+import PresentationPortfolioPage from '../presentation/pages/PortfolioPage';
+import PresentationMediaPage from '../presentation/pages/MediaPage';
+import PresentationContactPage from '../presentation/pages/ContactPage';
+import PresentationServicePage from '../presentation/pages/ServicePage';
 
 // Admin Pages
 import AdminDashboard from '../pages/AdminDashboard';
@@ -63,13 +71,32 @@ const AdminPermissionRoute = ({ children, permission }) => {
     return children;
 };
 
+const PresentationServiceRoute = () => {
+    const { slug } = useParams();
+    return <PresentationServicePage slug={slug} />;
+};
+
 const router = createBrowserRouter([
+    {
+        path: '/',
+        element: <PresentationLayout />,
+        errorElement: <RootErrorPage />,
+        children: [
+            { index: true, element: <PresentationHomePage /> },
+            { path: 'despre', element: <PresentationAboutPage /> },
+            { path: 'servicii', element: <PresentationServicesPage /> },
+            { path: 'servicii/:slug', element: <PresentationServiceRoute /> },
+            { path: 'portofoliu', element: <PresentationPortfolioPage /> },
+            { path: 'media', element: <PresentationMediaPage /> },
+            { path: 'contact', element: <PresentationContactPage /> },
+        ],
+    },
     {
         path: '/',
         element: <RootLayout />,
         errorElement: <RootErrorPage />,
         children: [
-            { index: true, element: <HomePage /> },
+            { path: 'smart-home', element: <HomePage /> },
             { path: 'configurator', element: <ConfiguratorPage /> },
             { path: 'offers', element: <OffersListPage /> },
             { path: 'legal/terms', element: <TermsOfServicePage /> },

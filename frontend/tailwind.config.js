@@ -7,6 +7,39 @@ export default {
     theme: {
         extend: {
             colors: {
+                ink: '#03120d',
+                forest: '#010c08',
+                graphite: '#111815',
+                emerald: {
+                    DEFAULT: '#60b93f',
+                    50: '#f2fbe9',
+                    100: '#ddf7c7',
+                    200: '#bff09a',
+                    300: '#98e363',
+                    400: '#74d341',
+                    500: '#60b93f',
+                    600: '#4a9630',
+                    700: '#3b7429',
+                    800: '#315d26',
+                    900: '#294d22',
+                    950: '#102b12',
+                },
+                leaf: '#74d341',
+                orange: {
+                    DEFAULT: '#58ad37',
+                    50: '#f2fbe9',
+                    100: '#ddf7c7',
+                    200: '#bff09a',
+                    300: '#98e363',
+                    400: '#74d341',
+                    500: '#58ad37',
+                    600: '#458b2d',
+                    700: '#376f27',
+                    800: '#2d5722',
+                    900: '#24471d',
+                    950: '#102b12',
+                },
+                fog: '#f6f8f3',
                 primary: {
                     50: '#ecfdf3',
                     100: '#dcfce7',
@@ -62,13 +95,14 @@ export default {
             },
             boxShadow: {
                 'soft': '0 12px 28px rgba(15, 23, 42, 0.08)',
-                'card': '0 20px 52px rgba(20, 83, 45, 0.1)',
-                'card-hover': '0 28px 72px rgba(20, 83, 45, 0.14)',
-                'premium': '0 30px 90px rgba(20, 83, 45, 0.12)',
-                'premium-hover': '0 44px 120px rgba(20, 83, 45, 0.16)',
+                'card': '0 20px 52px rgba(3, 18, 13, 0.1)',
+                'card-hover': '0 28px 72px rgba(3, 18, 13, 0.14)',
+                'premium': '0 30px 90px rgba(3, 18, 13, 0.12)',
+                'premium-hover': '0 44px 120px rgba(3, 18, 13, 0.16)',
                 'premium-sm': '0 18px 44px rgba(15, 23, 42, 0.08)',
-                'glow': '0 0 36px rgba(20, 83, 45, 0.18)',
-                'glow-cyan': '0 0 28px rgba(34, 197, 94, 0.12)',
+                'glow': '0 0 36px rgba(96, 185, 63, 0.22)',
+                'glow-cyan': '0 0 28px rgba(116, 211, 65, 0.16)',
+                'orange': '0 18px 42px rgba(88, 173, 55, 0.32)',
             },
             borderRadius: {
                 'xl2': '1.25rem',
@@ -77,10 +111,11 @@ export default {
                 'xl5': '2.5rem',
             },
             backgroundImage: {
-                'gradient-brand': 'linear-gradient(135deg, #14532d 0%, #114928 48%, #0f3d22 100%)',
-                'gradient-brand-r': 'linear-gradient(135deg, #0f3d22 0%, #14532d 58%, #22c55e 100%)',
-                'gradient-surface': 'radial-gradient(circle at 14% 0%, rgba(34, 197, 94, 0.06), transparent 30%), radial-gradient(circle at 88% 12%, rgba(236, 253, 243, 0.72), transparent 22%), linear-gradient(180deg, #ffffff 0%, #ffffff 100%)',
-                'gradient-card': 'linear-gradient(145deg, #ecfdf3 0%, #dcfce7 52%, #f0fdf4 100%)',
+                'gradient-brand': 'linear-gradient(135deg, #03120d 0%, #0b2b1b 54%, #58ad37 100%)',
+                'gradient-brand-r': 'linear-gradient(135deg, #58ad37 0%, #0b2b1b 46%, #03120d 100%)',
+                'gradient-surface': 'radial-gradient(circle at 14% 0%, rgba(96, 185, 63, 0.08), transparent 30%), radial-gradient(circle at 88% 12%, rgba(242, 251, 233, 0.78), transparent 22%), linear-gradient(180deg, #ffffff 0%, #ffffff 100%)',
+                'gradient-card': 'linear-gradient(145deg, #ffffff 0%, #f6f8f3 52%, #eef6e8 100%)',
+                'tech-grid': 'linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px)',
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',
@@ -92,6 +127,7 @@ export default {
                 'shimmer': 'shimmer 2s linear infinite',
                 'pulse-slow': 'pulse 3s ease-in-out infinite',
                 'bounce-sm': 'bounceSm 1s infinite',
+                'pulseGlow': 'pulseGlow 5s ease-in-out infinite',
             },
             keyframes: {
                 fadeIn: {
@@ -125,6 +161,10 @@ export default {
                 bounceSm: {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-4px)' },
+                },
+                pulseGlow: {
+                    '0%, 100%': { opacity: '0.45', transform: 'scale(1)' },
+                    '50%': { opacity: '0.85', transform: 'scale(1.08)' },
                 },
             },
         },

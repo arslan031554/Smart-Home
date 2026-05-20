@@ -7,7 +7,7 @@ const LANGS = [
   { code: 'ro', labelKey: 'language.ro' }
 ];
 
-export default function LanguageSwitcher({ className = '' }) {
+export default function LanguageSwitcher({ className = '', variant = 'dropdown' }) {
   const { i18n, t } = useTranslation();
   const currentCode = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en';
   const currentLanguage = LANGS.find((lang) => lang.code === currentCode) || LANGS[0];
@@ -40,6 +40,38 @@ export default function LanguageSwitcher({ className = '' }) {
     i18n.changeLanguage(code);
     setIsOpen(false);
   };
+
+  if (variant === 'inline') {
+    return (
+      <div
+        className={`inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 shadow-soft backdrop-blur-xl ${className}`}
+        aria-label={t('language.label')}
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-primary-300">
+          <Globe className="h-3.5 w-3.5" />
+        </span>
+        {LANGS.map((lang) => {
+          const isActive = lang.code === currentCode;
+
+          return (
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => handleLanguageSelect(lang.code)}
+              aria-pressed={isActive}
+              className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
+                isActive
+                  ? 'bg-primary-500/16 text-primary-300 shadow-soft'
+                  : 'text-textSecondary hover:bg-white/6 hover:text-textPrimary'
+              }`}
+            >
+              {t(lang.labelKey)}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className={`relative flex items-center ${className}`}>

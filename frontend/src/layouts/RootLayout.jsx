@@ -20,6 +20,7 @@ function cn(...inputs) {
 }
 
 export default function RootLayout() {
+  const appHomePath = '/smart-home';
   const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -31,7 +32,7 @@ export default function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const useDarkNavbarSurface = location.pathname === '/' || location.pathname.startsWith('/configurator');
+  const useDarkNavbarSurface = location.pathname === appHomePath || location.pathname.startsWith('/configurator');
 
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
@@ -44,7 +45,7 @@ export default function RootLayout() {
     () => [
       {
         name: t('nav.home'),
-        href: '/',
+        href: appHomePath,
         icon: Home,
         requiresAuth: false,
       },
@@ -140,7 +141,11 @@ export default function RootLayout() {
         <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
       </div>
 
-      <header className={cn('sticky top-0 z-50 transition-all duration-500', scrolled ? 'pt-4 pb-2' : 'py-5')}>
+      <header className={cn('sticky top-0 z-50 transition-all duration-500', scrolled ? 'pt-2 pb-2' : 'py-4')}>
+        <div className="container-custom mb-2 flex justify-center sm:justify-end">
+          <LanguageSwitcher variant="inline" />
+        </div>
+
         <div className="container-custom">
           <div
             className={cn(
@@ -154,7 +159,7 @@ export default function RootLayout() {
                   : 'border-white/5 bg-white/[0.04] py-4 backdrop-blur-xl',
             )}
           >
-            <Link to="/" onClick={closeAllOverlays} className="group flex flex-shrink-0 items-center gap-3">
+            <Link to={appHomePath} onClick={closeAllOverlays} className="group flex flex-shrink-0 items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-brand text-primary-950 shadow-glow transition-transform duration-300 group-hover:-translate-y-0.5">
                 <Zap className="h-5 w-5" />
               </div>
@@ -197,8 +202,6 @@ export default function RootLayout() {
               </div>
 
               <div className="ml-2 flex items-center gap-4 border-l border-white/8 pl-5">
-                <LanguageSwitcher />
-
                 {isAuthenticated ? (
                   <div className="relative">
                     <button
@@ -283,10 +286,7 @@ export default function RootLayout() {
                   : 'premium-panel border-white/10',
               )}
             >
-              <div className="pb-3">
-                <LanguageSwitcher className="justify-start" />
-              </div>
-              <div className="space-y-2 border-t border-white/8 pt-4">
+              <div className="space-y-2">
                 {navigation.map((item) => {
                   if (item.requiresAuth && !isAuthenticated) return null;
                   if (item.requiresAdmin && !hasAdminAccess(user)) return null;
@@ -351,7 +351,7 @@ export default function RootLayout() {
         <div className="container-custom py-16">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-6">
             <div className="space-y-6 lg:col-span-4 lg:pr-6">
-              <Link to="/" onClick={closeAllOverlays} className="group flex w-fit items-center gap-3">
+              <Link to={appHomePath} onClick={closeAllOverlays} className="group flex w-fit items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-brand text-primary-950 shadow-glow">
                   <Zap className="h-6 w-6" />
                 </div>
