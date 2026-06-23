@@ -3,6 +3,7 @@ import Offer from '../../models/Offer.js';
 import OfferFollowup from '../../models/OfferFollowup.js';
 import BuildingType from '../../models/BuildingType.js';
 import { Op } from 'sequelize';
+import { normalizeOfferStatus } from '../constants/offerStatus.js';
 
 const RECENT_LIMIT = 5;
 const REMINDER_DAYS_AHEAD = 7;
@@ -39,9 +40,9 @@ export const getDashboard = async (userId, userSummary) => {
         };
     });
 
-    const offerCountByStatus = { draft: 0, in_progress: 0, offer_ready: 0, waiting: 0, ordered: 0, cancelled: 0 };
+    const offerCountByStatus = { draft: 0, in_progress: 0, offer_generated: 0, ordered: 0, cancelled: 0 };
     offers.forEach(o => {
-        const s = (o.status || 'draft').toLowerCase().replace(/-/g, '_');
+        const s = normalizeOfferStatus(o.status || 'draft');
         if (offerCountByStatus[s] !== undefined) offerCountByStatus[s]++;
         else offerCountByStatus.draft++;
     });
@@ -51,7 +52,7 @@ export const getDashboard = async (userId, userSummary) => {
         return {
             id: oo.id,
             offerNumber: oo.offerNumber,
-            status: oo.status || 'draft',
+            status: normalizeOfferStatus(oo.status || 'draft'),
             grandTotal: oo.grandTotal,
             projectName: oo.project?.name || null,
             updatedAt: oo.updatedAt,
@@ -84,8 +85,9 @@ export const getDashboard = async (userId, userSummary) => {
             activeProjects: projects.length,
             draftOffers: offerCountByStatus.draft,
             inProgressOffers: offerCountByStatus.in_progress,
-            offerReady: offerCountByStatus.offer_ready,
-            waitingOffers: offerCountByStatus.waiting,
+            offerReady: offerCountByStatus.offer_generated,
+            waitingOffers: 0,
+            offerGeneratedOffers: offerCountByStatus.offer_generated,
             orderedOffers: offerCountByStatus.ordered,
             cancelledOffers: offerCountByStatus.cancelled
         },

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import {
   ChevronDown,
-  Headphones,
   Mail,
   Menu,
   Phone,
@@ -72,23 +71,17 @@ export default function Navbar({ currentPath = '/' }) {
   const isPagesActive = currentPath !== '/' && currentPath !== '/portofoliu' && currentPath !== '/contact';
   const dropdownItems = pageDropdownItems;
   const linkClass = (active) =>
-    `rounded-full px-4 py-2.5 text-[13px] font-extrabold uppercase tracking-[0.13em] transition ${
+    `rounded-full px-3 py-2 text-[12px] font-extrabold uppercase tracking-[0.08em] transition ${
       active
-        ? 'bg-emerald/12 text-emerald'
-        : isScrolled
-          ? 'text-graphite/75 hover:bg-emerald/8 hover:text-emerald'
-          : 'text-white/85 hover:bg-white/10 hover:text-white'
+        ? 'bg-emerald/15 text-emerald'
+        : 'text-white/82 hover:bg-white/10 hover:text-white'
     }`;
-
-  const topBarClass =
-    'border-b border-white/8 transition duration-300 ' +
-    (isScrolled ? 'bg-ink text-white shadow-lg shadow-emerald/10' : 'bg-forest/70 text-white backdrop-blur-md');
 
   const navClass =
     'transition duration-300 ' +
     (isScrolled
-      ? 'border-b border-emerald/10 bg-white/95 shadow-xl shadow-emerald/10 backdrop-blur-xl'
-      : 'bg-transparent');
+      ? 'border-b border-emerald/15 bg-[#020a07]/95 shadow-xl shadow-black/20 backdrop-blur-xl'
+      : 'bg-[#020a07]/76 backdrop-blur-xl');
 
   const closeMobile = () => {
     setMobileOpen(false);
@@ -97,29 +90,13 @@ export default function Navbar({ currentPath = '/' }) {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
-      <div className={topBarClass}>
-        <div className="container-px mx-auto hidden max-w-7xl items-center justify-between py-2 text-xs font-semibold text-white/65 lg:flex">
-          <div className="flex items-center gap-5">
-            <a className="transition hover:text-orange" href="https://facebook.com/greenelectriccity" target="_blank" rel="noreferrer" aria-label="Facebook">Facebook</a>
-            <a className="transition hover:text-orange" href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube">YouTube</a>
-            <a className="transition hover:text-orange" href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram">Instagram</a>
-            <span className="flex items-center gap-1.5"><Headphones size={13} />{labels.support}</span>
-          </div>
-          <div className="flex items-center gap-5">
-            <a className="flex items-center gap-1.5 transition hover:text-orange" href={`tel:${contactInfo.phone}`}><Phone size={13} />{contactInfo.phone}</a>
-            <a className="flex items-center gap-1.5 transition hover:text-orange" href={`mailto:${contactInfo.email}`}><Mail size={13} />{contactInfo.email}</a>
-            <PresentationLanguageSwitcher />
-          </div>
-        </div>
-      </div>
-
       <nav className={navClass}>
         <div className="container-px mx-auto flex max-w-7xl items-center justify-between py-3">
           <a href="/" className="group flex items-center" onClick={(event) => navigateTo(event, '/', navigate)}>
             <img
               src={siteImages.localLogo}
               alt="Green Electric City smart building solution"
-              className="h-12 w-auto max-w-[230px] rounded-md bg-white/90 object-contain p-1.5 shadow-lg shadow-emerald/10 transition group-hover:-translate-y-0.5 sm:h-14"
+              className="h-11 w-auto max-w-[210px] rounded-md bg-white object-contain p-1.5 shadow-lg shadow-emerald/10 transition group-hover:-translate-y-0.5 sm:h-12"
             />
           </a>
 
@@ -141,19 +118,21 @@ export default function Navbar({ currentPath = '/' }) {
             <a
               href="/smart-home"
               onClick={(event) => navigateTo(event, '/smart-home', navigate)}
-              className="flex items-center gap-2 rounded-full border border-emerald/30 bg-emerald/10 px-4 py-2.5 text-[13px] font-extrabold uppercase tracking-[0.13em] text-emerald transition hover:-translate-y-0.5 hover:bg-emerald hover:text-white"
+              className="flex items-center gap-2 rounded-full border border-emerald/30 bg-white/8 px-3 py-2 text-[12px] font-extrabold uppercase tracking-[0.08em] text-emerald transition hover:-translate-y-0.5 hover:bg-emerald hover:text-ink"
             >
               <Settings size={15} />
               {labels.configurator}
             </a>
 
+            <PresentationLanguageSwitcher className="ml-2" />
+
             <a
               href="/contact"
               onClick={(event) => navigateTo(event, '/contact', navigate)}
-              className={`ml-1 rounded-full px-5 py-2.5 text-[13px] font-extrabold uppercase tracking-[0.13em] transition ${
+              className={`ml-1 rounded-full px-5 py-2.5 text-[12px] font-extrabold uppercase tracking-[0.08em] transition ${
                 currentPath === '/contact'
-                  ? 'bg-orange text-white shadow-orange'
-                  : 'bg-orange text-white shadow-orange hover:-translate-y-0.5 hover:bg-emerald'
+                  ? 'bg-emerald text-ink shadow-glow'
+                  : 'bg-emerald text-ink shadow-glow hover:-translate-y-0.5 hover:bg-white'
               }`}
             >
               {labels.contact}
@@ -161,7 +140,7 @@ export default function Navbar({ currentPath = '/' }) {
           </div>
 
           <button
-            className={`flex h-11 w-11 items-center justify-center rounded-lg border transition hover:bg-orange hover:text-white lg:hidden ${isScrolled ? 'border-emerald/20 bg-emerald/8 text-graphite' : 'border-white/15 bg-white/10 text-white'}`}
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-white transition hover:bg-emerald hover:text-ink lg:hidden"
             onClick={() => setMobileOpen((open) => !open)}
             aria-label="Meniu"
           >

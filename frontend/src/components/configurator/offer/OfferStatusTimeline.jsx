@@ -1,18 +1,19 @@
 import React from 'react';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { clsx } from 'clsx';
+import { normalizeOfferStatus } from '@/constants/offerStatuses';
 
 export default function OfferStatusTimeline({ currentStatus }) {
     const timeline = [
         { id: 'draft', name: 'Specification Initialised' },
         { id: 'in_progress', name: 'Configuration Pending' },
-        { id: 'offer_ready', name: 'Proposal Generated' },
-        { id: 'waiting', name: 'Client Review' },
+        { id: 'offer_generated', name: 'Offer Generated' },
         { id: 'ordered', name: 'Procurement Active' },
+        { id: 'cancelled', name: 'Cancelled' },
     ];
 
     const getStatusIndex = (status) => timeline.findIndex(step => step.id === status);
-    const currentIndex = getStatusIndex(currentStatus);
+    const currentIndex = getStatusIndex(normalizeOfferStatus(currentStatus));
 
     return (
         <div className="w-full max-w-5xl mx-auto py-12 px-6 bg-white rounded-[3rem] shadow-premium-sm border border-slate-50">

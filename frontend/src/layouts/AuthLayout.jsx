@@ -1,5 +1,5 @@
 import { Outlet, Link } from 'react-router-dom';
-import { ShieldCheck, SlidersHorizontal, Zap } from 'lucide-react';
+import { ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import ScrollToTop from '../components/common/ScrollToTop';
 import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -35,13 +35,11 @@ export default function AuthLayout() {
                     <div className="auth-shell__aside relative flex flex-col gap-10 border-b border-white/8 px-6 py-8 sm:px-10 lg:border-b-0 lg:px-12 lg:py-12">
                         <div className="flex items-start justify-between gap-4">
                             <Link to="/" className="group inline-flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-brand text-white shadow-glow transition-transform duration-300 group-hover:-translate-y-0.5">
-                                    <Zap className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <p className="font-heading text-3xl font-semibold leading-none text-textPrimary">{t('app.brandName')}</p>
-                                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-300">{t('app.brandProduct')}</p>
-                                </div>
+                                <img
+                                    src="/images/green-electric-logo.png"
+                                    alt={t('app.brandName')}
+                                    className="h-14 w-auto max-w-[230px] rounded-md bg-white p-2 object-contain shadow-lg shadow-emerald/10 transition-transform duration-300 group-hover:-translate-y-0.5"
+                                />
                             </Link>
                             <LanguageSwitcher />
                         </div>

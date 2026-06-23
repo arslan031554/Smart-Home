@@ -175,6 +175,7 @@ Other supported variables used by the codebase:
 - `CORS_ORIGIN` - allowed frontend origin for credentialed API requests
 - `JWT_EXPIRES_IN` - JWT expiry, defaults to `7d`
 - `FRONTEND_URL` - absolute frontend base URL used in reset links, reminder links, and emailed offer links
+- `OFFER_FILE_STORAGE_PATH` - backend-local directory for persisted generated offer PDFs and Excel exports
 - `RECAPTCHA_MODE` - `live` by default; set to `mock` only in non-production if you intentionally want server-side reCAPTCHA bypass for local testing
 - `RECAPTCHA_SECRET_KEY` - required whenever `RECAPTCHA_MODE=live`
 - `SENDGRID_API_KEY` - required for live SendGrid delivery
@@ -231,8 +232,10 @@ Used variables:
 ### PDF and Excel exports
 
 - PDF export uses persisted offer data plus localized business content and configured disclaimer/condition text
+- Generated PDFs are persisted as offer files and linked back to the offer, project, and customer; downloads reuse the stored file unless regeneration is requested.
 - Product images are embedded when the backend can read the configured local path or fetch the configured remote URL
 - Excel export is built from the stored offer, calculated products/services, and project snapshot
+- Generated Excel exports are persisted for internal users and linked back to the offer, project, and customer; customers cannot download Excel files.
 - Excel rows expose both per-project quantities/subtotals and total quantities/subtotals derived from the multiplication index for internal order processing
 
 ### Follow-up reminders

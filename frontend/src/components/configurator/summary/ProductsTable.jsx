@@ -14,7 +14,10 @@ export default function ProductsTable() {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(Number(value || 0));
-    const backendProducts = Array.isArray(calculation?.products) ? calculation.products : [];
+    const backendProducts = useMemo(
+        () => (Array.isArray(calculation?.products) ? calculation.products : []),
+        [calculation],
+    );
     const total = Number(calculation?.productsSubtotalPerProject ?? calculation?.productsSubtotal ?? 0);
     const unmetRequirements = Array.isArray(calculation?.unmetRequirements) ? calculation.unmetRequirements : [];
 

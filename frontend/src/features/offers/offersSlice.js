@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 import i18n from '../../i18n';
 import { buildNormalizedOfferPayload } from '../../utils/configuratorNormalization';
+import { normalizeOfferStatus } from '../../constants/offerStatuses';
 
 function buildOfferListItem(offer) {
     if (!offer || typeof offer !== 'object') return offer;
@@ -21,7 +22,7 @@ function buildOfferListItem(offer) {
     return {
         id: offer.id,
         offerNumber: offer.offerNumber,
-        status: offer.status,
+        status: normalizeOfferStatus(offer.status),
         createdAt: offer.createdAt,
         updatedAt: offer.updatedAt,
         projectId: offer.projectId,
@@ -45,7 +46,7 @@ function buildOfferListItem(offer) {
 export const fetchOffers = createAsyncThunk('offers/fetchAll', async (_, { rejectWithValue }) => {
     try {
         const response = await api.get('/offers');
-        return response.data.data;
+        return (response.data.data || []).map(buildOfferListItem);
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to fetch offers');
     }
@@ -54,7 +55,8 @@ export const fetchOffers = createAsyncThunk('offers/fetchAll', async (_, { rejec
 export const fetchOfferById = createAsyncThunk('offers/fetchById', async (id, { rejectWithValue }) => {
     try {
         const response = await api.get(`/offers/${id}`);
-        return response.data.data;
+        const offer = response.data.data;
+        return offer ? { ...offer, status: normalizeOfferStatus(offer.status) } : offer;
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to fetch offer details');
     }
@@ -84,7 +86,7 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
         const response = await api.post('/offers/from-config', payload);
         try {
             await api.post('/configurator-drafts/current/complete', { offerId: response.data.data?.id || null });
-        } catch (_) {
+        } catch {
             // Do not fail offer generation if draft completion sync fails.
         }
         return response.data.data;
@@ -129,6 +131,15 @@ export const snoozeFollowUp = createAsyncThunk('offers/snoozeFollowUp', async ({
         return response.data.data;
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to snooze follow-up');
+    }
+});
+
+export const updateFollowUpSettings = createAsyncThunk('offers/updateFollowUpSettings', async ({ id, ...settings }, { rejectWithValue }) => {
+    try {
+        const response = await api.patch(`/offers/${id}/followup`, settings);
+        return response.data.data;
+    } catch (error) {
+        return rejectWithValue(error.response?.data?.message || 'Failed to update follow-up settings');
     }
 });
 
@@ -184,9 +195,10 @@ const offersSlice = createSlice({
             })
             .addCase(generateOffer.fulfilled, (state, action) => {
                 state.isGenerating = false;
-                state.generatedOffer = action.payload;
-                state.currentOffer = action.payload;
-                const listItem = buildOfferListItem(action.payload);
+                const offer = action.payload ? { ...action.payload, status: normalizeOfferStatus(action.payload.status) } : action.payload;
+                state.generatedOffer = offer;
+                state.currentOffer = offer;
+                const listItem = buildOfferListItem(offer);
                 const index = state.offersList.findIndex((offer) => offer.id === listItem.id);
                 if (index >= 0) state.offersList[index] = listItem;
                 else state.offersList.unshift(listItem);
@@ -196,10 +208,11 @@ const offersSlice = createSlice({
                 state.generationError = action.payload;
             })
             .addCase(updateOfferStatus.fulfilled, (state, action) => {
-                const index = state.offersList.findIndex((offer) => offer.id === action.payload.id);
-                if (index !== -1) state.offersList[index] = action.payload;
-                if (state.currentOffer?.id === action.payload.id) {
-                    state.currentOffer = { ...state.currentOffer, status: action.payload.status };
+                const payload = buildOfferListItem(action.payload);
+                const index = state.offersList.findIndex((offer) => offer.id === payload.id);
+                if (index !== -1) state.offersList[index] = payload;
+                if (state.currentOffer?.id === payload.id) {
+                    state.currentOffer = { ...state.currentOffer, status: payload.status };
                 }
             })
             .addCase(deleteOffer.fulfilled, (state, action) => {
@@ -211,6 +224,25 @@ const offersSlice = createSlice({
             .addCase(duplicateOffer.fulfilled, (state, action) => {
                 const listItem = buildOfferListItem(action.payload);
                 state.offersList.unshift(listItem);
+            })
+            .addCase(updateFollowUpSettings.fulfilled, (state, action) => {
+                const follow = action.payload;
+                const offerId = follow?.offerId;
+                if (!offerId) return;
+
+                const followUp = {
+                    enabled: !!follow.enabled,
+                    status: follow.status || 'pending',
+                    nextReminderAt: follow.nextReminderAt || null,
+                    reason: follow.reason || null,
+                    channels: { email: !!follow.channelEmail, sms: !!follow.channelSms },
+                };
+
+                const index = state.offersList.findIndex((offer) => offer.id === offerId);
+                if (index !== -1) state.offersList[index].followUp = followUp;
+                if (state.currentOffer?.id === offerId) {
+                    state.currentOffer = { ...state.currentOffer, followUp };
+                }
             });
     },
 });

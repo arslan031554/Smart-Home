@@ -467,7 +467,7 @@ async function validateStoredOfferAndExports(data, calculation) {
         selectedServiceIds: [data.roomService.id],
         customerComments: 'Validation offer comment',
         language: 'en',
-        status: 'offer_ready',
+        status: 'offer_generated',
     }, { id: user.id, role: 'customer' });
     created.offerIds.push(offer.id);
 

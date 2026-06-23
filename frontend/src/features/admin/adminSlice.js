@@ -275,7 +275,7 @@ const initialState = {
     },
     statusModels: {
         product: ['Active', 'Inactive', 'Archived'],
-        offer: ['draft', 'in_progress', 'offer_ready', 'waiting', 'ordered', 'cancelled'],
+        offer: ['draft', 'in_progress', 'offer_generated', 'ordered', 'cancelled'],
         personnel: ['Active', 'Suspended', 'Offboarded']
     },
     buildingTypes: [],

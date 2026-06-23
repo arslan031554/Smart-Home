@@ -7,7 +7,6 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import {
-    calculateHardwareInventory,
     calculateFinances,
     aggregateFunctionsForSummary,
 } from './calculationUtils';
@@ -64,7 +63,7 @@ function buildSnapshot(config) {
 
 export function generatePDFOffer(config, offerId) {
     const snap = buildSnapshot(config);
-    const { projectInfo, services, hardwareItems, finances, functions, range } = snap;
+    const { projectInfo, services, hardwareItems, finances, range } = snap;
     const pid = offerId || `HSC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();

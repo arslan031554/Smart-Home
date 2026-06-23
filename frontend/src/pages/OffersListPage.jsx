@@ -32,6 +32,7 @@ import {
 import { fetchOffers, duplicateOffer, deleteOffer } from '@/features/offers/offersSlice';
 import { resetConfigurator, reopenOfferById } from '@/features/configurator/configuratorSlice';
 import { useTranslation } from 'react-i18next';
+import { OFFER_STATUSES, OFFER_STATUS_TRANSLATION_KEYS, isOfferGeneratedStatus, normalizeOfferStatus } from '@/constants/offerStatuses';
 
 export default function OffersListPage() {
     const dispatch = useDispatch();
@@ -66,13 +67,13 @@ export default function OffersListPage() {
         const matchesSearch = projectName.toLowerCase().includes(searchTerm.toLowerCase())
             || (offer.offerNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
             || offerId.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || offer.status === statusFilter;
+        const matchesStatus = statusFilter === 'all' || normalizeOfferStatus(offer.status) === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
-    const draftCount = offers.filter((offer) => offer.status === 'draft').length;
-    const pendingCount = offers.filter((offer) => ['offer_ready', 'waiting'].includes(offer.status)).length;
-    const orderedCount = offers.filter((offer) => offer.status === 'ordered').length;
+    const draftCount = offers.filter((offer) => normalizeOfferStatus(offer.status) === 'draft').length;
+    const generatedCount = offers.filter((offer) => isOfferGeneratedStatus(offer.status)).length;
+    const orderedCount = offers.filter((offer) => normalizeOfferStatus(offer.status) === 'ordered').length;
 
     const handleDuplicate = (id) => {
         dispatch(duplicateOffer(id));
@@ -124,8 +125,8 @@ export default function OffersListPage() {
                                 },
                                 {
                                     icon: Clock3,
-                                    label: t('offers.waiting', { defaultValue: 'Waiting' }),
-                                    value: pendingCount,
+                                    label: t('offers.statuses.offerGenerated', { defaultValue: 'Offer Generated' }),
+                                    value: generatedCount,
                                 },
                                 {
                                     icon: CheckCircle2,
@@ -177,11 +178,11 @@ export default function OffersListPage() {
                                 className="bg-transparent text-xs font-semibold uppercase tracking-[0.18em] text-textPrimary outline-none"
                             >
                                 <option value="all">{t('offers.allOffers')}</option>
-                                <option value="draft">{t('offers.drafts')}</option>
-                                <option value="offer_ready">{t('offers.statuses.offerGenerated', { defaultValue: 'Offer Generated' })}</option>
-                                <option value="waiting">{t('offers.waiting')}</option>
-                                <option value="ordered">{t('offers.ordered')}</option>
-                                <option value="cancelled">{t('offers.cancelled')}</option>
+                                {OFFER_STATUSES.map((status) => (
+                                    <option key={status} value={status}>
+                                        {t(OFFER_STATUS_TRANSLATION_KEYS[status])}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <Badge variant="neutral">

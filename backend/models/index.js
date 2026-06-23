@@ -19,6 +19,7 @@ import DiscountRule from './DiscountRule.js';
 import Offer from './Offer.js';
 import OfferProduct from './OfferProduct.js';
 import OfferService from './OfferService.js';
+import OfferFile from './OfferFile.js';
 import OfferFollowup from './OfferFollowup.js';
 import ConfiguratorDraft from './ConfiguratorDraft.js';
 import OfferCondition from './OfferCondition.js';
@@ -50,6 +51,7 @@ const models = {
     Offer,
     OfferProduct,
     OfferService,
+    OfferFile,
     OfferFollowup,
     ConfiguratorDraft,
     OfferCondition,
@@ -88,6 +90,7 @@ export {
     Offer,
     OfferProduct,
     OfferService,
+    OfferFile,
     OfferFollowup,
     ConfiguratorDraft,
     OfferCondition,

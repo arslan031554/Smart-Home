@@ -1,6 +1,7 @@
 import Offer from '../../models/Offer.js';
 import OfferProduct from '../../models/OfferProduct.js';
 import OfferService from '../../models/OfferService.js';
+import OfferFile from '../../models/OfferFile.js';
 import OfferFollowup from '../../models/OfferFollowup.js';
 import Project from '../../models/Project.js';
 import BuildingType from '../../models/BuildingType.js';
@@ -8,10 +9,12 @@ import Product from '../../models/Product.js';
 import Service from '../../models/Service.js';
 import User from '../../models/User.js';
 import { randomBytes } from 'crypto';
+import { Op } from 'sequelize';
 import * as calculationService from './calculationservice.js';
 import * as followupService from './followupservice.js';
 import sequelize from '../config/database.js';
 import { isValidOfferStatus, normalizeOfferStatus } from '../constants/offerStatus.js';
+import { resolveOfferStatusTransition } from './offerstatusservice.js';
 import { getLocalizedValue, normalizeBusinessLanguage } from '../utils/localization.js';
 
 function normalizePositiveNumber(value, fallback = 0) {
@@ -120,7 +123,7 @@ function buildStoredCalculationSnapshot(offerData = {}, project = null, calculat
         customerComments: offerData.customerComments || null,
         language,
         calculationBreakdown: buildStoredCalculationBreakdown(offerData, calculation, project),
-        status: offerData.status || undefined,
+        status: isValidOfferStatus(offerData.status) ? normalizeOfferStatus(offerData.status) : undefined,
     };
 }
 
@@ -185,7 +188,7 @@ function toOfferListItem(o) {
     return {
         id: oo.id,
         offerNumber: oo.offerNumber,
-        status: oo.status,
+        status: normalizeOfferStatus(oo.status || 'draft'),
         createdAt: oo.createdAt,
         updatedAt: oo.updatedAt,
         projectId: oo.projectId,
@@ -194,6 +197,10 @@ function toOfferListItem(o) {
         customerName: oo.project?.user?.fullName || oo.customerName || null,
         customerEmail: oo.project?.user?.email || oo.customerEmail || null,
         totalAmount: oo.grandTotal ?? oo.totalAmount ?? 0,
+        pdfFileId: oo.pdfFileId || null,
+        excelFileId: oo.excelFileId || null,
+        pdfFilePath: oo.pdfFilePath || null,
+        excelFilePath: oo.excelFilePath || null,
         roomsCount,
         functionsCount,
         followUp: follow ? {
@@ -204,6 +211,52 @@ function toOfferListItem(o) {
             channels: { email: !!follow.channelEmail, sms: !!follow.channelSms },
         } : { enabled: false },
     };
+}
+
+function toAdminOfferListItem(offer) {
+    const {
+        pdfFilePath,
+        excelFilePath,
+        ...item
+    } = toOfferListItem(offer);
+    return item;
+}
+
+function parsePositiveInt(value, fallback, max = Number.MAX_SAFE_INTEGER) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+    return Math.min(parsed, max);
+}
+
+function parseNonNegativeNumber(value) {
+    if (value === undefined || value === null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseDateBoundary(value, endOfDay = false) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+        date.setUTCHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+    }
+
+    return date;
+}
+
+function buildAdminOfferOrder(sort = 'created_at_desc') {
+    const orders = {
+        created_at_desc: [['createdAt', 'DESC']],
+        created_at_asc: [['createdAt', 'ASC']],
+        value_desc: [['grandTotal', 'DESC']],
+        value_asc: [['grandTotal', 'ASC']],
+        status_asc: [['status', 'ASC'], ['createdAt', 'DESC']],
+        status_desc: [['status', 'DESC'], ['createdAt', 'DESC']],
+    };
+
+    return orders[sort] || orders.created_at_desc;
 }
 
 async function getProjectContext(projectId, transaction) {
@@ -224,7 +277,7 @@ function createAccessError() {
 function assertOfferAccess(offer, actor) {
     if (!offer) throw createAccessError();
     if (!actor) return;
-    if (actor.role === 'admin' || actor.role === 'employee') return;
+    if (actor.role === 'admin') return;
     if (offer.project?.user?.id !== actor.id) throw createAccessError();
 }
 
@@ -292,7 +345,7 @@ async function enrichOfferLineItems(offer) {
 }
 
 async function assertProjectAccess(projectId, actor, transaction) {
-    if (!actor || actor.role === 'admin' || actor.role === 'employee') return;
+    if (!actor || actor.role === 'admin') return;
     const project = await Project.findByPk(projectId, {
         attributes: ['id', 'userId'],
         transaction,
@@ -309,7 +362,9 @@ export const createOffer = async (projectId, offerData, actor = null) => {
         const project = await getProjectContext(projectId, transaction);
         const snapshot = buildStoredCalculationSnapshot(offerData, project, calculation);
         const offerNumber = await generateUniqueOfferNumber(transaction);
-        const desiredStatus = isValidOfferStatus(offerData?.status) ? normalizeOfferStatus(offerData.status) : 'offer_ready';
+        const desiredStatus = offerData?.status == null || offerData.status === ''
+            ? 'offer_generated'
+            : resolveOfferStatusTransition('draft', offerData.status).to;
 
         const offer = await Offer.create({
             projectId,
@@ -322,6 +377,10 @@ export const createOffer = async (projectId, offerData, actor = null) => {
             discountAmount: calculation.discountAmount,
             grandTotal: calculation.grandTotal,
             calculationSnapshot: snapshot,
+            pdfFileId: null,
+            excelFileId: null,
+            pdfFilePath: null,
+            excelFilePath: null,
         }, { transaction });
 
         await replaceOfferLineItems(offer.id, calculation, transaction);
@@ -347,7 +406,9 @@ export const updateOfferFromConfig = async (id, offerData, actor = null) => {
     const transaction = await sequelize.transaction();
 
     try {
-        const desiredStatus = isValidOfferStatus(offerData?.status) ? normalizeOfferStatus(offerData.status) : 'offer_ready';
+        const desiredStatus = offerData?.status == null || offerData.status === ''
+            ? 'offer_generated'
+            : resolveOfferStatusTransition(existing.status, offerData.status).to;
         const snapshot = buildStoredCalculationSnapshot(offerData, existing.project || null, calculation);
 
         await existing.update({
@@ -359,6 +420,10 @@ export const updateOfferFromConfig = async (id, offerData, actor = null) => {
             discountAmount: calculation.discountAmount,
             grandTotal: calculation.grandTotal,
             calculationSnapshot: snapshot,
+            pdfFileId: null,
+            excelFileId: null,
+            pdfFilePath: null,
+            excelFilePath: null,
         }, { transaction });
 
         await replaceOfferLineItems(existing.id, calculation, transaction);
@@ -378,6 +443,9 @@ export const getOfferById = async (id, actor = null) => {
             { model: OfferProduct, as: 'products' },
             { model: OfferService, as: 'services' },
             { model: OfferFollowup, as: 'followup' },
+            { model: OfferFile, as: 'pdfFile' },
+            { model: OfferFile, as: 'excelFile' },
+            { model: OfferFile, as: 'files' },
             {
                 model: Project,
                 as: 'project',
@@ -389,6 +457,7 @@ export const getOfferById = async (id, actor = null) => {
         ],
     });
     assertOfferAccess(offer, actor);
+    if (offer?.status) offer.setDataValue('status', normalizeOfferStatus(offer.status));
     await enrichOfferLineItems(offer);
     return offer;
 };
@@ -398,6 +467,8 @@ export const listOffers = async (projectId = null, userId = null) => {
     if (projectId) where.projectId = projectId;
 
     const include = [{ model: OfferFollowup, as: 'followup' }];
+    include.push({ model: OfferFile, as: 'pdfFile' });
+    include.push({ model: OfferFile, as: 'excelFile' });
     const projectInclude = {
         model: Project,
         as: 'project',
@@ -426,6 +497,85 @@ export const listOffers = async (projectId = null, userId = null) => {
     return offers.map(toOfferListItem);
 };
 
+export const listAdminOffers = async (filters = {}) => {
+    const where = {};
+    const normalizedStatus = normalizeOfferStatus(filters.status);
+    if (isValidOfferStatus(normalizedStatus)) {
+        where.status = normalizedStatus;
+    }
+
+    const dateFrom = parseDateBoundary(filters.date_from, false);
+    const dateTo = parseDateBoundary(filters.date_to, true);
+    if (dateFrom || dateTo) {
+        where.createdAt = {};
+        if (dateFrom) where.createdAt[Op.gte] = dateFrom;
+        if (dateTo) where.createdAt[Op.lte] = dateTo;
+    }
+
+    const minValue = parseNonNegativeNumber(filters.min_value);
+    const maxValue = parseNonNegativeNumber(filters.max_value);
+    if (minValue !== null || maxValue !== null) {
+        where.grandTotal = {};
+        if (minValue !== null) where.grandTotal[Op.gte] = minValue;
+        if (maxValue !== null) where.grandTotal[Op.lte] = maxValue;
+    }
+
+    const client = typeof filters.client === 'string' ? filters.client.trim() : '';
+    const userInclude = {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'email', 'fullName'],
+        required: !!client,
+    };
+    if (client) {
+        userInclude.where = {
+            [Op.or]: [
+                { fullName: { [Op.iLike]: `%${client}%` } },
+                { email: { [Op.iLike]: `%${client}%` } },
+            ],
+        };
+    }
+
+    const include = [
+        { model: OfferFollowup, as: 'followup' },
+        { model: OfferFile, as: 'pdfFile', attributes: ['id', 'fileType', 'generatedFilename', 'createdAt'] },
+        { model: OfferFile, as: 'excelFile', attributes: ['id', 'fileType', 'generatedFilename', 'createdAt'] },
+        {
+            model: Project,
+            as: 'project',
+            attributes: ['id', 'name', 'description', 'levelsCount', 'multiplicationIndex', 'builtUpArea', 'projectComplexity'],
+            required: true,
+            include: [
+                userInclude,
+                { model: BuildingType, as: 'buildingType', attributes: ['id', 'name', 'translations'] },
+            ],
+        },
+    ];
+
+    const page = parsePositiveInt(filters.page, 1);
+    const limit = parsePositiveInt(filters.limit, 20, 100);
+    const offset = (page - 1) * limit;
+    const sort = filters.sort || 'created_at_desc';
+
+    const { rows, count } = await Offer.findAndCountAll({
+        where,
+        include,
+        order: buildAdminOfferOrder(sort),
+        limit,
+        offset,
+        distinct: true,
+    });
+
+    return {
+        items: rows.map(toAdminOfferListItem),
+        total: count,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(count / limit)),
+        sort,
+    };
+};
+
 export const updateOfferStatus = async (id, status, actor = null) => {
     const offer = await Offer.findByPk(id, {
         include: [
@@ -442,12 +592,8 @@ export const updateOfferStatus = async (id, status, actor = null) => {
     });
     assertOfferAccess(offer, actor);
 
-    const nextStatus = normalizeOfferStatus(status);
-    if (!isValidOfferStatus(nextStatus)) {
-        const err = new Error('Invalid status');
-        err.statusCode = 400;
-        throw err;
-    }
+    const transition = resolveOfferStatusTransition(offer.status, status);
+    const nextStatus = transition.to;
 
     await offer.update({ status: nextStatus });
     await followupService.syncOfferFollowup(offer.id, nextStatus);

@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import CookieBanner from '../components/common/CookieBanner';
-import { Globe, Shield, Bell, Home, Plus, X, Menu, Zap, Sliders, LogOut, UserRound, Activity, LayoutDashboard } from 'lucide-react';
+import { Globe, Shield, Bell, Home, Plus, X, Menu, Sliders, LogOut, UserRound, Activity, LayoutDashboard } from 'lucide-react';
 import { Button, Avatar } from '../components/common/UIComponents';
 import { resetConfigurator } from '../features/configurator/configuratorSlice';
 import { logout } from '../features/auth/authSlice';
@@ -32,8 +32,7 @@ export default function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const useDarkNavbarSurface = location.pathname === appHomePath || location.pathname.startsWith('/configurator');
-
+  const isAppHeroPage = location.pathname === appHomePath;
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   const closeAllOverlays = () => {
@@ -53,7 +52,7 @@ export default function RootLayout() {
         name: t('nav.configurator'),
         href: '/configurator',
         icon: Sliders,
-        requiresAuth: true,
+        requiresAuth: false,
         onClick: () => dispatch(resetConfigurator()),
       },
       {
@@ -130,7 +129,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-surface text-textPrimary selection:bg-primary-500/20 selection:text-textPrimary">
+    <div className="green-theme-app relative flex min-h-screen flex-col overflow-x-hidden bg-gradient-surface text-textPrimary selection:bg-primary-500/20 selection:text-textPrimary">
       <ScrollToTop />
 
       <div className="pointer-events-none fixed inset-0 z-0">
@@ -141,40 +140,36 @@ export default function RootLayout() {
         <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-white/6 blur-3xl" />
       </div>
 
-      <header className={cn('sticky top-0 z-50 transition-all duration-500', scrolled ? 'pt-2 pb-2' : 'py-4')}>
-        <div className="container-custom mb-2 flex justify-center sm:justify-end">
-          <LanguageSwitcher variant="inline" />
-        </div>
-
-        <div className="container-custom">
+      <header className="fixed inset-x-0 top-0 z-50 transition-all duration-500">
+        <div className="w-full px-0">
           <div
             className={cn(
-              'mx-auto flex w-full items-center justify-between gap-4 rounded-[2rem] border px-4 sm:px-6 transition-all duration-500',
+              'dark-surface mx-auto flex w-full items-center justify-between gap-4 rounded-none border-x-0 border-t-0 px-4 shadow-xl shadow-black/20 sm:px-6 lg:px-8 transition-all duration-500',
               scrolled
-                ? useDarkNavbarSurface
-                  ? 'border-white/8 bg-[#141414]/90 py-3 backdrop-blur-2xl'
-                  : 'premium-panel py-3 border-white/8'
-                : useDarkNavbarSurface
-                  ? 'border-white/8 bg-[#141414]/90 py-4 backdrop-blur-2xl'
-                  : 'border-white/5 bg-white/[0.04] py-4 backdrop-blur-xl',
+                ? 'border-emerald/15 bg-[#020a07]/95 py-3 backdrop-blur-2xl'
+                : 'border-white/10 bg-[#020a07]/92 py-3.5 backdrop-blur-2xl',
             )}
           >
-            <Link to={appHomePath} onClick={closeAllOverlays} className="group flex flex-shrink-0 items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-brand text-primary-950 shadow-glow transition-transform duration-300 group-hover:-translate-y-0.5">
-                <Zap className="h-5 w-5" />
-              </div>
+            <Link
+              to={appHomePath}
+              onClick={closeAllOverlays}
+              className="app-logo-shell group flex flex-shrink-0 items-center rounded-md bg-white shadow-lg shadow-emerald/10"
+              aria-label={t('app.brandName')}
+            >
+              <img
+                src="/images/green-electric-logo.png"
+                alt={t('app.brandName')}
+                className="h-11 w-auto max-w-[210px] rounded-md bg-white object-contain p-1.5 transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-12"
+              />
               <div className="flex flex-col leading-none">
-                <span className="font-heading text-2xl font-semibold text-textPrimary">
+                <span className="sr-only">
                   {t('app.brandName')}
-                </span>
-                <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-300">
-                  {t('app.brandProduct')}
                 </span>
               </div>
             </Link>
 
-            <nav className="hidden items-center gap-6 lg:flex">
-              <div className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 p-1.5 backdrop-blur-xl">
+            <nav className="hidden items-center gap-5 lg:flex">
+              <div className="flex items-center gap-1 rounded-full border border-white/8 bg-white/5 p-1 backdrop-blur-xl">
                 {navigation.map((item) => {
                   if (item.requiresAuth && !isAuthenticated) return null;
                   if (item.requiresAdmin && !hasAdminAccess(user)) return null;
@@ -190,7 +185,7 @@ export default function RootLayout() {
                       className={cn(
                         'flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-300',
                         isActive
-                          ? 'bg-primary-500/14 text-primary-200 shadow-soft border border-primary-500/18'
+                          ? 'bg-primary-500/18 text-primary-200 shadow-soft border border-primary-500/18'
                           : 'text-textSecondary hover:bg-white/6 hover:text-textPrimary',
                       )}
                     >
@@ -201,7 +196,8 @@ export default function RootLayout() {
                 })}
               </div>
 
-              <div className="ml-2 flex items-center gap-4 border-l border-white/8 pl-5">
+              <div className="ml-1 flex items-center gap-3 border-l border-white/8 pl-4">
+                <LanguageSwitcher variant="inline" className="hidden xl:inline-flex" />
                 {isAuthenticated ? (
                   <div className="relative">
                     <button
@@ -260,7 +256,7 @@ export default function RootLayout() {
                       {t('nav.login')}
                     </Link>
                     <Link to="/auth/register" onClick={closeAllOverlays}>
-                      <Button size="md">{t('nav.getStarted')}</Button>
+                      <Button size="md" className="text-ink">{t('nav.getStarted')}</Button>
                     </Link>
                   </div>
                 )}
@@ -280,12 +276,12 @@ export default function RootLayout() {
           <div className="container-custom lg:hidden">
             <div
               className={cn(
-                'mt-3 overflow-hidden rounded-[2rem] border p-4 animate-slide-up',
-                useDarkNavbarSurface
-                  ? 'border-white/8 bg-[#141414]/90 backdrop-blur-2xl'
-                  : 'premium-panel border-white/10',
+                'dark-surface mt-3 overflow-hidden rounded-lg border border-white/8 bg-[#020a07]/95 p-4 backdrop-blur-2xl animate-slide-up',
               )}
             >
+              <div className="px-1 pb-4">
+                <LanguageSwitcher variant="inline" />
+              </div>
               <div className="space-y-2">
                 {navigation.map((item) => {
                   if (item.requiresAuth && !isAuthenticated) return null;
@@ -339,7 +335,7 @@ export default function RootLayout() {
         ) : null}
       </header>
 
-      <main className="relative z-10 flex flex-grow flex-col">
+      <main className={cn('relative z-10 flex flex-grow flex-col', isAppHeroPage ? 'pt-0' : 'pt-24')}>
         <div className="flex-grow">
           <Outlet />
         </div>
@@ -352,12 +348,13 @@ export default function RootLayout() {
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-6">
             <div className="space-y-6 lg:col-span-4 lg:pr-6">
               <Link to={appHomePath} onClick={closeAllOverlays} className="group flex w-fit items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-brand text-primary-950 shadow-glow">
-                  <Zap className="h-6 w-6" />
-                </div>
+                <img
+                  src="/images/green-electric-logo.png"
+                  alt={t('app.brandName')}
+                  className="h-14 w-auto max-w-[240px] rounded-md bg-white p-2 object-contain"
+                />
                 <div className="flex flex-col leading-none">
-                  <span className="font-heading text-3xl font-semibold text-textPrimary">{t('app.brandName')}</span>
-                  <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-300">{t('app.brandProduct')}</span>
+                  <span className="sr-only">{t('app.brandName')}</span>
                 </div>
               </Link>
 

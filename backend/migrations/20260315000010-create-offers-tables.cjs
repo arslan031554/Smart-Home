@@ -8,7 +8,7 @@ module.exports = {
       id: { allowNull: false, primaryKey: true, type: Sequelize.UUID, defaultValue: Sequelize.UUIDV4 },
       projectId: { type: Sequelize.UUID, allowNull: false, references: { model: 'Projects', key: 'id' }, onUpdate: 'CASCADE', onDelete: 'CASCADE' },
       offerNumber: { type: Sequelize.STRING, allowNull: false, unique: true },
-      status: { type: Sequelize.ENUM('draft', 'in_progress', 'offer_ready', 'waiting', 'ordered', 'cancelled'), defaultValue: 'draft' },
+      status: { type: Sequelize.ENUM('draft', 'in_progress', 'offer_generated', 'ordered', 'cancelled'), defaultValue: 'draft' },
       customerComments: { type: Sequelize.TEXT },
       productsSubtotal: { type: Sequelize.FLOAT, defaultValue: 0 },
       servicesSubtotal: { type: Sequelize.FLOAT, defaultValue: 0 },

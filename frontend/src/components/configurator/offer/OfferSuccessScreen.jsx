@@ -7,6 +7,7 @@ import DocumentsSection from './DocumentsSection';
 import NotificationsStatus from './NotificationsStatus';
 import OfferActions from './OfferActions';
 import OfferStatusTimeline from './OfferStatusTimeline';
+import { normalizeOfferStatus } from '@/constants/offerStatuses';
 
 export default function OfferSuccessScreen() {
     const configuratorState = useSelector((state) => state.configurator);
@@ -15,7 +16,7 @@ export default function OfferSuccessScreen() {
     const offer = generatedOffer || {};
     const offerId = offer.id ?? null;
     const offerNumber = offer.offerNumber ?? (offerId ? `Offer ${offerId.slice(0, 8)}` : '-');
-    const status = offer.status ?? 'offer_ready';
+    const status = normalizeOfferStatus(offer.status ?? 'offer_generated');
     const grandTotal = offer.grandTotal != null && !Number.isNaN(Number(offer.grandTotal)) ? Number(offer.grandTotal) : 0;
     const projectName = offer.project?.name ?? configuratorState.projectInfo?.name ?? 'Untitled';
     const emailSent = offer.notifications?.email ?? false;
@@ -34,7 +35,7 @@ export default function OfferSuccessScreen() {
                 <SectionTitle
                     title="Offer Generated Successfully"
                     subtitle={`Project "${projectName}" - offer compiled and ready for download.`}
-                    badge="Step 08: Offer Ready"
+                    badge="Step 08: Offer Generated"
                     className="flex flex-col items-center"
                 />
 
@@ -45,7 +46,7 @@ export default function OfferSuccessScreen() {
                     <div className="hidden h-10 w-px bg-slate-200 sm:block" />
                     <KpiBlock label="Status">
                         <Badge variant="cyan" className="border-none bg-blue-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-700">
-                            {status === 'draft' ? 'Draft' : status === 'offer_ready' ? 'Offer Ready' : status.replace(/_/g, ' ')}
+                            {status === 'draft' ? 'Draft' : status === 'offer_generated' ? 'Offer Generated' : status.replace(/_/g, ' ')}
                         </Badge>
                     </KpiBlock>
                     <div className="hidden h-10 w-px bg-slate-200 sm:block" />

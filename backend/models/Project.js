@@ -75,6 +75,7 @@ Project.associate = (models) => {
     Project.belongsTo(models.Color, { foreignKey: 'selectedColorId', as: 'color' });
     Project.hasMany(models.ProjectLevel, { foreignKey: 'projectId', as: 'levels' });
     Project.hasMany(models.Offer, { foreignKey: 'projectId', as: 'offers' });
+    Project.hasMany(models.OfferFile, { foreignKey: 'projectId', as: 'offerFiles' });
 };
 
 export default Project;

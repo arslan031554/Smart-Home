@@ -7,6 +7,7 @@ import { serializeServiceForApi } from '../serializers/serviceserializer.js';
 import { normalizeTranslations } from '../utils/localization.js';
 import bcrypt from 'bcryptjs';
 import { Op, fn, col } from 'sequelize';
+import { normalizeOfferStatus } from '../constants/offerStatus.js';
 import { getDefaultPermissionsForEmployeeRole, normalizePermissions } from '../constants/adminpermissions.js';
 
 const { RoomType, BuildingType, ProductRange, Color, ProductFunctionMapping, SmartFunction, Service, User, Offer } = models;
@@ -645,7 +646,6 @@ export async function getAdminStats() {
         totalOffers,
         revenueResult,
         activeEmployees,
-        pendingReview,
         offersByStatusRows,
         totalCustomers,
     ] = await Promise.all([
@@ -660,11 +660,6 @@ export async function getAdminStats() {
                 isActive: true,
             },
         }),
-        Offer.count({
-            where: {
-                status: { [Op.in]: ['offer_ready', 'waiting'] },
-            },
-        }),
         Offer.findAll({
             attributes: ['status', [fn('COUNT', col('id')), 'count']],
             group: ['status'],
@@ -674,9 +669,11 @@ export async function getAdminStats() {
     ]);
 
     const offersByStatus = offersByStatusRows.reduce((acc, row) => {
-        acc[row.status] = Number(row.count) || 0;
+        const status = normalizeOfferStatus(row.status || 'draft');
+        acc[status] = (acc[status] || 0) + (Number(row.count) || 0);
         return acc;
     }, {});
+    const pendingReview = offersByStatus.offer_generated || 0;
 
     return {
         totalOffers,

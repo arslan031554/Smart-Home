@@ -44,10 +44,10 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
   if (variant === 'inline') {
     return (
       <div
-        className={`inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 shadow-soft backdrop-blur-xl ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/8 p-1 shadow-lg shadow-emerald/10 backdrop-blur-xl ${className}`}
         aria-label={t('language.label')}
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-primary-300">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald/12 text-emerald">
           <Globe className="h-3.5 w-3.5" />
         </span>
         {LANGS.map((lang) => {
@@ -61,8 +61,8 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
               aria-pressed={isActive}
               className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] transition-all duration-200 ${
                 isActive
-                  ? 'bg-primary-500/16 text-primary-300 shadow-soft'
-                  : 'text-textSecondary hover:bg-white/6 hover:text-textPrimary'
+              ? 'bg-emerald text-ink shadow-glow'
+              : 'text-white/62 hover:bg-white/10 hover:text-white'
               }`}
             >
               {t(lang.labelKey)}
@@ -81,22 +81,21 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={t('language.label')}
-        className="group relative flex min-w-[124px] items-center justify-between gap-2 overflow-hidden rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 shadow-soft backdrop-blur-xl transition-all duration-300 hover:border-primary-500/25 hover:bg-white/8 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+        className="group relative flex min-w-[124px] items-center justify-between gap-2 overflow-hidden rounded-full border border-emerald/20 bg-white px-2.5 py-1.5 shadow-lg shadow-emerald/10 backdrop-blur-xl transition-all duration-300 hover:border-emerald/35 hover:bg-emerald/10 focus:outline-none focus:ring-4 focus:ring-emerald/12"
       >
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(20,83,45,0.08),rgba(255,255,255,0))] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
         <div className="relative flex items-center gap-1.5">
-          <div className="flex h-5 w-5 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-primary-300">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald/10 text-emerald">
             <Globe className="h-2.5 w-2.5" />
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-textPrimary">
             {t(currentLanguage.labelKey)}
           </span>
         </div>
-        <ChevronDown className={`relative h-3 w-3 text-primary-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`relative h-3 w-3 text-emerald transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[156px] overflow-hidden rounded-[1.1rem] border border-primary-500/18 bg-[#181818]/96 p-1.5 shadow-[0_28px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[156px] overflow-hidden rounded-lg border border-emerald/18 bg-white p-1.5 shadow-2xl shadow-emerald/15 backdrop-blur-2xl">
           <div className="px-2.5 pb-1.5 pt-1 text-[8px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
             {t('language.label')}
           </div>
@@ -111,8 +110,8 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
                   onClick={() => handleLanguageSelect(lang.code)}
                   className={`flex w-full items-center justify-between rounded-[0.9rem] border px-2.5 py-2 text-left transition-all duration-200 ${
                     isActive
-                      ? 'border-primary-500/24 bg-primary-500/12 text-textPrimary'
-                      : 'border-transparent bg-white/0 text-textSecondary hover:border-white/8 hover:bg-white/5 hover:text-textPrimary'
+                      ? 'border-emerald/24 bg-emerald/12 text-textPrimary'
+                      : 'border-transparent bg-white/0 text-textSecondary hover:border-emerald/16 hover:bg-emerald/8 hover:text-emerald'
                   }`}
                   role="option"
                   aria-selected={isActive}
@@ -128,12 +127,12 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
                   <div className="flex items-center gap-1.5">
                     <span className={`rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.16em] ${
                       isActive
-                        ? 'border-primary-500/24 bg-primary-500/12 text-primary-300'
-                        : 'border-white/8 bg-white/5 text-textSecondary'
+                        ? 'border-emerald/24 bg-emerald/12 text-emerald'
+                        : 'border-emerald/12 bg-fog text-textSecondary'
                     }`}>
                       {lang.code}
                     </span>
-                    {isActive ? <Check className="h-3 w-3 text-primary-300" /> : null}
+                    {isActive ? <Check className="h-3 w-3 text-emerald" /> : null}
                   </div>
                 </button>
               );

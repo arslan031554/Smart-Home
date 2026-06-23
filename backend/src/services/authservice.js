@@ -36,6 +36,11 @@ const normalizeLanguage = (value) => (value === 'ro' ? 'ro' : 'en');
 const DEV_TEST_ADMIN_EMAIL = 'admin@test.com';
 const REGISTRATION_VERIFICATION_CHANNEL = 'email';
 
+const hashSecret = (value) => crypto
+    .createHash('sha256')
+    .update(String(value || ''))
+    .digest('hex');
+
 const normalizeVerificationChannel = (value, user = null) => {
     if (value === 'sms' && user?.phone) return 'sms';
     if (value === 'email') return 'email';
@@ -117,7 +122,7 @@ async function issueVerificationOtpForUser(user, channelInput, options = {}) {
     const previousOtpCode = user.otpCode;
     const previousOtpExpiresAt = user.otpExpiresAt;
     const previousOtpChannel = user.otpChannel;
-    user.otpCode = otp;
+    user.otpCode = hashSecret(otp);
     user.otpExpiresAt = Date.now() + 600000;
     user.otpChannel = channel;
     user.preferredVerificationChannel = channel;
@@ -155,7 +160,6 @@ export const register = async (userData, context = {}) => {
     const {
         email,
         password,
-        role,
         company,
         companyName,
         fullName,
@@ -187,7 +191,7 @@ export const register = async (userData, context = {}) => {
     const user = await User.create({
         email: normalizedEmail,
         passwordHash,
-        role: role || 'customer',
+        role: 'customer',
         fullName: normalizeNullableString(fullName),
         companyName: normalizeNullableString(companyName ?? company),
         phone: normalizeNullableString(phone),
@@ -432,8 +436,12 @@ export const subscribeNewsletter = async (emailInput) => {
 };
 
 export const verifyOtp = async (email, otpCode) => {
-    const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase(), otpCode } });
-    if (!user) {
+    const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase() } });
+    const submittedCode = String(otpCode || '');
+    const submittedHash = hashSecret(submittedCode);
+    const storedCode = String(user?.otpCode || '');
+
+    if (!user || (storedCode !== submittedHash && storedCode !== submittedCode)) {
         throw new Error('Invalid OTP');
     }
 
@@ -461,11 +469,11 @@ export const forgotPassword = async (email) => {
     const resetToken = crypto.randomBytes(20).toString('hex');
     const previousToken = user.resetPasswordToken;
     const previousExpiresAt = user.resetPasswordExpiresAt;
-    user.resetPasswordToken = resetToken;
+    user.resetPasswordToken = hashSecret(resetToken);
     user.resetPasswordExpiresAt = Date.now() + 3600000;
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
 
     try {
         await notificationService.sendPasswordResetEmail(user.email, resetUrl);
@@ -480,10 +488,13 @@ export const forgotPassword = async (email) => {
 };
 
 export const resetPassword = async (token, newPassword) => {
+    const submittedToken = String(token || '');
+    const submittedHash = hashSecret(submittedToken);
+    const Op = User.sequelize.Sequelize.Op;
     const user = await User.findOne({
         where: {
-            resetPasswordToken: token,
-            resetPasswordExpiresAt: { [User.sequelize.Sequelize.Op.gt]: new Date() }
+            resetPasswordToken: { [Op.in]: [submittedHash, submittedToken] },
+            resetPasswordExpiresAt: { [Op.gt]: new Date() }
         }
     });
 

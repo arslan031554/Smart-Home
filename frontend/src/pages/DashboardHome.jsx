@@ -22,7 +22,7 @@ export default function DashboardHome() {
 
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const displayName = dashboardUser?.fullName || authUser?.fullName || authUser?.email || t('dashboardLayout.user', { defaultValue: 'User' });
-    const pendingOffersCount = (stats.offerReady || 0) + (stats.waitingOffers || 0);
+    const pendingOffersCount = stats.offerGeneratedOffers ?? stats.offerReady ?? 0;
 
     useEffect(() => {
         dispatch(fetchDashboard());

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import {
     Search, Filter, Calendar, Download, Eye, Layers, Clock,
     CheckCircle, Bell, Loader2, Euro, Mail, AlertTriangle,
+    RotateCcw, MessageSquare,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/offers/StatusBadge';
 import {
@@ -10,24 +11,72 @@ import {
 } from '@/components/common/UIComponents';
 import SelectMenu from '@/components/common/SelectMenu';
 import { Link } from 'react-router-dom';
-import { updateOfferStatus, snoozeFollowUp, fetchOffers } from '@/features/offers/offersSlice';
+import { updateOfferStatus, snoozeFollowUp, updateFollowUpSettings } from '@/features/offers/offersSlice';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import api from '@/utils/api';
+import { OFFER_STATUSES, OFFER_STATUS_TRANSLATION_KEYS, isOfferGeneratedStatus, normalizeOfferStatus } from '@/constants/offerStatuses';
 
 export default function AdminOffersMonitor() {
     const dispatch = useDispatch();
     const { t, i18n } = useTranslation();
-    const { offersList: offers = [], loading: offersLoading } = useSelector((state) => state.offers);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [offers, setOffers] = useState([]);
+    const [offersLoading, setOffersLoading] = useState(false);
+    const [offersError, setOffersError] = useState(null);
+    const [pagination, setPagination] = useState({
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        sort: 'created_at_desc',
+    });
+    const [clientFilter, setClientFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState('all');
-    const [valueFilter, setValueFilter] = useState('all');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [minValue, setMinValue] = useState('');
+    const [maxValue, setMaxValue] = useState('');
+    const [sort, setSort] = useState('created_at_desc');
     const [downloadingOfferId, setDownloadingOfferId] = useState(null);
+    const [updatingFollowupId, setUpdatingFollowupId] = useState(null);
+
+    const fetchAdminOffers = useCallback(async (nextPage = pagination.page) => {
+        setOffersLoading(true);
+        setOffersError(null);
+        try {
+            const params = {
+                page: nextPage,
+                limit: pagination.limit,
+                sort,
+            };
+            if (statusFilter !== 'all') params.status = statusFilter;
+            if (dateFrom) params.date_from = dateFrom;
+            if (dateTo) params.date_to = dateTo;
+            if (clientFilter.trim()) params.client = clientFilter.trim();
+            if (minValue !== '') params.min_value = minValue;
+            if (maxValue !== '') params.max_value = maxValue;
+
+            const response = await api.get('/admin/offers', { params });
+            const data = response.data.data || {};
+            setOffers(Array.isArray(data.items) ? data.items : []);
+            setPagination({
+                total: Number(data.total || 0),
+                page: Number(data.page || nextPage),
+                limit: Number(data.limit || pagination.limit),
+                totalPages: Number(data.totalPages || 1),
+                sort: data.sort || sort,
+            });
+        } catch (error) {
+            setOffers([]);
+            setOffersError(error.response?.data?.message || t('offers.adminMonitor.error', { defaultValue: 'Failed to load offers' }));
+        } finally {
+            setOffersLoading(false);
+        }
+    }, [clientFilter, dateFrom, dateTo, maxValue, minValue, pagination.limit, pagination.page, sort, statusFilter, t]);
 
     useEffect(() => {
-        dispatch(fetchOffers());
-    }, [dispatch]);
+        fetchAdminOffers(1);
+    }, [clientFilter, dateFrom, dateTo, maxValue, minValue, sort, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const formatCurrency = (value) => new Intl.NumberFormat(locale, {
@@ -66,30 +115,30 @@ export default function AdminOffersMonitor() {
         return t(`offers.adminMonitor.followupReasons.${map[reason] || 'offerNotOrdered'}`);
     };
 
-    const filteredOffers = offers.filter((offer) => {
-        const matchesSearch = (offer.projectName || '').toLowerCase().includes(searchTerm.toLowerCase())
-            || (offer.offerNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
-            || (offer.id || '').toLowerCase().includes(searchTerm.toLowerCase())
-            || (offer.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || offer.status === statusFilter;
+    const resetFilters = () => {
+        setClientFilter('');
+        setStatusFilter('all');
+        setDateFrom('');
+        setDateTo('');
+        setMinValue('');
+        setMaxValue('');
+        setSort('created_at_desc');
+    };
 
-        const createdAt = offer.createdAt ? new Date(offer.createdAt) : null;
-        const now = new Date();
-        let matchesDate = true;
-        if (dateFilter === 'today') matchesDate = !!createdAt && createdAt.toDateString() === now.toDateString();
-        if (dateFilter === '7d') matchesDate = !!createdAt && createdAt >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        if (dateFilter === '30d') matchesDate = !!createdAt && createdAt >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const handleStatusChange = async (id, newStatus) => {
+        await dispatch(updateOfferStatus({ id, status: newStatus }));
+        fetchAdminOffers(pagination.page);
+    };
 
-        let matchesValue = true;
-        if (valueFilter === 'high') matchesValue = offer.totalAmount >= 50000;
-        if (valueFilter === 'medium') matchesValue = offer.totalAmount >= 10000 && offer.totalAmount < 50000;
-        if (valueFilter === 'low') matchesValue = offer.totalAmount < 10000;
-
-        return matchesSearch && matchesStatus && matchesDate && matchesValue;
-    });
-
-    const handleStatusChange = (id, newStatus) => {
-        dispatch(updateOfferStatus({ id, status: newStatus }));
+    const handleFollowupChannelToggle = async (offer, patch) => {
+        if (!offer?.id) return;
+        setUpdatingFollowupId(offer.id);
+        try {
+            await dispatch(updateFollowUpSettings({ id: offer.id, ...patch })).unwrap();
+            await fetchAdminOffers(pagination.page);
+        } finally {
+            setUpdatingFollowupId(null);
+        }
     };
 
     const handleDownloadOffer = async (offer) => {
@@ -112,19 +161,10 @@ export default function AdminOffersMonitor() {
         }
     };
 
-    if (offersLoading && !offers.length) {
-        return (
-            <AnimatedPageWrapper className="flex min-h-[400px] flex-col items-center justify-center gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-primary-300" />
-                <p className="text-sm font-medium uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.loading')}</p>
-            </AnimatedPageWrapper>
-        );
-    }
-
     const pendingFollowups = offers.filter((offer) => offer.followUp?.enabled && offer.followUp?.status === 'pending').length;
     const followupOffers = offers.filter((offer) => offer.followUp?.enabled);
-    const orderedOffers = offers.filter((offer) => offer.status === 'ordered').length;
-    const pendingDecisionOffers = offers.filter((offer) => ['offer_ready', 'waiting'].includes(offer.status)).length;
+    const orderedOffers = offers.filter((offer) => normalizeOfferStatus(offer.status) === 'ordered').length;
+    const generatedOffers = offers.filter((offer) => isOfferGeneratedStatus(offer.status)).length;
 
     return (
         <AnimatedPageWrapper className="space-y-8 pb-20">
@@ -137,7 +177,7 @@ export default function AdminOffersMonitor() {
                         className="mb-0"
                     />
                     <div className="flex flex-wrap gap-3">
-                        <Badge variant="neutral">{t('offers.adminMonitor.totalOffers', { count: filteredOffers.length })}</Badge>
+                        <Badge variant="neutral">{t('offers.adminMonitor.totalOffers', { count: pagination.total })}</Badge>
                         <Badge variant="warning">{t('offers.adminMonitor.pendingTasks', { count: pendingFollowups })}</Badge>
                     </div>
                 </div>
@@ -149,14 +189,14 @@ export default function AdminOffersMonitor() {
                         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
                         <input
                             type="text"
-                            placeholder={t('offers.adminMonitor.searchPlaceholder')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder={t('offers.adminMonitor.clientSearchPlaceholder', { defaultValue: 'Client name or email' })}
+                            value={clientFilter}
+                            onChange={(e) => setClientFilter(e.target.value)}
                             className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                         />
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         {[
                             {
                                 icon: Filter,
@@ -164,34 +204,20 @@ export default function AdminOffersMonitor() {
                                 onChange: setStatusFilter,
                                 options: [
                                     ['all', t('offers.adminMonitor.filters.allStatuses')],
-                                    ['draft', t('offers.statuses.draft')],
-                                    ['in_progress', t('offers.statuses.inProgress')],
-                                    ['offer_ready', t('offers.statuses.offerGenerated', { defaultValue: 'Offer Generated' })],
-                                    ['waiting', t('offers.statuses.waiting')],
-                                    ['ordered', t('offers.statuses.ordered')],
-                                    ['cancelled', t('offers.statuses.cancelled')],
-                                ],
-                            },
-                            {
-                                icon: Calendar,
-                                value: dateFilter,
-                                onChange: setDateFilter,
-                                options: [
-                                    ['all', t('offers.adminMonitor.filters.anyDate')],
-                                    ['today', t('offers.adminMonitor.filters.today')],
-                                    ['7d', t('offers.adminMonitor.filters.last7Days')],
-                                    ['30d', t('offers.adminMonitor.filters.last30Days')],
+                                    ...OFFER_STATUSES.map((status) => [status, t(OFFER_STATUS_TRANSLATION_KEYS[status])]),
                                 ],
                             },
                             {
                                 icon: Euro,
-                                value: valueFilter,
-                                onChange: setValueFilter,
+                                value: sort,
+                                onChange: setSort,
                                 options: [
-                                    ['all', t('offers.adminMonitor.filters.anyValue')],
-                                    ['high', t('offers.adminMonitor.filters.highValue')],
-                                    ['medium', t('offers.adminMonitor.filters.mediumValue')],
-                                    ['low', t('offers.adminMonitor.filters.lowValue')],
+                                    ['created_at_desc', t('offers.adminMonitor.sort.newest', { defaultValue: 'Newest' })],
+                                    ['created_at_asc', t('offers.adminMonitor.sort.oldest', { defaultValue: 'Oldest' })],
+                                    ['value_desc', t('offers.adminMonitor.sort.valueHigh', { defaultValue: 'Value high' })],
+                                    ['value_asc', t('offers.adminMonitor.sort.valueLow', { defaultValue: 'Value low' })],
+                                    ['status_asc', t('offers.adminMonitor.sort.statusAsc', { defaultValue: 'Status A-Z' })],
+                                    ['status_desc', t('offers.adminMonitor.sort.statusDesc', { defaultValue: 'Status Z-A' })],
                                 ],
                             },
                         ].map((control, index) => (
@@ -210,9 +236,66 @@ export default function AdminOffersMonitor() {
                                 optionLabelClassName="text-[11px] font-semibold"
                             />
                         ))}
+                        <label className="flex min-w-[154px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                            <Calendar className="h-4 w-4 text-textSecondary" />
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="w-full bg-transparent text-[11px] font-semibold uppercase tracking-[0.12em] text-textPrimary outline-none"
+                                aria-label={t('offers.adminMonitor.filters.dateFrom', { defaultValue: 'Date from' })}
+                            />
+                        </label>
+                        <label className="flex min-w-[154px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                            <Calendar className="h-4 w-4 text-textSecondary" />
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="w-full bg-transparent text-[11px] font-semibold uppercase tracking-[0.12em] text-textPrimary outline-none"
+                                aria-label={t('offers.adminMonitor.filters.dateTo', { defaultValue: 'Date to' })}
+                            />
+                        </label>
+                        <label className="flex min-w-[132px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                            <Euro className="h-4 w-4 text-textSecondary" />
+                            <input
+                                type="number"
+                                min="0"
+                                value={minValue}
+                                onChange={(e) => setMinValue(e.target.value)}
+                                placeholder={t('offers.adminMonitor.filters.minValue', { defaultValue: 'Min' })}
+                                className="w-full bg-transparent text-[11px] font-semibold uppercase tracking-[0.12em] text-textPrimary outline-none placeholder:text-textSecondary"
+                            />
+                        </label>
+                        <label className="flex min-w-[132px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                            <Euro className="h-4 w-4 text-textSecondary" />
+                            <input
+                                type="number"
+                                min="0"
+                                value={maxValue}
+                                onChange={(e) => setMaxValue(e.target.value)}
+                                placeholder={t('offers.adminMonitor.filters.maxValue', { defaultValue: 'Max' })}
+                                className="w-full bg-transparent text-[11px] font-semibold uppercase tracking-[0.12em] text-textPrimary outline-none placeholder:text-textSecondary"
+                            />
+                        </label>
+                        <Button size="sm" variant="outline" className="gap-2" onClick={resetFilters}>
+                            <RotateCcw className="h-4 w-4" />
+                            {t('offers.adminMonitor.filters.reset', { defaultValue: 'Reset' })}
+                        </Button>
                     </div>
                 </div>
             </Card>
+
+            {offersError ? (
+                <Card className="rounded-[2rem] p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-medium text-red-300">{offersError}</p>
+                        <Button size="sm" variant="secondary" onClick={() => fetchAdminOffers(pagination.page)}>
+                            {t('offers.adminMonitor.retry', { defaultValue: 'Retry' })}
+                        </Button>
+                    </div>
+                </Card>
+            ) : null}
 
             <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_0.95fr]">
                 <div className="space-y-4">
@@ -246,34 +329,34 @@ export default function AdminOffersMonitor() {
                                                         {getFollowUpStatusLabel(offer.followUp.status)}
                                                     </p>
                                                 </div>
-                                                <Badge variant="warning" className="max-w-fit">
+                                                <Badge variant="warning" className="max-w-full whitespace-normal text-left leading-snug">
                                                     {getFollowUpReasonLabel(offer.followUp.reason)}
                                                 </Badge>
                                             </div>
 
-                                            <div className="flex flex-wrap gap-2">
-                                                {offer.followUp.channels?.email ? <Badge variant="cyan">{t('offers.adminMonitor.channels.email')}</Badge> : null}
-                                                {offer.followUp.channels?.sms ? <Badge variant="neutral">{t('offers.adminMonitor.channels.sms')}</Badge> : null}
+                                            <div className="flex min-w-0 flex-wrap justify-end gap-2">
+                                                {offer.followUp.channels?.email ? <Badge variant="cyan" className="max-w-full">{t('offers.adminMonitor.channels.email')}</Badge> : null}
+                                                {offer.followUp.channels?.sms ? <Badge variant="neutral" className="max-w-full">{t('offers.adminMonitor.channels.sms')}</Badge> : null}
                                             </div>
                                         </div>
 
                                         <div className="mt-5 space-y-2">
-                                            <h3 className="text-[1.15rem] font-medium leading-tight text-textPrimary">
+                                            <h3 className="break-words text-[1.15rem] font-medium leading-tight text-textPrimary">
                                                 {offer.projectName}
                                             </h3>
-                                            <div className="space-y-1">
-                                                <p className="text-sm font-medium text-primary-300">{offer.offerNumber || offer.id}</p>
-                                                <p className="text-sm text-textSecondary">{t('offers.adminMonitor.reference', { id: offer.id })}</p>
-                                                <p className="text-sm text-textSecondary">
+                                            <div className="min-w-0 space-y-1">
+                                                <p className="break-all text-sm font-medium text-primary-300">{offer.offerNumber || offer.id}</p>
+                                                <p className="break-all text-sm leading-relaxed text-textSecondary">{t('offers.adminMonitor.reference', { id: offer.id })}</p>
+                                                <p className="break-words text-sm text-textSecondary">
                                                     {offer.customerName || t('offers.adminMonitor.anonymousClient')}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="mt-5 flex flex-wrap gap-2">
-                                            <Badge variant="neutral">{formatCurrency(offer.totalAmount)}</Badge>
+                                        <div className="mt-5 flex min-w-0 flex-wrap gap-2">
+                                            <Badge variant="neutral" className="max-w-full">{formatCurrency(offer.totalAmount)}</Badge>
                                             {offer.buildingType ? (
-                                                <Badge variant="neutral">
+                                                <Badge variant="neutral" className="max-w-full whitespace-normal text-left leading-snug">
                                                     {offer.buildingType.replace(/_/g, ' ')}
                                                 </Badge>
                                             ) : null}
@@ -290,9 +373,40 @@ export default function AdminOffersMonitor() {
                                         </div>
 
                                         <div className="mt-5 space-y-3">
+                                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant={offer.followUp.channels?.email ? 'accent' : 'outline'}
+                                                    className="min-w-0 w-full justify-center gap-2 whitespace-normal px-3 text-center leading-tight"
+                                                    disabled={updatingFollowupId === offer.id}
+                                                    onClick={() => handleFollowupChannelToggle(offer, {
+                                                        channelEmail: !offer.followUp.channels?.email,
+                                                    })}
+                                                >
+                                                    <Mail className="h-4 w-4" />
+                                                    {offer.followUp.channels?.email
+                                                        ? t('offers.adminMonitor.channels.emailOn', { defaultValue: 'Email On' })
+                                                        : t('offers.adminMonitor.channels.emailOff', { defaultValue: 'Email Off' })}
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant={offer.followUp.channels?.sms ? 'accent' : 'outline'}
+                                                    className="min-w-0 w-full justify-center gap-2 whitespace-normal px-3 text-center leading-tight"
+                                                    disabled={updatingFollowupId === offer.id}
+                                                    onClick={() => handleFollowupChannelToggle(offer, {
+                                                        channelSms: !offer.followUp.channels?.sms,
+                                                    })}
+                                                >
+                                                    <MessageSquare className="h-4 w-4" />
+                                                    {offer.followUp.channels?.sms
+                                                        ? t('offers.adminMonitor.channels.smsOn', { defaultValue: 'SMS On' })
+                                                        : t('offers.adminMonitor.channels.smsOff', { defaultValue: 'SMS Off' })}
+                                                </Button>
+                                            </div>
+
                                             <Button
                                                 size="sm"
-                                                className="w-full gap-2 justify-center"
+                                                className="min-w-0 w-full justify-center gap-2 whitespace-normal px-3 text-center leading-tight"
                                                 disabled={!offer.customerEmail}
                                                 onClick={() => {
                                                     if (!offer.customerEmail) return;
@@ -305,14 +419,14 @@ export default function AdminOffersMonitor() {
 
                                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                                 <Link to={`/admin/offers/${offer.id}`} className="block">
-                                                    <Button size="sm" variant="secondary" className="w-full justify-center">
+                                                    <Button size="sm" variant="secondary" className="min-w-0 w-full justify-center whitespace-normal px-3 text-center leading-tight">
                                                         {t('offers.adminMonitor.viewHistory')}
                                                     </Button>
                                                 </Link>
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    className="w-full justify-center"
+                                                    className="min-w-0 w-full justify-center whitespace-normal px-3 text-center leading-tight"
                                                     onClick={() => dispatch(snoozeFollowUp({ id: offer.id }))}
                                                 >
                                                     {t('offers.adminMonitor.snooze')}
@@ -329,7 +443,7 @@ export default function AdminOffersMonitor() {
                 <div className="space-y-4">
                     {[
                         { icon: AlertTriangle, value: pendingFollowups, label: t('offers.adminMonitor.followupTitle') },
-                        { icon: Layers, value: pendingDecisionOffers, label: t('offers.statuses.waiting') },
+                        { icon: Layers, value: generatedOffers, label: t('offers.statuses.offerGenerated', { defaultValue: 'Offer Generated' }) },
                         { icon: CheckCircle, value: orderedOffers, label: t('offers.statuses.ordered') },
                     ].map((item) => (
                         <Card key={item.label} className="rounded-[1.7rem] p-5">
@@ -350,12 +464,31 @@ export default function AdminOffersMonitor() {
             <section className="space-y-4">
                 <SectionTitle
                     title={t('offers.adminMonitor.ledgerTitle')}
-                    badge={t('offers.adminMonitor.totalOffers', { count: filteredOffers.length })}
+                    badge={t('offers.adminMonitor.totalOffers', { count: pagination.total })}
                     className="mb-0"
                 />
 
                 <Card className="overflow-hidden rounded-[2rem] p-0">
-                    <div className="overflow-x-auto">
+                    {offersLoading && !offers.length ? (
+                        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4">
+                            <Loader2 className="h-10 w-10 animate-spin text-primary-300" />
+                            <p className="text-sm font-medium uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.loading')}</p>
+                        </div>
+                    ) : offers.length === 0 ? (
+                        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 px-6 text-center">
+                            <Bell className="h-10 w-10 text-primary-300" />
+                            <div>
+                                <p className="text-lg font-medium text-textPrimary">{t('offers.adminMonitor.emptyTitle', { defaultValue: 'No offers match these filters' })}</p>
+                                <p className="mt-2 text-sm text-textSecondary">{t('offers.adminMonitor.emptyDesc', { defaultValue: 'Reset filters or widen the date and value range.' })}</p>
+                            </div>
+                        </div>
+                    ) : (
+                    <div className="relative overflow-x-auto">
+                        {offersLoading ? (
+                            <div className="absolute inset-x-0 top-0 z-10 h-1 overflow-hidden bg-white/5">
+                                <div className="h-full w-1/3 animate-pulse bg-primary-300" />
+                            </div>
+                        ) : null}
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-white/8 bg-white/5">
@@ -368,7 +501,7 @@ export default function AdminOffersMonitor() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/8">
-                                {filteredOffers.map((offer) => (
+                                {offers.map((offer) => (
                                     <tr key={offer.id} className="transition-colors hover:bg-white/5">
                                         <td className="px-6 py-5">
                                             <p className="text-sm font-medium text-textPrimary">{offer.offerNumber || offer.id}</p>
@@ -405,7 +538,7 @@ export default function AdminOffersMonitor() {
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="flex items-center justify-center gap-2">
-                                                {offer.status === 'offer_ready' ? (
+                                                {isOfferGeneratedStatus(offer.status) ? (
                                                     <button
                                                         onClick={() => handleStatusChange(offer.id, 'ordered')}
                                                         className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-500/18 bg-emerald-500/10 text-emerald-300 transition-colors hover:bg-emerald-500/16"
@@ -434,7 +567,35 @@ export default function AdminOffersMonitor() {
                             </tbody>
                         </table>
                     </div>
+                    )}
                 </Card>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-textSecondary">
+                        {t('offers.adminMonitor.pagination', {
+                            defaultValue: 'Page {{page}} of {{totalPages}}',
+                            page: pagination.page,
+                            totalPages: pagination.totalPages,
+                        })}
+                    </p>
+                    <div className="flex gap-2">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={offersLoading || pagination.page <= 1}
+                            onClick={() => fetchAdminOffers(pagination.page - 1)}
+                        >
+                            {t('offers.adminMonitor.previous', { defaultValue: 'Previous' })}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={offersLoading || pagination.page >= pagination.totalPages}
+                            onClick={() => fetchAdminOffers(pagination.page + 1)}
+                        >
+                            {t('offers.adminMonitor.next', { defaultValue: 'Next' })}
+                        </Button>
+                    </div>
+                </div>
             </section>
         </AnimatedPageWrapper>
     );

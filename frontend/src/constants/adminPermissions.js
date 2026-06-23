@@ -37,13 +37,11 @@ export const ADMIN_PERMISSION_IDS = ADMIN_PERMISSION_GROUPS.flatMap((group) => g
 export function hasAdminAccess(user) {
     if (!user) return false;
     if (user.role === 'admin') return user.isActive !== false;
-    if (user.role !== 'employee') return false;
-    if (user.isActive === false) return false;
-    return Array.isArray(user.permissions) && user.permissions.some((permission) => ADMIN_PERMISSION_IDS.includes(permission));
+    return false;
 }
 
-export function hasPermission(user, permission) {
+export function hasPermission(user, _permission) {
     if (!user) return false;
     if (user.role === 'admin') return true;
-    return Array.isArray(user.permissions) && user.permissions.includes(permission);
+    return false;
 }

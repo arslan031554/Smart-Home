@@ -61,6 +61,9 @@ function hasMeaningfulConfiguratorProgress(configuratorState = {}) {
     );
 }
 
+const REQUIRED_MASTER_DATA_KEYS = ['building-types', 'room-types', 'smart-functions', 'product-ranges', 'colors', 'services'];
+const OPTIONAL_CONTENT_KEYS = ['offer-conditions', 'disclaimers'];
+
 export default function ConfiguratorPage() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -78,11 +81,9 @@ export default function ConfiguratorPage() {
     const masterDataStatus = adminState.masterDataStatus || {};
     const masterDataError = adminState.error;
 
-    const requiredKeys = ['building-types', 'room-types', 'smart-functions', 'product-ranges', 'colors', 'services'];
-    const optionalContentKeys = ['offer-conditions', 'disclaimers'];
-    const isReady = requiredKeys.every((k) => masterDataStatus[k] === 'succeeded' || (k === 'building-types' && (adminState.buildingTypes || []).length));
-    const isLoading = requiredKeys.some((k) => masterDataStatus[k] === 'loading');
-    const isFailed = requiredKeys.some((k) => masterDataStatus[k] === 'failed');
+    const isReady = REQUIRED_MASTER_DATA_KEYS.every((k) => masterDataStatus[k] === 'succeeded' || (k === 'building-types' && (adminState.buildingTypes || []).length));
+    const isLoading = REQUIRED_MASTER_DATA_KEYS.some((k) => masterDataStatus[k] === 'loading');
+    const isFailed = REQUIRED_MASTER_DATA_KEYS.some((k) => masterDataStatus[k] === 'failed');
 
     useEffect(() => {
         const returnStep = location.state?.returnStep;
@@ -139,7 +140,7 @@ export default function ConfiguratorPage() {
     ]);
 
     useEffect(() => {
-        [...requiredKeys, ...optionalContentKeys].forEach((key) => {
+        [...REQUIRED_MASTER_DATA_KEYS, ...OPTIONAL_CONTENT_KEYS].forEach((key) => {
             dispatch(fetchPublicMasterData(key));
         });
     }, [dispatch, i18n.resolvedLanguage]);
@@ -240,7 +241,12 @@ export default function ConfiguratorPage() {
         { id: 9, name: t('configurator.steps.offerReady'), icon: ShieldCheck, component: OfferSuccessScreen },
     ];
 
+    const visibleSteps = steps.filter((step) => step.id !== 8);
+    const visibleCurrentStepId = currentStep === 8 ? 9 : currentStep;
+    const currentVisibleIndex = Math.max(0, visibleSteps.findIndex((step) => step.id === visibleCurrentStepId));
+    const currentVisibleStep = visibleSteps[currentVisibleIndex] || visibleSteps[0];
     const CurrentStepComponent = steps.find((s) => s.id === currentStep)?.component || ProjectDefinitionStep;
+    const currentDisplayStep = steps.find((s) => s.id === currentStep) || currentVisibleStep;
 
     const hasAnyRooms = (configuratorState.levels || []).some(
         (l) => Array.isArray(l.rooms) && l.rooms.length > 0
@@ -344,7 +350,9 @@ export default function ConfiguratorPage() {
     const noCompatibleProducts = Boolean(calculation?.noCompatibleProducts);
     const calcError = configuratorState.calcError;
     const isComplete = currentStep === steps.length;
-    const progressPct = ((currentStep - 1) / (steps.length - 1)) * 100;
+    const progressPct = currentStep === 8
+        ? 92
+        : (currentVisibleIndex / Math.max(visibleSteps.length - 1, 1)) * 100;
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const primaryActionLabel = currentStep === 6
         ? t('configurator.reviewSummary')
@@ -359,24 +367,95 @@ export default function ConfiguratorPage() {
         maximumFractionDigits: 0,
     }).format(Number(value || 0));
 
+    const renderStepButton = (step, index, compact = false) => {
+        const Icon = step.icon;
+        const isCompleted = visibleCurrentStepId > step.id;
+        const isActive = visibleCurrentStepId === step.id;
+        const displayIndex = index + 1;
+        const statusLabel = isCompleted
+            ? t('configurator.stepStatus.complete', { defaultValue: 'Complete' })
+            : isActive
+                ? t('configurator.stepStatus.current', { defaultValue: 'Current' })
+                : t('configurator.stepStatus.upcoming', { defaultValue: 'Upcoming' });
+
+        return (
+            <button
+                key={step.id}
+                onClick={() => isCompleted && advanceToStep(step.id)}
+                aria-current={isActive ? 'step' : undefined}
+                className={clsx(
+                    'group min-w-0 rounded-2xl border p-3 text-left transition-all duration-300',
+                    compact ? 'flex min-w-[12rem] items-center gap-3' : 'flex flex-col gap-3',
+                    isCompleted
+                        ? 'border-primary-500/22 bg-primary-500/10 text-textPrimary hover:-translate-y-0.5 hover:border-primary-500/35 hover:bg-primary-500/14'
+                        : isActive
+                            ? 'border-primary-500/38 bg-white text-textPrimary shadow-card'
+                            : 'border-surface-border bg-white/70 text-textSecondary',
+                    isCompleted ? 'cursor-pointer' : 'cursor-default',
+                )}
+            >
+                <div className="flex items-center gap-3">
+                    <div className={clsx(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-all duration-300',
+                        isCompleted
+                            ? 'border-primary-500/24 bg-primary-500 text-white'
+                            : isActive
+                                ? 'border-primary-500/30 bg-primary-500/12 text-primary-700'
+                                : 'border-surface-border bg-fog text-textSecondary',
+                    )}>
+                        {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-textSecondary">
+                            {String(displayIndex).padStart(2, '0')} / {String(visibleSteps.length).padStart(2, '0')}
+                        </p>
+                        {compact ? (
+                            <p className="mt-1 truncate text-sm font-black uppercase tracking-[0.08em] text-textPrimary">
+                                {step.name}
+                            </p>
+                        ) : null}
+                    </div>
+                </div>
+
+                {!compact ? (
+                    <div className="min-w-0">
+                        <p className="text-sm font-black uppercase leading-snug tracking-[0.08em] text-textPrimary">
+                            {step.name}
+                        </p>
+                        <p className={clsx(
+                            'mt-1 text-[10px] font-black uppercase tracking-[0.18em]',
+                            isActive ? 'text-primary-700' : 'text-textSecondary',
+                        )}>
+                            {statusLabel}
+                        </p>
+                    </div>
+                ) : (
+                    <Badge variant={isCompleted ? 'success' : isActive ? 'info' : 'neutral'} className="ml-auto shrink-0 px-2 py-1 text-[8px]">
+                        {statusLabel}
+                    </Badge>
+                )}
+            </button>
+        );
+    };
+
     const bottomActionBar = (
-        <div className="fixed inset-x-0 bottom-0 z-[999] border-t border-white/8 bg-[#121212]/95 px-4 pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_28px_rgba(0,0,0,0.35)] backdrop-blur-2xl [transform:translateZ(0)] transition-none sm:px-6 lg:px-10">
+        <div className="fixed inset-x-0 bottom-0 z-[999] border-t border-primary-500/15 bg-white/95 px-4 pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-16px_42px_rgba(3,18,13,0.12)] backdrop-blur-2xl [transform:translateZ(0)] transition-none sm:px-6 lg:px-10">
             <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary-500/30 bg-primary-500/15 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-300">
-                        <div className="h-2 w-2 rounded-full bg-primary-300" />
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary-500/30 bg-primary-500/12 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-700">
+                        <div className="h-2 w-2 rounded-full bg-primary-500" />
                         {t('configurator.realtimeValuation')}
                     </div>
                     <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-200">{t('configurator.estimatedTotal')}</p>
-                        <p className="mt-1 font-heading text-3xl font-semibold leading-none text-white">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-700">{t('configurator.estimatedTotal')}</p>
+                        <p className="mt-1 font-heading text-3xl font-semibold leading-none text-textPrimary">
                             {totalPrice == null ? '--' : formatCurrency(totalPrice)}
                         </p>
                         {calcError ? (
-                            <p className="mt-1 text-xs text-amber-200" title={calcError}>{calcError}</p>
+                            <p className="mt-1 text-xs font-medium text-amber-700" title={calcError}>{calcError}</p>
                         ) : null}
                         {noCompatibleProducts && !calcError ? (
-                            <p className="mt-1 text-xs text-amber-200">{t('configurator.noCompatibleProducts')}</p>
+                            <p className="mt-1 text-xs font-medium text-amber-700">{t('configurator.noCompatibleProducts')}</p>
                         ) : null}
                     </div>
                 </div>
@@ -408,10 +487,11 @@ export default function ConfiguratorPage() {
 
     return (
         <>
-            <AnimatedPageWrapper className="min-h-screen overflow-x-hidden px-4 pb-40 pt-6 text-textPrimary sm:px-6 lg:px-8">
+            <AnimatedPageWrapper className="configurator-theme min-h-screen overflow-x-hidden pb-40 text-textPrimary">
+                <section className="w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
                 <div className="mx-auto max-w-7xl space-y-8">
                 {!isReady && (isLoading || isFailed) ? (
-                    <Card className="rounded-[2rem] p-8 sm:p-10">
+                    <Card className="rounded-[1.5rem] p-8 sm:p-10">
                         <div className="space-y-4 text-center">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300">
                                 {t('configurator.loadingMasterData')}
@@ -423,7 +503,7 @@ export default function ConfiguratorPage() {
                                     </p>
                                     <div className="flex justify-center">
                                         <Button
-                                            onClick={() => requiredKeys.forEach((k) => dispatch(fetchPublicMasterData(k)))}
+                                            onClick={() => REQUIRED_MASTER_DATA_KEYS.forEach((k) => dispatch(fetchPublicMasterData(k)))}
                                         >
                                             {t('configurator.retry')}
                                         </Button>
@@ -436,16 +516,16 @@ export default function ConfiguratorPage() {
                     </Card>
                 ) : null}
 
-                <div className="hero-frame overflow-hidden rounded-[2.3rem] px-6 py-7 sm:px-8 sm:py-8 lg:px-10">
+                <div className="hero-frame relative overflow-hidden rounded-[1.75rem] px-5 py-6 sm:rounded-[2.25rem] sm:px-8 sm:py-8 lg:px-10">
                     <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                    <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
                         <div className="space-y-4">
                             <Badge variant={isComplete ? 'success' : 'info'} className="gap-2 px-3.5 py-1.5">
                                 {isComplete ? <ShieldCheck className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
                                 {isComplete ? t('configurator.badgeComplete') : t('configurator.badgeActive')}
                             </Badge>
                             <div className="space-y-3">
-                                <h1 className="font-heading text-5xl font-semibold leading-none text-textPrimary sm:text-6xl">
+                                <h1 className="font-heading text-4xl font-black uppercase leading-tight text-textPrimary sm:text-5xl lg:text-6xl">
                                     {t('configurator.title')}
                                 </h1>
                                 <p className="max-w-2xl text-sm leading-relaxed text-textSecondary sm:text-base">
@@ -454,79 +534,66 @@ export default function ConfiguratorPage() {
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[27rem]">
                             <button
-                                className="premium-card-muted flex items-center gap-3 rounded-full px-4 py-3 text-left transition-all hover:border-primary-500/18"
+                                className="premium-card-muted flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:border-primary-500/18 disabled:cursor-wait disabled:opacity-60"
                                 onClick={handleSaveDraft}
                                 disabled={isSavingDraft}
                             >
-                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 bg-[#1d1d1d] text-primary-300">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500/18 bg-primary-500/10 text-primary-700">
                                     <Save className="h-4.5 w-4.5" />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.saveDraft')}</p>
-                                    <p className="text-sm font-medium text-textPrimary">{isSavingDraft ? `${t('configurator.saveDraft')}...` : t('configurator.module')}</p>
+                                    <p className="truncate text-sm font-medium text-textPrimary">{isSavingDraft ? `${t('configurator.saveDraft')}...` : t('configurator.module')}</p>
                                 </div>
                             </button>
 
-                            <div className="premium-card-muted rounded-[1.6rem] px-5 py-4 text-right">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.module')}</p>
-                                <p className="mt-1 font-heading text-4xl font-semibold leading-none text-textPrimary">
-                                    {String(Math.min(currentStep, 8)).padStart(2, '0')}
+                            <div className="premium-card-muted rounded-2xl px-5 py-4">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.workflowProgress')}</p>
+                                <p className="mt-1 font-heading text-4xl font-black leading-none text-textPrimary">
+                                    {String(currentVisibleIndex + 1).padStart(2, '0')}
                                     <span className="mx-1 text-xl text-textSecondary">/</span>
-                                    08
+                                    {String(visibleSteps.length).padStart(2, '0')}
                                 </p>
+                                <p className="mt-2 truncate text-xs font-semibold text-primary-700">{currentDisplayStep?.name}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <Card className="rounded-[2rem] p-5 sm:p-6 lg:p-7">
-                    <div className="mb-7 space-y-2">
-                        <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                            <span>{t('configurator.workflowProgress')}</span>
-                            <span>{Math.round(progressPct)}%</span>
+                <Card className="rounded-[1.75rem] p-4 sm:p-5 lg:p-6">
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary-700">
+                                {t('configurator.workflowProgress')}
+                            </p>
+                            <p className="mt-1 text-sm text-textSecondary">
+                                {t('configurator.stepStatus.current', { defaultValue: 'Current' })}: <span className="font-semibold text-textPrimary">{currentDisplayStep?.name}</span>
+                            </p>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
-                            <div
-                                className="h-full rounded-full bg-gradient-brand transition-all duration-1000 ease-out"
-                                style={{ width: `${progressPct}%` }}
-                            />
+                        <div className="w-full space-y-2 sm:max-w-xs">
+                            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
+                                <span>{Math.round(progressPct)}%</span>
+                                <span>{currentVisibleIndex + 1}/{visibleSteps.length}</span>
+                            </div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-primary-500/10">
+                                <div
+                                    className="h-full rounded-full bg-gradient-brand transition-all duration-1000 ease-out"
+                                    style={{ width: `${progressPct}%` }}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-8">
-                        {steps.filter((s) => s.id !== 8).map((step) => {
-                            const Icon = step.icon;
-                            const isCompleted = currentStep > step.id;
-                            const isActive = currentStep === step.id || (step.id === 9 && currentStep === 8);
+                    <div className="-mx-4 overflow-x-auto px-4 pb-2 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="flex gap-3">
+                            {visibleSteps.map((step, index) => renderStepButton(step, index, true))}
+                        </div>
+                    </div>
 
-                            return (
-                                <button
-                                    key={step.id}
-                                    onClick={() => isCompleted && advanceToStep(step.id)}
-                                    className="group flex flex-col items-center gap-3 text-center"
-                                    style={{ cursor: isCompleted ? 'pointer' : 'default' }}
-                                >
-                                    <div className={clsx(
-                                        'flex h-12 w-12 items-center justify-center rounded-2xl border transition-all duration-300',
-                                        isCompleted
-                                            ? 'border-primary-500/24 bg-primary-500/16 text-primary-200'
-                                            : isActive
-                                                ? 'border-primary-500/35 bg-primary-500/12 text-primary-300 shadow-soft'
-                                                : 'border-white/10 bg-white/5 text-textSecondary',
-                                    )}>
-                                        {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-                                    </div>
-                                    <span className={clsx(
-                                        'text-[10px] font-semibold uppercase tracking-[0.18em]',
-                                        isActive ? 'text-primary-200' : isCompleted ? 'text-textPrimary' : 'text-textSecondary',
-                                    )}>
-                                        {step.name}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                    <div className="hidden gap-3 lg:grid lg:grid-cols-8">
+                        {visibleSteps.map((step, index) => renderStepButton(step, index))}
                     </div>
                 </Card>
 
@@ -549,8 +616,9 @@ export default function ConfiguratorPage() {
                     </AnimatePresence>
                 </div>
                 </div>
+                </section>
             </AnimatedPageWrapper>
-            {typeof document !== 'undefined' ? createPortal(bottomActionBar, document.body) : null}
+            {currentStep < 8 && typeof document !== 'undefined' ? createPortal(bottomActionBar, document.body) : null}
         </>
     );
 }

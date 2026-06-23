@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Badge } from '../../common/UIComponents';
 import {
@@ -40,8 +40,12 @@ function FunctionIcon({ iconName }) {
 }
 
 export default function FunctionsSummary({ levels }) {
-    const smartFunctions = useSelector((state) => state.admin.smartFunctions) || [];
-    const aggregatedFunctions = aggregateFunctionsForSummary(levels);
+    const rawSmartFunctions = useSelector((state) => state.admin.smartFunctions);
+    const smartFunctions = useMemo(
+        () => (Array.isArray(rawSmartFunctions) ? rawSmartFunctions : []),
+        [rawSmartFunctions],
+    );
+    const aggregatedFunctions = useMemo(() => aggregateFunctionsForSummary(levels), [levels]);
 
     const functions = useMemo(() => aggregatedFunctions
         .map((item) => {
@@ -95,7 +99,7 @@ export default function FunctionsSummary({ levels }) {
                             </div>
                             <div className="text-right shrink-0">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantity</p>
-                                <p className="text-xl font-black text-slate-900 tabular-nums">� {fn.totalQty}</p>
+                                <p className="text-xl font-black text-slate-900 tabular-nums">× {fn.totalQty}</p>
                             </div>
                         </div>
 
@@ -113,3 +117,4 @@ export default function FunctionsSummary({ levels }) {
         </Card>
     );
 }
+

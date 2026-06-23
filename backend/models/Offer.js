@@ -23,7 +23,7 @@ Offer.init({
         unique: true
     },
     status: {
-        type: DataTypes.ENUM('draft', 'in_progress', 'offer_ready', 'waiting', 'ordered', 'cancelled'),
+        type: DataTypes.ENUM('draft', 'in_progress', 'offer_generated', 'ordered', 'cancelled'),
         defaultValue: 'draft'
     },
     customerComments: {
@@ -54,6 +54,30 @@ Offer.init({
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
     },
+    pdfFileId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'OfferFiles',
+            key: 'id'
+        }
+    },
+    excelFileId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'OfferFiles',
+            key: 'id'
+        }
+    },
+    pdfFilePath: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    excelFilePath: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     calculationSnapshot: {
         type: DataTypes.JSONB,
         allowNull: true
@@ -71,6 +95,9 @@ Offer.associate = (models) => {
     Offer.hasMany(models.OfferService, { foreignKey: 'offerId', as: 'services' });
     Offer.hasOne(models.OfferFollowup, { foreignKey: 'offerId', as: 'followup' });
     Offer.hasMany(models.FollowupLog, { foreignKey: 'offerId', as: 'followupLogs' });
+    Offer.hasMany(models.OfferFile, { foreignKey: 'offerId', as: 'files' });
+    Offer.belongsTo(models.OfferFile, { foreignKey: 'pdfFileId', as: 'pdfFile' });
+    Offer.belongsTo(models.OfferFile, { foreignKey: 'excelFileId', as: 'excelFile' });
 };
 
 export default Offer;

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setRange } from '../../features/configurator/configuratorSlice';
 import { CheckCircle2, Sparkles, Box } from 'lucide-react';
@@ -42,10 +42,6 @@ export default function RangeSelectionStep() {
     const dispatch = useDispatch();
     const { range } = useSelector((state) => state.configurator);
     const RANGES = useSelector((state) => state.admin.publicProductRanges) || [];
-    const randomImageOffset = useMemo(
-        () => Math.floor(Math.random() * RANGE_ASSET_IMAGES.length),
-        []
-    );
 
     if (!Array.isArray(RANGES) || RANGES.length === 0) {
         return (
@@ -76,7 +72,7 @@ export default function RangeSelectionStep() {
                     const fallbackImage = getRangeFallbackImage(
                         r.id || r.code || r.name,
                         index,
-                        randomImageOffset
+                        0
                     );
                     const resolvedImage = resolveRangeImageUrl(r.imageUrl || r.image);
                     const imageSrc = resolvedImage || fallbackImage;

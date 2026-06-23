@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard, User, Settings, Briefcase, Bell, Search, Menu, X, LogOut, Zap, FileText, Activity, Home, Sliders,
+    LayoutDashboard, User, Settings, Briefcase, Bell, Search, Menu, X, LogOut, FileText, Activity, Home, Sliders,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useDispatch, useSelector } from 'react-redux';
@@ -65,13 +65,11 @@ export default function DashboardLayout() {
                 )}>
                     <div className="flex h-full flex-col px-5 py-6">
                         <Link to="/" className="group flex items-center gap-3 px-2 pb-8">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-brand text-white shadow-glow transition-transform duration-300 group-hover:-translate-y-0.5">
-                                <Zap className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <p className="font-heading text-3xl font-semibold leading-none text-textPrimary">Smart Home</p>
-                                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-300">Configurator</p>
-                            </div>
+                            <img
+                                src="/images/green-electric-logo.png"
+                                alt="Green Electric City"
+                                className="h-14 w-auto max-w-[230px] rounded-md bg-white p-2 object-contain shadow-lg shadow-emerald/10 transition-transform duration-300 group-hover:-translate-y-0.5"
+                            />
                         </Link>
 
                         <nav className="space-y-2">
@@ -125,7 +123,7 @@ export default function DashboardLayout() {
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium text-textPrimary">{user?.fullName || user?.email || t('dashboardLayout.user')}</p>
                                         <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                            {user?.role === 'admin' || user?.role === 'employee' ? t('nav.admin') : t('dashboardLayout.customer')}
+                                            {user?.role === 'admin' ? t('nav.admin') : t('dashboardLayout.customer')}
                                         </p>
                                     </div>
                                 </div>
@@ -179,8 +177,8 @@ export default function DashboardLayout() {
                                 </nav>
                             </div>
 
-                            <div className="flex items-center gap-3 sm:gap-4">
-                                <div className="relative hidden w-80 xl:block">
+                            <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                                <div className="relative hidden w-72 min-[1720px]:block">
                                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-textSecondary" />
                                     <input
                                         type="text"
@@ -197,11 +195,11 @@ export default function DashboardLayout() {
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsDropdownOpen((prev) => !prev)}
-                                        className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 transition-all hover:border-primary-500/20 hover:bg-white/8"
+                                        className="flex max-w-[18rem] items-center gap-3 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 transition-all hover:border-primary-500/20 hover:bg-white/8"
                                     >
-                                        <div className="hidden text-right sm:block">
-                                            <p className="text-sm font-medium text-textPrimary">{user?.fullName || user?.email || t('dashboardLayout.user')}</p>
-                                            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{user?.email}</p>
+                                        <div className="hidden min-w-0 text-right sm:block">
+                                            <p className="truncate text-sm font-medium text-textPrimary">{user?.fullName || user?.email || t('dashboardLayout.user')}</p>
+                                            <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{user?.email}</p>
                                         </div>
                                         <div className="flex h-11 w-11 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-sm font-semibold text-primary-200">
                                             {initials}

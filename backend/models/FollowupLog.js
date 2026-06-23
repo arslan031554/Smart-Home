@@ -29,6 +29,14 @@ FollowupLog.init({
             key: 'id',
         },
     },
+    projectId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'Projects',
+            key: 'id',
+        },
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: true,
@@ -45,6 +53,10 @@ FollowupLog.init({
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 1,
+    },
+    cadenceDay: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
     },
     templateId: {
         type: DataTypes.UUID,
@@ -105,6 +117,7 @@ FollowupLog.init({
 FollowupLog.associate = (models) => {
     FollowupLog.belongsTo(models.Offer, { foreignKey: 'offerId', as: 'offer' });
     FollowupLog.belongsTo(models.ConfiguratorDraft, { foreignKey: 'configuratorDraftId', as: 'configuratorDraft' });
+    FollowupLog.belongsTo(models.Project, { foreignKey: 'projectId', as: 'project' });
     FollowupLog.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
     FollowupLog.belongsTo(models.FollowupTemplate, { foreignKey: 'templateId', as: 'template' });
 };

@@ -126,7 +126,7 @@ export default function AdminLayout() {
     const displayRole = user?.role === 'admin' ? 'Platform Admin' : (user?.employeeRole || 'Employee Access');
 
     return (
-        <div className="min-h-screen bg-gradient-surface text-textPrimary">
+        <div className="admin-theme min-h-screen bg-gradient-surface text-textPrimary">
             <ScrollToTop />
 
             <div className="flex min-h-screen">
@@ -143,16 +143,15 @@ export default function AdminLayout() {
                 )}>
                     <div className="flex h-full flex-col px-5 py-6">
                         <Link to="/admin" className="group block">
-                            <div className="relative overflow-hidden rounded-[1.9rem] border border-white/8 bg-white/[0.04] p-4 shadow-[0_22px_50px_rgba(0,0,0,0.22)]">
+                            <div className="relative overflow-hidden rounded-lg border border-white/8 bg-white/[0.04] p-4 shadow-[0_22px_50px_rgba(0,0,0,0.22)]">
                                 <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary-500/10 blur-2xl transition-transform duration-500 group-hover:scale-110" />
-                                <div className="relative z-10 flex items-center gap-3.5">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-brand text-white shadow-glow">
-                                        <ShieldCheck className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <p className="font-heading text-3xl font-semibold leading-none text-textPrimary">HSC Admin</p>
-                                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-primary-300">Control Center</p>
-                                    </div>
+                                <div className="relative z-10 space-y-3">
+                                    <img
+                                        src="/images/green-electric-logo.png"
+                                        alt="Green Electric City"
+                                        className="h-14 w-auto max-w-[220px] rounded-md bg-white p-2 object-contain"
+                                    />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary-300">Control Center</p>
                                 </div>
                             </div>
                         </Link>
@@ -286,8 +285,8 @@ export default function AdminLayout() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 sm:gap-4">
-                                <div className="relative hidden w-80 xl:block">
+                            <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                                <div className="relative hidden w-72 min-[1720px]:block">
                                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-textSecondary" />
                                     <input
                                         type="text"
@@ -305,16 +304,16 @@ export default function AdminLayout() {
                                     <button
                                         type="button"
                                         onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-                                        className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 transition-all duration-300 hover:border-primary-500/20 hover:bg-white/8"
+                                        className="flex max-w-[18rem] items-center gap-3 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 transition-all duration-300 hover:border-primary-500/20 hover:bg-white/8"
                                     >
-                                        <div className="hidden text-right sm:block">
-                                            <p className="text-sm font-medium text-textPrimary">{user?.fullName || 'Master Control'}</p>
-                                            <Badge variant="info" className="mt-1 px-2 py-0.5 text-[9px]">{displayRole}</Badge>
+                                        <div className="hidden min-w-0 text-right sm:block">
+                                            <p className="truncate text-sm font-medium leading-tight text-textPrimary">{user?.fullName || 'Master Control'}</p>
+                                            <p className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.18em] text-primary-300">{displayRole}</p>
                                         </div>
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-xs font-semibold text-primary-200">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-xs font-semibold text-primary-200">
                                             {initials || 'AD'}
                                         </div>
-                                        <ChevronDown className={clsx('h-4 w-4 text-primary-300 transition-transform duration-300', isAccountMenuOpen && 'rotate-180')} />
+                                        <ChevronDown className={clsx('h-4 w-4 shrink-0 text-primary-300 transition-transform duration-300', isAccountMenuOpen && 'rotate-180')} />
                                     </button>
 
                                     {isAccountMenuOpen ? (

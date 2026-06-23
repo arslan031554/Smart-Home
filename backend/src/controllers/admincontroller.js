@@ -150,18 +150,6 @@ productHandlers.getAll = async (req, res, next) => {
     }
 };
 
-const originalProductCreate = productHandlers.create;
-productHandlers.create = async (req, res, next) => {
-    try {
-        if (req?.body) {
-            console.log('[admin/products] create request payload', req.body);
-        }
-        return await originalProductCreate(req, res, next);
-    } catch (e) {
-        next(e);
-    }
-};
-
 export const syncProductRanges = async (req, res, next) => {
     try {
         const { rangeIds } = req.body;

@@ -6,7 +6,7 @@ const authorize = (...roles) => {
         if (!req.user || !roles.includes(req.user.role)) {
             return sendError(res, 403, `User role ${req.user.role} is not authorized to access this route`);
         }
-        if ((req.user.role === 'admin' || req.user.role === 'employee') && !hasAdminPanelAccess(req.user)) {
+        if (req.user.role === 'admin' && !hasAdminPanelAccess(req.user)) {
             return sendError(res, 403, 'User is not authorized to access the admin panel');
         }
         next();
@@ -18,7 +18,7 @@ export const requireAdminPermission = (...permissions) => {
         if (!req.user) {
             return sendError(res, 401, 'Not authorized, user not found');
         }
-        if (!['admin', 'employee'].includes(req.user.role)) {
+        if (req.user.role !== 'admin') {
             return sendError(res, 403, 'User is not authorized to access the admin panel');
         }
         if (!hasAdminPanelAccess(req.user)) {

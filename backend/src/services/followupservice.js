@@ -8,7 +8,14 @@ import User from '../../models/User.js';
 import Project from '../../models/Project.js';
 import * as notificationService from './notificationservice.js';
 import models from '../../models/index.js';
-import { DEFAULT_FOLLOWUP_PATTERN, FOLLOWUP_CONTEXTS, OFFER_REMINDER_ELIGIBLE_STATUSES } from '../constants/followup.js';
+import {
+    FOLLOWUP_CONTEXTS,
+    OFFER_REMINDER_ELIGIBLE_STATUSES,
+    getConfiguredFollowupCadenceDays,
+    getConfiguredFollowupPattern,
+    isSmsFollowupEnabled,
+} from '../constants/followup.js';
+import { normalizeOfferStatus } from '../constants/offerStatus.js';
 
 function parseBooleanEnv(value, fallback = false) {
     if (value == null || value === '') return fallback;
@@ -17,21 +24,14 @@ function parseBooleanEnv(value, fallback = false) {
 
 function parseReminderIndex(status) {
     const s = String(status || '').toLowerCase();
-    const m = s.match(/^reminded(?:[_:](\d+))?$/);
+    const m = s.match(/^(?:reminded|attempted)(?:[_:](\d+))?$/);
     if (!m) return 0;
     const n = m[1] ? parseInt(m[1], 10) : 1;
     return Number.isFinite(n) ? n : 1;
 }
 
 function parsePatternDays(pattern) {
-    const raw = (pattern && String(pattern).trim()) ? String(pattern) : DEFAULT_FOLLOWUP_PATTERN;
-    const days = raw
-        .split(',')
-        .map((value) => parseInt(String(value).trim(), 10))
-        .filter((value) => Number.isFinite(value) && value > 0)
-        .slice(0, 10);
-    const uniq = Array.from(new Set(days)).sort((a, b) => a - b);
-    return uniq.length ? uniq : [7, 14, 30];
+    return getConfiguredFollowupCadenceDays(pattern);
 }
 
 function addDays(date, days) {
@@ -94,143 +94,220 @@ function getLanguage(source) {
     return source === 'ro' ? 'ro' : 'en';
 }
 
-async function recordFollowupLog(entry) {
+function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+}
+
+function normalizeProjectId(value) {
+    return isUuid(value) ? value : null;
+}
+
+function buildLogIdentity({ context, userId, offerId = null, configuratorDraftId = null, cadenceDay, channel }) {
+    return {
+        context,
+        userId,
+        ...(offerId ? { offerId } : { offerId: null }),
+        ...(configuratorDraftId ? { configuratorDraftId } : { configuratorDraftId: null }),
+        cadenceDay,
+        channel,
+    };
+}
+
+function isUniqueConstraintError(error) {
+    return error?.name === 'SequelizeUniqueConstraintError' || error?.parent?.code === '23505';
+}
+
+async function findExistingFollowupLog(identity) {
+    return FollowupLog.findOne({ where: identity, order: [['createdAt', 'ASC']] });
+}
+
+async function reserveFollowupLog(entry) {
+    const identity = buildLogIdentity(entry);
+    const existing = await findExistingFollowupLog(identity);
+    if (existing) {
+        return { log: existing, created: false, alreadySent: existing.status === 'sent' };
+    }
+
+    const payload = {
+        ...entry,
+        projectId: normalizeProjectId(entry.projectId),
+        status: 'skipped',
+        reason: entry.reason || null,
+        errorMessage: entry.errorMessage || null,
+        sentAt: null,
+    };
+
     try {
-        await FollowupLog.create(entry);
+        const log = await FollowupLog.create(payload);
+        return { log, created: true, alreadySent: false };
     } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-            console.warn('[FOLLOW-UP] FollowupLog write skipped:', error?.message || error);
-        }
+        if (!isUniqueConstraintError(error)) throw error;
+        const existing = await findExistingFollowupLog(identity);
+        return { log: existing, created: false, alreadySent: existing?.status === 'sent' };
     }
 }
 
-async function recordFollowupAttempts({
+function buildDeliveryMeta(delivery) {
+    if (!delivery) return null;
+    return {
+        provider: delivery.provider || null,
+        delivered: Boolean(delivery.delivered),
+        mocked: Boolean(delivery.mocked),
+        externalId: delivery.externalId || null,
+        reason: delivery.reason || null,
+        to: delivery.to || null,
+    };
+}
+
+async function updateReservedLog(log, { status, delivery = null, errorMessage = null, reason = null }) {
+    if (!log) return;
+    await log.update({
+        status,
+        provider: delivery?.provider || null,
+        providerMessageId: delivery?.externalId || null,
+        deliveryMeta: buildDeliveryMeta(delivery),
+        reason: reason || log.reason || null,
+        errorMessage,
+        sentAt: status === 'sent' ? new Date() : null,
+    });
+}
+
+async function skipReminderChannel({ logEntry, message }) {
+    const reservation = await reserveFollowupLog({
+        ...logEntry,
+        status: 'skipped',
+        errorMessage: message,
+    });
+    if (reservation.created && reservation.log) {
+        await updateReservedLog(reservation.log, {
+            status: 'skipped',
+            errorMessage: message,
+            reason: logEntry.reason,
+        });
+    }
+    return {
+        sent: reservation.alreadySent,
+        attempted: true,
+        skipped: !reservation.alreadySent,
+        duplicate: !reservation.created,
+    };
+}
+
+async function deliverReminderChannel({
+    logEntry,
+    enabled,
+    missingContactMessage,
+    disabledMessage = null,
+    send,
+}) {
+    if (!enabled) {
+        return skipReminderChannel({ logEntry, message: disabledMessage || 'Follow-up channel is disabled.' });
+    }
+
+    if (!logEntry.target) {
+        return skipReminderChannel({ logEntry, message: missingContactMessage });
+    }
+
+    const reservation = await reserveFollowupLog(logEntry);
+    if (!reservation.created) {
+        return {
+            sent: reservation.alreadySent,
+            attempted: Boolean(reservation.log),
+            duplicate: true,
+        };
+    }
+
+    try {
+        const delivery = await send();
+        const delivered = Boolean(delivery?.delivered);
+        await updateReservedLog(reservation.log, {
+            status: delivered ? 'sent' : 'skipped',
+            delivery,
+            errorMessage: delivered ? null : (delivery?.reason || 'Provider did not report confirmed delivery.'),
+            reason: logEntry.reason,
+        });
+        return { sent: delivered, attempted: true, duplicate: false };
+    } catch (error) {
+        console.error(`[FOLLOW-UP] ${logEntry.channel.toUpperCase()} reminder channel failed for ${logEntry.target}:`, error.message);
+        await updateReservedLog(reservation.log, {
+            status: 'failed',
+            errorMessage: error?.message || `${logEntry.channel} reminder failed`,
+            reason: logEntry.reason,
+        });
+        return { sent: false, attempted: true, duplicate: false };
+    }
+}
+
+async function deliverReminderChannels({
     context,
     reason,
     reminderStep,
+    cadenceDay,
+    projectId = null,
     offerId = null,
     configuratorDraftId = null,
-    user = null,
+    channelEmail,
+    channelSms,
+    user,
+    subject,
+    emailBody,
+    smsBody,
     emailTemplate = null,
     smsTemplate = null,
-    attempts = [],
 }) {
-    if (!Array.isArray(attempts) || attempts.length === 0) return;
-
-    for (const attempt of attempts) {
-        const template = attempt.channel === 'email' ? emailTemplate : smsTemplate;
-        const deliveryMeta = attempt.delivery ? {
-            provider: attempt.delivery.provider || null,
-            delivered: Boolean(attempt.delivery.delivered),
-            mocked: Boolean(attempt.delivery.mocked),
-            externalId: attempt.delivery.externalId || null,
-            reason: attempt.delivery.reason || null,
-            to: attempt.delivery.to || null,
-        } : null;
-
-        await recordFollowupLog({
-            context,
-            offerId,
-            configuratorDraftId,
-            userId: user?.id || null,
-            channel: attempt.channel,
-            reminderStep,
-            templateId: template?.id || null,
-            status: attempt.status || 'skipped',
-            target: attempt.target || null,
-            subject: attempt.subject || null,
-            body: attempt.body || null,
-            provider: attempt.delivery?.provider || null,
-            providerMessageId: attempt.delivery?.externalId || null,
-            deliveryMeta,
-            reason: reason || null,
-            errorMessage: attempt.error || null,
-            sentAt: attempt.status === 'sent' ? new Date() : null,
-        });
-    }
-}
-
-async function sendReminderChannels({ channelEmail, channelSms, user, subject, emailBody, smsBody }) {
     let sentAny = false;
-    const attempts = [];
+    let attemptedAny = false;
+    const smsEnabledByEnv = isSmsFollowupEnabled();
+    const common = {
+        context,
+        projectId,
+        offerId,
+        configuratorDraftId,
+        userId: user?.id || null,
+        reminderStep,
+        cadenceDay,
+        reason,
+    };
 
-    if (channelEmail && user?.email) {
-        try {
-            const result = await notificationService.sendReminderEmail(user.email, subject, emailBody);
-            const delivered = Boolean(result?.delivered || result?.mocked);
-            if (delivered) sentAny = true;
-            attempts.push({
-                channel: 'email',
-                status: delivered ? 'sent' : 'skipped',
-                target: user.email,
-                subject,
-                body: emailBody,
-                delivery: result || null,
-                error: null,
-            });
-        } catch (error) {
-            console.error(`[FOLLOW-UP] Email reminder channel failed for ${user.email}:`, error.message);
-            attempts.push({
-                channel: 'email',
-                status: 'failed',
-                target: user.email,
-                subject,
-                body: emailBody,
-                delivery: null,
-                error: error?.message || 'Email reminder failed',
-            });
-        }
-    } else if (channelEmail) {
-        attempts.push({
+    const emailResult = await deliverReminderChannel({
+        logEntry: {
+            ...common,
             channel: 'email',
-            status: 'no_contact',
-            target: null,
+            templateId: emailTemplate?.id || null,
+            target: user?.email || null,
             subject,
             body: emailBody,
-            delivery: null,
-            error: 'Missing customer email for follow-up delivery',
-        });
-    }
+        },
+        enabled: Boolean(channelEmail),
+        missingContactMessage: 'Missing customer email for follow-up delivery.',
+        send: () => notificationService.sendReminderEmail(user.email, subject, emailBody),
+    });
+    sentAny = sentAny || emailResult.sent;
+    attemptedAny = attemptedAny || emailResult.attempted;
 
-    if (channelSms && user?.phone) {
-        try {
-            const result = await notificationService.sendReminderSms(user.phone, smsBody);
-            const delivered = Boolean(result?.delivered || result?.mocked);
-            if (delivered) sentAny = true;
-            attempts.push({
+    const shouldRecordSmsSkip = !smsEnabledByEnv && (channelSms || user?.phone);
+    if (channelSms || shouldRecordSmsSkip) {
+        const smsResult = await deliverReminderChannel({
+            logEntry: {
+                ...common,
                 channel: 'sms',
-                status: delivered ? 'sent' : 'skipped',
-                target: user.phone,
+                templateId: smsTemplate?.id || null,
+                target: user?.phone || null,
                 subject: null,
                 body: smsBody,
-                delivery: result || null,
-                error: null,
-            });
-        } catch (error) {
-            console.error(`[FOLLOW-UP] SMS reminder channel failed for ${user.phone}:`, error.message);
-            attempts.push({
-                channel: 'sms',
-                status: 'failed',
-                target: user.phone,
-                subject: null,
-                body: smsBody,
-                delivery: null,
-                error: error?.message || 'SMS reminder failed',
-            });
-        }
-    } else if (channelSms) {
-        attempts.push({
-            channel: 'sms',
-            status: 'no_contact',
-            target: null,
-            subject: null,
-            body: smsBody,
-            delivery: null,
-            error: 'Missing customer phone for follow-up delivery',
+            },
+            enabled: Boolean(channelSms) && smsEnabledByEnv,
+            disabledMessage: smsEnabledByEnv
+                ? 'SMS follow-up channel is disabled for this reminder.'
+                : 'SMS follow-up is disabled by configuration; set FOLLOWUP_SMS_ENABLED=true to allow Twilio reminders.',
+            missingContactMessage: 'Missing customer phone for follow-up delivery.',
+            send: () => notificationService.sendReminderSms(user.phone, smsBody),
         });
+        sentAny = sentAny || smsResult.sent;
+        attemptedAny = attemptedAny || smsResult.attempted;
     }
 
-    return { sentAny, attempts };
+    return { sentAny, attemptedAny };
 }
 
 function computeNextReminderAt(baseDate, patternDays, nextIndex) {
@@ -262,7 +339,7 @@ export const initFollowupCron = () => {
 };
 
 export async function syncOfferFollowup(offerId, offerStatus, transaction = undefined) {
-    const normalizedStatus = String(offerStatus || '').toLowerCase();
+    const normalizedStatus = normalizeOfferStatus(offerStatus || 'draft');
     const eligible = OFFER_REMINDER_ELIGIBLE_STATUSES.includes(normalizedStatus);
     const followup = await OfferFollowup.findOne({ where: { offerId }, transaction });
 
@@ -285,20 +362,22 @@ export async function syncOfferFollowup(offerId, offerStatus, transaction = unde
     const baseDate = offer?.generatedAt
         ? new Date(offer.generatedAt)
         : new Date(offer?.createdAt || Date.now());
+    const pattern = getConfiguredFollowupPattern();
+    const [firstCadenceDay] = parsePatternDays(pattern);
 
     const defaults = {
         enabled: true,
-        pattern: DEFAULT_FOLLOWUP_PATTERN,
+        pattern,
         reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
         channelEmail: true,
         channelSms: false,
-        nextReminderAt: addDays(baseDate, 7),
+        nextReminderAt: addDays(baseDate, firstCadenceDay),
     };
 
     if (followup) {
         await followup.update({
             enabled: true,
-            pattern: followup.pattern || DEFAULT_FOLLOWUP_PATTERN,
+            pattern: followup.pattern || pattern,
             reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
             nextReminderAt: followup.nextReminderAt || defaults.nextReminderAt,
         }, { transaction });
@@ -313,15 +392,19 @@ async function processOfferFollowups(now) {
         where: {
             enabled: true,
             [Op.or]: [
-                { status: 'pending' },
-                { status: 'reminded' },
-                { status: { [Op.like]: 'reminded_%' } },
-            ],
-            nextReminderAt: { [Op.lte]: now },
-            [Op.or]: [
                 { snoozedUntil: null },
                 { snoozedUntil: { [Op.lte]: now } },
             ],
+            [Op.and]: [{
+                [Op.or]: [
+                    { status: 'pending' },
+                    { status: 'reminded' },
+                    { status: 'attempted' },
+                    { status: { [Op.like]: 'reminded_%' } },
+                    { status: { [Op.like]: 'attempted_%' } },
+                ],
+            }],
+            nextReminderAt: { [Op.lte]: now },
         },
         include: [{
             model: Offer,
@@ -339,14 +422,10 @@ async function processOfferFollowups(now) {
         const user = followup.offer?.project?.user;
         if (!user) continue;
 
-        if (!user.email && !user.phone) {
-            await followup.update({ enabled: false, nextReminderAt: null, status: 'no_contact' });
-            continue;
-        }
-
         const patternDays = parsePatternDays(followup.pattern);
         const alreadySent = parseReminderIndex(followup.status);
         const nextIndex = alreadySent + 1;
+        const cadenceDay = patternDays[nextIndex - 1];
 
         if (nextIndex > patternDays.length) {
             await followup.update({ enabled: false, status: 'completed', nextReminderAt: null });
@@ -374,34 +453,36 @@ async function processOfferFollowups(now) {
         const subject = resolvedEmail?.subject || defaults.subject;
         const emailBody = resolvedEmail?.body || defaults.emailBody;
         const smsBody = resolvedSms?.body || defaults.smsBody;
-        const { sentAny, attempts } = await sendReminderChannels({
+        const { sentAny, attemptedAny } = await deliverReminderChannels({
+            context: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+            reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+            reminderStep: nextIndex,
+            cadenceDay,
+            projectId: followup.offer.projectId,
+            offerId: followup.offer.id,
+            configuratorDraftId: null,
             channelEmail: followup.channelEmail,
             channelSms: followup.channelSms,
             user,
             subject,
             emailBody,
             smsBody,
-        });
-
-        await recordFollowupAttempts({
-            context: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
-            reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
-            reminderStep: nextIndex,
-            offerId: followup.offer.id,
-            configuratorDraftId: null,
-            user,
             emailTemplate: tmplEmail,
             smsTemplate: tmplSms,
-            attempts,
         });
 
-        if (!sentAny) continue;
+        if (!attemptedAny) continue;
 
         const base = followup.offer.generatedAt ? new Date(followup.offer.generatedAt) : new Date(followup.offer.createdAt || Date.now());
+        const hasContact = Boolean(user.email || user.phone);
+        const nextReminderAt = hasContact ? computeNextReminderAt(base, patternDays, nextIndex) : null;
         await followup.update({
             lastReminderAt: now,
-            nextReminderAt: computeNextReminderAt(base, patternDays, nextIndex),
-            status: `reminded_${nextIndex}`,
+            nextReminderAt,
+            status: hasContact
+                ? (nextReminderAt ? (sentAny ? `reminded_${nextIndex}` : `attempted_${nextIndex}`) : 'completed')
+                : 'no_contact',
+            enabled: Boolean(hasContact && nextReminderAt),
             reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
         });
     }
@@ -415,7 +496,9 @@ async function processConfiguratorDraftFollowups(now) {
             [Op.or]: [
                 { status: 'pending' },
                 { status: 'reminded' },
+                { status: 'attempted' },
                 { status: { [Op.like]: 'reminded_%' } },
+                { status: { [Op.like]: 'attempted_%' } },
             ],
             nextReminderAt: { [Op.lte]: now },
         },
@@ -426,14 +509,10 @@ async function processConfiguratorDraftFollowups(now) {
         const user = draft.user;
         if (!user) continue;
 
-        if (!user.email && !user.phone) {
-            await draft.update({ enabled: false, nextReminderAt: null, status: 'no_contact' });
-            continue;
-        }
-
         const patternDays = parsePatternDays(draft.pattern);
         const alreadySent = parseReminderIndex(draft.status);
         const nextIndex = alreadySent + 1;
+        const cadenceDay = patternDays[nextIndex - 1];
 
         if (nextIndex > patternDays.length) {
             await draft.update({ enabled: false, status: 'completed', nextReminderAt: null });
@@ -463,34 +542,36 @@ async function processConfiguratorDraftFollowups(now) {
         const subject = resolvedEmail?.subject || defaults.subject;
         const emailBody = resolvedEmail?.body || defaults.emailBody;
         const smsBody = resolvedSms?.body || defaults.smsBody;
-        const { sentAny, attempts } = await sendReminderChannels({
+        const { sentAny, attemptedAny } = await deliverReminderChannels({
+            context: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
+            reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
+            reminderStep: nextIndex,
+            cadenceDay,
+            projectId: normalizeProjectId(snapshot.currentProjectId),
+            offerId: null,
+            configuratorDraftId: draft.id,
             channelEmail: draft.channelEmail,
             channelSms: draft.channelSms,
             user,
             subject,
             emailBody,
             smsBody,
-        });
-
-        await recordFollowupAttempts({
-            context: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
-            reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
-            reminderStep: nextIndex,
-            offerId: null,
-            configuratorDraftId: draft.id,
-            user,
             emailTemplate: tmplEmail,
             smsTemplate: tmplSms,
-            attempts,
         });
 
-        if (!sentAny) continue;
+        if (!attemptedAny) continue;
 
         const base = draft.lastActivityAt ? new Date(draft.lastActivityAt) : new Date(draft.updatedAt || draft.createdAt || Date.now());
+        const hasContact = Boolean(user.email || user.phone);
+        const nextReminderAt = hasContact ? computeNextReminderAt(base, patternDays, nextIndex) : null;
         await draft.update({
             lastReminderAt: now,
-            nextReminderAt: computeNextReminderAt(base, patternDays, nextIndex),
-            status: `reminded_${nextIndex}`,
+            nextReminderAt,
+            status: hasContact
+                ? (nextReminderAt ? (sentAny ? `reminded_${nextIndex}` : `attempted_${nextIndex}`) : 'completed')
+                : 'no_contact',
+            enabled: Boolean(hasContact && nextReminderAt),
             reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
         });
     }
@@ -514,7 +595,7 @@ function createOfferAccessError() {
 
 async function assertOfferFollowupAccess(offerId, actor = null) {
     if (!actor) return;
-    if (actor.role === 'admin' || actor.role === 'employee') return;
+    if (actor.role === 'admin') return;
 
     const offer = await Offer.findByPk(offerId, {
         include: [{ model: Project, as: 'project', attributes: ['userId'] }],

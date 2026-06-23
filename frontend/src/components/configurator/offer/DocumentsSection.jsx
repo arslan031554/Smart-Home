@@ -20,7 +20,7 @@ export default function DocumentsSection({ offerId }) {
             a.click();
             window.URL.revokeObjectURL(url);
             a.remove();
-        } catch (_) {
+        } catch {
             setDownloading(null);
         } finally {
             setDownloading(null);

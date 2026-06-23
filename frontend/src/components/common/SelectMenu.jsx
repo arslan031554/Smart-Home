@@ -39,27 +39,27 @@ function valuesEqual(left, right) {
 
 const SIZE_STYLES = {
     compact: {
-        button: 'min-h-[38px] rounded-full px-3 py-2 bg-white/5 backdrop-blur-xl',
-        trigger: 'text-[10px] font-semibold uppercase tracking-[0.14em]',
-        menu: 'min-w-[156px] rounded-[1.1rem]',
-        option: 'px-2.5 py-2 rounded-[0.9rem]',
-        optionLabel: 'text-[11px] font-semibold',
+        button: 'min-h-[38px] rounded-full px-3 py-2 bg-white backdrop-blur-xl',
+        trigger: 'text-[10px] font-black uppercase tracking-[0.14em]',
+        menu: 'min-w-[156px] rounded-lg',
+        option: 'px-2.5 py-2 rounded-md',
+        optionLabel: 'text-[11px] font-bold',
         icon: 'h-3.5 w-3.5',
     },
     field: {
-        button: 'min-h-12 rounded-xl px-4 py-3 bg-[#1f1f1f]',
-        trigger: 'text-sm font-medium',
-        menu: 'w-full rounded-[1.1rem]',
-        option: 'px-3 py-2.5 rounded-[0.95rem]',
-        optionLabel: 'text-sm font-medium',
+        button: 'min-h-12 rounded-lg px-4 py-3 bg-white',
+        trigger: 'text-sm font-semibold',
+        menu: 'w-full rounded-lg',
+        option: 'px-3 py-2.5 rounded-md',
+        optionLabel: 'text-sm font-semibold',
         icon: 'h-4 w-4',
     },
     fieldDense: {
-        button: 'min-h-11 rounded-xl px-4 py-2.5 bg-[#1f1f1f]',
-        trigger: 'text-[11px] font-semibold uppercase tracking-[0.12em]',
-        menu: 'w-full rounded-[1.1rem]',
-        option: 'px-3 py-2 rounded-[0.9rem]',
-        optionLabel: 'text-[11px] font-semibold',
+        button: 'min-h-11 rounded-lg px-4 py-2.5 bg-white',
+        trigger: 'text-[11px] font-black uppercase tracking-[0.12em]',
+        menu: 'w-full rounded-lg',
+        option: 'px-3 py-2 rounded-md',
+        optionLabel: 'text-[11px] font-bold',
         icon: 'h-3.5 w-3.5',
     },
 };
@@ -172,10 +172,10 @@ export default function SelectMenu({
                 disabled={disabled}
                 onClick={() => setIsOpen((prev) => !prev)}
                 className={cn(
-                    'group flex items-center justify-between gap-3 border border-white/10 text-left text-textPrimary shadow-soft transition-all duration-300',
-                    'hover:border-primary-500/25 hover:bg-white/8 focus-visible:outline-none focus-visible:ring-4',
+                    'group flex items-center justify-between gap-3 border border-emerald/16 text-left text-textPrimary shadow-soft transition-all duration-300',
+                    'hover:border-emerald/35 hover:bg-emerald/10 focus-visible:outline-none focus-visible:ring-4',
                     fullWidth && 'w-full',
-                    !error && 'focus-visible:ring-primary-500/10',
+                    !error && 'focus-visible:ring-emerald/12',
                     error && 'border-red-400/60 focus-visible:ring-red-400/10',
                     disabled && 'pointer-events-none opacity-55',
                     styles.button,
@@ -183,7 +183,7 @@ export default function SelectMenu({
                 )}
             >
                 <div className="flex min-w-0 items-center gap-2.5">
-                    {Icon ? <Icon className={cn('shrink-0 text-primary-300', styles.icon)} /> : null}
+                    {Icon ? <Icon className={cn('shrink-0 text-emerald', styles.icon)} /> : null}
                     <span
                         className={cn(
                             'truncate',
@@ -197,7 +197,7 @@ export default function SelectMenu({
                 </div>
                 <ChevronDown
                     className={cn(
-                        'shrink-0 text-primary-400 transition-transform duration-300',
+                        'shrink-0 text-emerald transition-transform duration-300',
                         styles.icon,
                         isOpen && 'rotate-180',
                     )}
@@ -210,7 +210,7 @@ export default function SelectMenu({
                         ref={menuRef}
                         style={menuStyle}
                         className={cn(
-                            'overflow-hidden border border-primary-500/18 bg-[#181818]/96 p-1.5 shadow-[0_28px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl',
+                            'overflow-hidden border border-emerald/18 bg-white p-1.5 shadow-2xl shadow-emerald/15 backdrop-blur-2xl',
                             styles.menu,
                             menuClassName,
                         )}
@@ -229,8 +229,8 @@ export default function SelectMenu({
                                         className={cn(
                                             'flex w-full items-center justify-between border text-left transition-all duration-200',
                                             isActive
-                                                ? 'border-primary-500/24 bg-primary-500/12 text-textPrimary'
-                                                : 'border-transparent bg-white/0 text-textSecondary hover:border-white/8 hover:bg-white/5 hover:text-textPrimary',
+                                                ? 'border-emerald/24 bg-emerald/12 text-textPrimary'
+                                                : 'border-transparent bg-white/0 text-textSecondary hover:border-emerald/16 hover:bg-emerald/8 hover:text-emerald',
                                             styles.option,
                                             optionClassName,
                                         )}
@@ -245,7 +245,7 @@ export default function SelectMenu({
                                                 </p>
                                             ) : null}
                                         </div>
-                                        {isActive ? <Check className={cn('shrink-0 text-primary-300', styles.icon)} /> : null}
+                                        {isActive ? <Check className={cn('shrink-0 text-emerald', styles.icon)} /> : null}
                                     </button>
                                 );
                             })}

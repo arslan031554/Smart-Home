@@ -1,7 +1,12 @@
 import { Op } from 'sequelize';
 import ConfiguratorDraft from '../../models/ConfiguratorDraft.js';
 import User from '../../models/User.js';
-import { DEFAULT_FOLLOWUP_PATTERN, FOLLOWUP_CONTEXTS } from '../constants/followup.js';
+import {
+    FOLLOWUP_CONTEXTS,
+    getConfiguredFollowupCadenceDays,
+    getConfiguredFollowupPattern,
+    isSmsFollowupEnabled,
+} from '../constants/followup.js';
 
 function addDays(date, days) {
     return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
@@ -104,7 +109,10 @@ export async function upsertCurrentDraft({ userId = null, guestSessionId = null,
     }
 
     const now = new Date();
-    const nextReminderAt = addDays(now, 7);
+    const pattern = getConfiguredFollowupPattern();
+    const [firstCadenceDay] = getConfiguredFollowupCadenceDays(pattern);
+    const nextReminderAt = addDays(now, firstCadenceDay);
+    const smsFollowupEnabled = isSmsFollowupEnabled();
 
     let draft = await ConfiguratorDraft.findOne({
         where: buildIdentifierWhere({ userId, guestSessionId }),
@@ -117,11 +125,11 @@ export async function upsertCurrentDraft({ userId = null, guestSessionId = null,
         convertedOfferId: null,
         enabled: true,
         channelEmail: user ? Boolean(user.email) : false,
-        channelSms: user ? Boolean(user.phone) : false,
+        channelSms: user ? smsFollowupEnabled && Boolean(user.phone) : false,
         lastActivityAt: now,
         lastReminderAt: null,
         nextReminderAt,
-        pattern: DEFAULT_FOLLOWUP_PATTERN,
+        pattern,
         reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
         status: 'pending',
         lastStep: normalizeStep(snapshot.currentStep),
@@ -177,9 +185,9 @@ export async function attachGuestDraftToUser({ userId, guestSessionId }) {
                 lastStep: guestDraft.lastStep || 1,
                 language: guestDraft.language || 'en',
                 channelEmail: Boolean(user.email),
-                channelSms: Boolean(user.phone),
+                channelSms: isSmsFollowupEnabled() && Boolean(user.phone),
                 lastActivityAt: guestDraft.lastActivityAt || new Date(),
-                nextReminderAt: guestDraft.nextReminderAt || addDays(new Date(), 7),
+                nextReminderAt: guestDraft.nextReminderAt || addDays(new Date(), getConfiguredFollowupCadenceDays(guestDraft.pattern)[0]),
                 status: 'pending',
                 enabled: true,
             });
@@ -193,7 +201,7 @@ export async function attachGuestDraftToUser({ userId, guestSessionId }) {
         userId,
         source: 'account',
         channelEmail: Boolean(user.email),
-        channelSms: Boolean(user.phone),
+        channelSms: isSmsFollowupEnabled() && Boolean(user.phone),
     });
 
     return toDraftResponse(guestDraft);

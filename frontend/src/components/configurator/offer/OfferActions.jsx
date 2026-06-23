@@ -7,7 +7,7 @@ import { resetConfigurator } from '../../../features/configurator/configuratorSl
 import { clearGeneratedOffer } from '../../../features/offers/offersSlice';
 import api from '../../../utils/api';
 
-export default function OfferActions({ offerId, config }) {
+export default function OfferActions({ offerId }) {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const [exporting, setExporting] = useState(null);

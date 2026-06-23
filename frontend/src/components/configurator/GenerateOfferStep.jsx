@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { generateOffer } from '../../features/offers/offersSlice';
 import { setStep, hydrateConfigurator } from '../../features/configurator/configuratorSlice';
@@ -39,7 +39,7 @@ export default function GenerateOfferStep() {
         }
     }, [dispatch, isAuthenticated]);
 
-    const generationPhases = [
+    const generationPhases = useMemo(() => [
         { progress: 10, label: `${t('configurator.generateOffer.nodes.configuration')}...` },
         { progress: 25, label: `${t('configurator.generateOffer.nodes.configuration')}...` },
         { progress: 40, label: `${t('configurator.generateOffer.nodes.hardware')}...` },
@@ -47,7 +47,7 @@ export default function GenerateOfferStep() {
         { progress: 70, label: `${t('configurator.generateOffer.nodes.services')}...` },
         { progress: 85, label: `${t('configurator.generateOffer.nodes.documentation')}...` },
         { progress: 100, label: `${t('configurator.steps.summary')} complete` },
-    ];
+    ], [t]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -82,7 +82,7 @@ export default function GenerateOfferStep() {
         }, intervalTime);
 
         return () => clearInterval(timer);
-    }, [dispatch, isAuthenticated, t]);
+    }, [generationPhases, isAuthenticated, t]);
 
     const finalizeOffer = useCallback(async () => {
         setGenError(null);

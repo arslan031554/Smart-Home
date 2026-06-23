@@ -39,7 +39,7 @@ export default function HeroSlider() {
   };
 
   return (
-    <section id="acasa" className="green-wave relative min-h-screen overflow-hidden bg-ink pb-20 text-white">
+    <section id="acasa" className="green-wave relative min-h-[760px] overflow-hidden bg-ink pb-20 text-white lg:min-h-[840px]">
       <AnimatePresence mode="wait">
         <Motion.div
           className="absolute inset-0"
@@ -61,7 +61,7 @@ export default function HeroSlider() {
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      <div className="container-px relative z-10 mx-auto flex min-h-screen max-w-7xl items-center pt-32">
+      <div className="container-px relative z-10 mx-auto flex min-h-[760px] max-w-7xl items-center pt-28 lg:min-h-[840px]">
         <div className="grid w-full gap-14 lg:grid-cols-[1fr_520px] lg:items-center">
           <AnimatePresence mode="wait">
             <Motion.div

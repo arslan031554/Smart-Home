@@ -46,7 +46,7 @@ export default function PresentationLayout() {
   }, [location.pathname]);
 
   const shell = (
-    <div className="presentation-shell min-h-screen bg-fog text-graphite">
+    <div className="presentation-shell green-theme-site min-h-screen bg-fog text-graphite">
       <Navbar currentPath={currentPath} />
       <main>
         <Outlet />

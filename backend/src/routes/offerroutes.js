@@ -10,7 +10,7 @@ import {
 const router = Router();
 
 const requireOfferPermissionForBackoffice = (permission) => (req, res, next) => {
-    if (req.user?.role === 'admin' || req.user?.role === 'employee') {
+    if (req.user?.role === 'admin') {
         return requireAdminPermission(permission)(req, res, next);
     }
     return next();

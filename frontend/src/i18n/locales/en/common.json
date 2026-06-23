@@ -791,7 +791,19 @@
       "download": "Download",
       "channels": {
         "email": "Email",
-        "sms": "SMS"
+        "sms": "SMS",
+        "emailOn": "Email On",
+        "emailOff": "Email Off",
+        "smsOn": "SMS On",
+        "smsOff": "SMS Off"
+      },
+      "sort": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "valueHigh": "Value high",
+        "valueLow": "Value low",
+        "statusAsc": "Status A-Z",
+        "statusDesc": "Status Z-A"
       },
       "filters": {
         "allStatuses": "All Statuses",
@@ -835,8 +847,6 @@
       "draft": "Draft",
       "inProgress": "In Progress",
       "offerGenerated": "Offer Generated",
-      "offerReady": "Offer Ready",
-      "waiting": "Waiting Approval",
       "ordered": "Ordered",
       "cancelled": "Cancelled"
     },

@@ -40,6 +40,15 @@ module.exports = {
         },
         onDelete: 'SET NULL',
       },
+      projectId: {
+        type: Sequelize.UUID,
+        allowNull: true,
+        references: {
+          model: 'Projects',
+          key: 'id',
+        },
+        onDelete: 'SET NULL',
+      },
       userId: {
         type: Sequelize.UUID,
         allowNull: true,
@@ -57,6 +66,10 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 1,
+      },
+      cadenceDay: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
       },
       templateId: {
         type: Sequelize.UUID,
@@ -120,7 +133,9 @@ module.exports = {
 
     await queryInterface.addIndex('FollowupLogs', ['offerId']);
     await queryInterface.addIndex('FollowupLogs', ['configuratorDraftId']);
+    await queryInterface.addIndex('FollowupLogs', ['projectId']);
     await queryInterface.addIndex('FollowupLogs', ['userId']);
+    await queryInterface.addIndex('FollowupLogs', ['cadenceDay']);
     await queryInterface.addIndex('FollowupLogs', ['context', 'channel']);
     await queryInterface.addIndex('FollowupLogs', ['status']);
   },

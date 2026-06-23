@@ -21,6 +21,7 @@ import { fetchStats } from '@/features/admin/adminSlice';
 import { fetchOffers } from '@/features/offers/offersSlice';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/offers/StatusBadge';
+import { isOfferGeneratedStatus, normalizeOfferStatus } from '@/constants/offerStatuses';
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
@@ -42,8 +43,8 @@ export default function AdminDashboard() {
     }).format(Number(value || 0));
 
     const pendingFollowups = offers.filter((offer) => offer.followUp?.enabled && offer.followUp?.status === 'pending').length;
-    const orderedOffers = offers.filter((offer) => offer.status === 'ordered').length;
-    const pendingDecisionOffers = offers.filter((offer) => ['offer_ready', 'waiting'].includes(offer.status)).length;
+    const orderedOffers = offers.filter((offer) => normalizeOfferStatus(offer.status) === 'ordered').length;
+    const generatedOffers = offers.filter((offer) => isOfferGeneratedStatus(offer.status)).length;
 
     const dashStats = [
         {
@@ -225,8 +226,8 @@ export default function AdminDashboard() {
                             <div className="flex items-center gap-3">
                                 <Bell className="h-5 w-5 text-primary-300" />
                                 <div>
-                                    <p className="text-lg font-medium text-textPrimary">{pendingDecisionOffers}</p>
-                                    <p className="text-sm text-textSecondary">{t('offers.statuses.waiting')}</p>
+                                    <p className="text-lg font-medium text-textPrimary">{generatedOffers}</p>
+                                    <p className="text-sm text-textSecondary">{t('offers.statuses.offerGenerated', { defaultValue: 'Offer Generated' })}</p>
                                 </div>
                             </div>
                         </Card>

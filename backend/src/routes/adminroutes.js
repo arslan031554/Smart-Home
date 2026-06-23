@@ -3,9 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 import * as adminController from '../controllers/admincontroller.js';
+import * as offerController from '../controllers/offercontroller.js';
 import protect from '../middlewares/authmiddleware.js';
 import authorize, { requireAdminPermission } from '../middlewares/rolemiddleware.js';
 import * as v from '../validators/adminvalidator.js';
+import { adminOfferListQueryValidator } from '../validators/offervalidator.js';
 
 const router = Router();
 const rangeUploadDirectory = path.resolve(process.cwd(), 'uploads', 'ranges');
@@ -39,11 +41,12 @@ const handleRangeImageUpload = (req, res, next) => {
     });
 };
 
-// All routes here require admin role (or employee with assigned admin access)
+// All routes here require the platform admin role.
 router.use(protect);
-router.use(authorize('admin', 'employee'));
+router.use(authorize('admin'));
 
 router.get('/stats', adminController.getStats);
+router.get('/offers', requireAdminPermission('view_offers'), adminOfferListQueryValidator, offerController.listAdminOffers);
 router.post('/uploads/range-image', requireAdminPermission('edit_hardware'), handleRangeImageUpload, adminController.uploadRangeImage);
 
 router.get('/employees', requireAdminPermission('manage_employees'), adminController.employeeHandlers.getAll);

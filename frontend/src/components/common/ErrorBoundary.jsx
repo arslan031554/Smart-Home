@@ -30,7 +30,7 @@ class ErrorBoundary extends React.Component {
                             <p className="text-sm font-medium text-slate-500 leading-relaxed">
                                 A critical error occurred while processing the application logic. Our engineers have been notified.
                             </p>
-                            {process.env.NODE_ENV === 'development' && (
+                            {import.meta.env.DEV && (
                                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left overflow-auto max-h-40">
                                     <p className="text-[10px] font-mono text-red-600 break-all">
                                         {this.state.error?.toString()}

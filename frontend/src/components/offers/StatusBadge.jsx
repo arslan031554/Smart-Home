@@ -1,23 +1,24 @@
 ﻿import React from 'react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { normalizeOfferStatus } from '@/constants/offerStatuses';
 
 export const StatusBadge = ({ status, className }) => {
     const { t } = useTranslation();
     const statusConfig = {
-        draft: { label: t('offers.statuses.draft'), color: 'bg-white/5 text-textSecondary border-white/10' },
+        draft: { label: t('offers.statuses.draft'), color: 'bg-fog text-textSecondary border-emerald/12' },
         in_progress: { label: t('offers.statuses.inProgress'), color: 'bg-sky-500/10 text-sky-300 border-sky-500/20' },
-        offer_ready: { label: t('offers.statuses.offerGenerated', 'Offer Generated'), color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' },
-        waiting: { label: t('offers.statuses.waiting'), color: 'bg-amber-500/10 text-amber-200 border-amber-500/20' },
-        ordered: { label: t('offers.statuses.ordered'), color: 'bg-primary-500/12 text-primary-200 border-primary-500/22' },
+        offer_generated: { label: t('offers.statuses.offerGenerated', { defaultValue: 'Offer Generated' }), color: 'bg-emerald/10 text-emerald border-emerald/24' },
+        ordered: { label: t('offers.statuses.ordered'), color: 'bg-orange/12 text-orange border-orange/25' },
         cancelled: { label: t('offers.statuses.cancelled'), color: 'bg-red-500/10 text-red-300 border-red-500/20' },
     };
 
-    const config = statusConfig[status] || { label: status, color: 'bg-white/5 text-textSecondary border-white/10' };
+    const normalizedStatus = normalizeOfferStatus(status);
+    const config = statusConfig[normalizedStatus] || { label: normalizedStatus, color: 'bg-fog text-textSecondary border-emerald/12' };
 
     return (
         <span className={clsx(
-            'inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em]',
+            'inline-flex max-w-full items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] leading-snug',
             config.color,
             className
         )}>

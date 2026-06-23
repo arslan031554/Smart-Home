@@ -9,7 +9,6 @@ import AppRouter from './routes/AppRouter';
 export default function App() {
     const dispatch = useDispatch();
     const token = useSelector((state) => state.auth.token);
-    const user = useSelector((state) => state.auth.user);
 
     useEffect(() => {
         if (token) {

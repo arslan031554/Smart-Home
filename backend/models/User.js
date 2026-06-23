@@ -121,4 +121,8 @@ User.init({
     timestamps: true
 });
 
+User.associate = (models) => {
+    User.hasMany(models.OfferFile, { foreignKey: 'userId', as: 'offerFiles' });
+};
+
 export default User;

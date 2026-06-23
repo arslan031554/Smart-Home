@@ -38,7 +38,7 @@ export default function HeroCarousel() {
     };
 
     return (
-        <div className="relative w-full overflow-hidden rounded-lg group bg-white h-[450px] sm:h-[550px] lg:h-[650px]">
+        <div className="group relative h-[450px] w-full overflow-hidden rounded-lg border border-white/12 bg-[#03120d] shadow-2xl shadow-black/35 sm:h-[550px] lg:h-[650px]">
             {/* Carousel Images */}
             <div className="relative w-full h-full">
                 {images.map((image, index) => (
@@ -52,8 +52,9 @@ export default function HeroCarousel() {
                         <img
                             src={image}
                             alt={`Smart Home Image ${index + 1}`}
-                            className="w-full h-full object-contain"
+                            className="h-full w-full object-cover"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#020a07]/72 via-transparent to-transparent" />
                     </div>
                 ))}
             </div>
@@ -62,7 +63,7 @@ export default function HeroCarousel() {
             <button
                 onClick={prevSlide}
                 onMouseEnter={() => setIsAutoPlay(false)}
-                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/40 hover:scale-110 opacity-0 group-hover:opacity-100"
+                className="absolute left-3 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/12 text-white opacity-0 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-emerald hover:text-ink group-hover:opacity-100 sm:left-4"
                 aria-label="Previous slide"
             >
                 <ChevronLeft className="h-5 w-5" />
@@ -72,7 +73,7 @@ export default function HeroCarousel() {
             <button
                 onClick={nextSlide}
                 onMouseEnter={() => setIsAutoPlay(false)}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white transition-all duration-300 hover:bg-white/40 hover:scale-110 opacity-0 group-hover:opacity-100"
+                className="absolute right-3 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/12 text-white opacity-0 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-emerald hover:text-ink group-hover:opacity-100 sm:right-4"
                 aria-label="Next slide"
             >
                 <ChevronRight className="h-5 w-5" />
@@ -87,7 +88,7 @@ export default function HeroCarousel() {
                         className={clsx(
                             'h-2 rounded-full transition-all duration-300 cursor-pointer hover:scale-125',
                             index === currentSlide
-                                ? 'w-8 bg-white'
+                                ? 'w-8 bg-emerald'
                                 : 'w-2 bg-white/50 hover:bg-white/70'
                         )}
                         aria-label={`Go to slide ${index + 1}`}
@@ -96,7 +97,7 @@ export default function HeroCarousel() {
             </div>
 
             {/* Slide Counter */}
-            <div className="absolute top-4 right-4 z-30 px-2 sm:px-3 py-1 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all duration-300 animate-slide-in-down">
+            <div className="absolute right-4 top-4 z-30 rounded-full border border-white/15 bg-white/14 px-2 py-1 backdrop-blur-md transition-all duration-300 hover:bg-white/25 sm:px-3 animate-slide-in-down">
                 <p className="text-xs font-semibold text-white">
                     {String(currentSlide + 1).padStart(2, '0')}/{String(images.length).padStart(2, '0')}
                 </p>

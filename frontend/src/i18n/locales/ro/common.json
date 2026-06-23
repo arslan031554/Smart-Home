@@ -791,7 +791,19 @@
       "download": "Descarca",
       "channels": {
         "email": "Email",
-        "sms": "SMS"
+        "sms": "SMS",
+        "emailOn": "Email activ",
+        "emailOff": "Email oprit",
+        "smsOn": "SMS activ",
+        "smsOff": "SMS oprit"
+      },
+      "sort": {
+        "newest": "Cele mai noi",
+        "oldest": "Cele mai vechi",
+        "valueHigh": "Valoare mare",
+        "valueLow": "Valoare mica",
+        "statusAsc": "Status A-Z",
+        "statusDesc": "Status Z-A"
       },
       "filters": {
         "allStatuses": "Toate statusurile",
@@ -835,8 +847,6 @@
       "draft": "Ciorna",
       "inProgress": "In progres",
       "offerGenerated": "Oferta generata",
-      "offerReady": "Oferta pregatita",
-      "waiting": "In asteptarea aprobarii",
       "ordered": "Comandat",
       "cancelled": "Anulat"
     },

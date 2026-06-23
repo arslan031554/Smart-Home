@@ -7,7 +7,7 @@ import * as configuratorDraftService from "../services/configuratordraftservice.
 import * as notificationService from "../services/notificationservice.js";
 import { sendResponse, sendError } from "../utils/apiResponse.js";
 import RoomType from "../../models/RoomType.js";
-import { isValidOfferStatus } from "../constants/offerStatus.js";
+import { isValidOfferStatus, normalizeOfferStatus } from "../constants/offerStatus.js";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,6 +20,11 @@ function isValidUuid(v) {
 function normalizeRoomCount(value) {
   const parsed = parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function shouldRegenerateExport(req) {
+  const value = req.query?.regenerate ?? req.body?.regenerate;
+  return value === true || value === "true" || value === "1";
 }
 
 function normalizeFunctionSelections(selections) {
@@ -115,22 +120,23 @@ export const createOffer = async (req, res, next) => {
       ...rest,
       levels: rest.levels || [],
     });
-    // Creating an offer implies it's generated/ready unless explicitly passed
-    if (!offerData.status) offerData.status = 'offer_ready';
-    const offer = await offerService.createOffer(projectId, offerData, req.user);
+    // Creating an offer implies the proposal document has been generated unless explicitly passed.
+    if (!offerData.status) offerData.status = 'offer_generated';
+    let offer = await offerService.createOffer(projectId, offerData, req.user);
+    const storedPdf = await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, { regenerate: true });
+    offer = await offerService.getOfferById(offer.id, req.user);
 
     // Auto-email PDF to customer (requirement). Fire-and-forget.
-    if (offer?.status === 'offer_ready' && offer?.project?.user?.email) {
+    if (normalizeOfferStatus(offer?.status) === 'offer_generated' && offer?.project?.user?.email) {
       const offerUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/offers/${offer.id}`;
       setImmediate(async () => {
         try {
-          const pdf = await exportService.generatePdf(offer.id);
           await notificationService.sendOfferPdfEmail({
             to: offer.project.user.email,
             customerName: offer.project.user.fullName,
             offerNumber: offer.offerNumber,
             offerUrl,
-            pdfBuffer: pdf,
+            pdfBuffer: storedPdf.buffer,
             language: offer.calculationSnapshot?.language,
           });
         } catch (err) {
@@ -324,22 +330,23 @@ export const createOfferFromConfig = async (req, res, next) => {
       services: body.selectedServiceIds || body.serviceIds || body.services,
       customerComments: body.customerComments,
     });
-    offerData.status = 'offer_ready';
-    const offer = await offerService.createOffer(projectId, offerData, req.user);
+    offerData.status = 'offer_generated';
+    let offer = await offerService.createOffer(projectId, offerData, req.user);
+    const storedPdf = await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, { regenerate: true });
+    offer = await offerService.getOfferById(offer.id, req.user);
     await configuratorDraftService.completeCurrentDraft({ userId, offerId: offer.id });
 
     // Auto-email PDF to customer (requirement). Fire-and-forget.
-    if (offer?.status === 'offer_ready' && offer?.project?.user?.email) {
+    if (normalizeOfferStatus(offer?.status) === 'offer_generated' && offer?.project?.user?.email) {
       const offerUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/offers/${offer.id}`;
       setImmediate(async () => {
         try {
-          const pdf = await exportService.generatePdf(offer.id);
           await notificationService.sendOfferPdfEmail({
             to: offer.project.user.email,
             customerName: offer.project.user.fullName,
             offerNumber: offer.offerNumber,
             offerUrl,
-            pdfBuffer: pdf,
+            pdfBuffer: storedPdf.buffer,
             language: offer.calculationSnapshot?.language,
           });
         } catch (err) {
@@ -360,9 +367,11 @@ export const updateOfferFromConfig = async (req, res, next) => {
       ...(req.body || {}),
       levels: req.body?.levels || [],
     });
-    if (!offerData.status) offerData.status = 'offer_ready';
+    if (!offerData.status) offerData.status = 'offer_generated';
 
-    const offer = await offerService.updateOfferFromConfig(req.params.id, offerData, req.user);
+    let offer = await offerService.updateOfferFromConfig(req.params.id, offerData, req.user);
+    await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, { regenerate: true });
+    offer = await offerService.getOfferById(offer.id, req.user);
     await configuratorDraftService.completeCurrentDraft({ userId: req.user.id, offerId: offer.id });
     sendResponse(res, 200, true, "Offer updated successfully", offer);
   } catch (error) {
@@ -403,9 +412,18 @@ export const getOfferDetails = async (req, res, next) => {
 export const listOffers = async (req, res, next) => {
   try {
     const { projectId } = req.query;
-    const userId = req.user.role === "admin" || req.user.role === "employee" ? null : req.user.id;
+    const userId = req.user.role === "admin" ? null : req.user.id;
     const offers = await offerService.listOffers(projectId || null, userId);
     sendResponse(res, 200, true, "Offers fetched", offers);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const listAdminOffers = async (req, res, next) => {
+  try {
+    const result = await offerService.listAdminOffers(req.query || {});
+    sendResponse(res, 200, true, "Admin offers fetched", result);
   } catch (error) {
     next(error);
   }
@@ -473,16 +491,18 @@ export const duplicateOffer = async (req, res, next) => {
 
 export const exportExcel = async (req, res, next) => {
   try {
-    const buffer = await exportService.generateExcel(req.params.id, req.user);
+    const file = await exportService.readStoredOfferFile(req.params.id, 'excel', req.user, {
+      regenerate: shouldRegenerateExport(req),
+    });
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      file.mimeType
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=offer-${req.params.id}.xlsx`
+      `attachment; filename="${file.generatedFilename}"`
     );
-    res.send(buffer);
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }
@@ -490,13 +510,15 @@ export const exportExcel = async (req, res, next) => {
 
 export const exportPdf = async (req, res, next) => {
   try {
-    const buffer = await exportService.generatePdf(req.params.id, req.user);
+    const file = await exportService.readStoredOfferFile(req.params.id, 'pdf', req.user, {
+      regenerate: shouldRegenerateExport(req),
+    });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=offer-${req.params.id}.pdf`
+      `attachment; filename="${file.generatedFilename}"`
     );
-    res.send(Buffer.from(buffer));
+    res.send(file.buffer);
   } catch (error) {
     next(error);
   }
