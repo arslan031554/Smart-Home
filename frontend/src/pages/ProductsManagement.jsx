@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { 
     addProduct, deleteProduct, updateProduct, 
@@ -41,12 +41,35 @@ import {
 } from '@/components/common/UIComponents';
 import SelectMenu from '@/components/common/SelectMenu';
 import { normalizeApiError } from '@/utils/normalizeApiError';
+import api from '@/utils/api';
 import { useTranslation } from 'react-i18next';
 
-const PRODUCT_LOCALIZED_LANGUAGES = [
-    { key: 'en', label: 'English' },
-    { key: 'ro', label: 'Romanian' }
-];
+function getProductImageValue(product) {
+    return product?.imageUrl
+        || product?.imageURL
+        || product?.image_url
+        || product?.image
+        || product?.dataValues?.imageUrl
+        || '';
+}
+
+function resolveProductImageSrc(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (/^(blob:|data:|https?:\/\/)/i.test(raw)) return raw;
+
+    const uploadPath = raw.startsWith('uploads/') ? `/${raw}` : raw;
+    if (uploadPath.startsWith('/uploads/')) {
+        try {
+            const apiBaseUrl = new URL(api.defaults.baseURL || '/api', window.location.origin);
+            return `${apiBaseUrl.origin}${uploadPath}`;
+        } catch {
+            return uploadPath;
+        }
+    }
+
+    return raw;
+}
 
 export default function ProductsManagement() {
     const dispatch = useDispatch();
@@ -69,9 +92,13 @@ export default function ProductsManagement() {
         descriptionEn: '',
         descriptionRo: '',
         image: '',
+        imageFile: null,
+        imagePreview: '',
+        productType: 'STANDARD',
         status: 'Active',
         allowedRanges: [],
         allowedColors: [],
+        dependencies: [],
         mappings: []
     });
 
@@ -92,6 +119,17 @@ export default function ProductsManagement() {
         (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.code || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
+    const previewImageSrc = resolveProductImageSrc(formData.imagePreview || formData.image);
+    const storedImageValue = String(formData.image || '');
+    const isUsingStoredUpload = storedImageValue.startsWith('/uploads/') || storedImageValue.startsWith('uploads/');
+    const imageSourceLabel = formData.imageFile || isUsingStoredUpload
+        ? t('adminPages.products.modal.usingUploadedImage', { defaultValue: 'Using an uploaded image' })
+        : formData.image
+            ? t('adminPages.products.modal.usingExternalUrl', { defaultValue: 'Using an external URL' })
+            : t('adminPages.products.modal.noImage', { defaultValue: 'No image selected' });
+    const standardProductOptions = products
+        .filter((product) => product.id !== editingId && product.productType !== 'RELATED' && product.isActive !== false)
+        .map((product) => ({ value: product.id, label: [product.code, product.name].filter(Boolean).join(' ') }));
 
     const handleOpenForm = (product = null) => {
         setFormErrors({});
@@ -104,8 +142,11 @@ export default function ProductsManagement() {
                 description: product.description || '',
                 // Map model field unitPriceEurExVat to form field price
                 price: product.unitPriceEurExVat != null ? product.unitPriceEurExVat : '',
-                // Map model field imageUrl to form field image
-                image: product.imageUrl || '',
+                // Keep the saved product image for the edit preview.
+                image: getProductImageValue(product),
+                imageFile: null,
+                imagePreview: '',
+                productType: product.productType || 'STANDARD',
                 // Map model field isActive to form field status (backward compatibility)
                 status: product.isActive !== false ? 'Active' : 'Inactive',
                 // Localized translations
@@ -116,6 +157,10 @@ export default function ProductsManagement() {
                 // Complex relationships - ensure arrays are preserved
                 allowedRanges: Array.isArray(product.allowedRanges) ? product.allowedRanges : (product.productRanges ? product.productRanges.map(r => r.id) : []),
                 allowedColors: Array.isArray(product.allowedColors) ? product.allowedColors : (product.colors ? product.colors.map(c => c.id) : []),
+                dependencies: Array.isArray(product.dependencies) ? product.dependencies.map((dependency) => ({
+                    mainProductId: dependency.mainProductId || dependency.productId || '',
+                    quantityPerMainProduct: dependency.quantityPerMainProduct || 1,
+                })) : [],
                 // Nested mappings - ensure structure is preserved
                 mappings: Array.isArray(product.mappings) ? product.mappings.map(m => ({
                     functionId: m.smartFunctionId || m.functionId || '',
@@ -128,8 +173,8 @@ export default function ProductsManagement() {
             setEditingId(product.id);
         } else {
             setFormData({
-                code: '', name: '', price: '', description: '', nameEn: '', nameRo: '', descriptionEn: '', descriptionRo: '', image: '', status: 'Active',
-                allowedRanges: [], allowedColors: [], mappings: []
+                code: '', name: '', price: '', description: '', nameEn: '', nameRo: '', descriptionEn: '', descriptionRo: '', image: '', imageFile: null, imagePreview: '', productType: 'STANDARD', status: 'Active',
+                allowedRanges: [], allowedColors: [], dependencies: [], mappings: []
             });
             setEditingId(null);
         }
@@ -151,6 +196,34 @@ export default function ProductsManagement() {
         if (!String(data.code || '').trim()) errs.code = t('adminPages.products.errors.codeRequired');
         if (!String(data.name || '').trim()) errs.name = t('adminPages.products.errors.nameRequired');
         return errs;
+    };
+
+    const handleImageFileChange = (file) => {
+        if (!file) return;
+        const previewUrl = URL.createObjectURL(file);
+        setFormData((prev) => ({ ...prev, imageFile: file, imagePreview: previewUrl }));
+    };
+
+    const handleAddDependency = () => {
+        setFormData((prev) => ({
+            ...prev,
+            dependencies: [...(prev.dependencies || []), { mainProductId: '', quantityPerMainProduct: 1 }]
+        }));
+    };
+
+    const handleUpdateDependency = (index, field, value) => {
+        setFormData((prev) => {
+            const dependencies = [...(prev.dependencies || [])];
+            dependencies[index] = { ...dependencies[index], [field]: value };
+            return { ...prev, dependencies };
+        });
+    };
+
+    const handleRemoveDependency = (index) => {
+        setFormData((prev) => ({
+            ...prev,
+            dependencies: (prev.dependencies || []).filter((_, idx) => idx !== index)
+        }));
     };
 
     const handleAddMapping = () => {
@@ -206,13 +279,46 @@ export default function ProductsManagement() {
             new Set((Array.isArray(formData.allowedColors) ? formData.allowedColors : []).filter(Boolean))
         );
 
-        const payload = { ...formData, allowedRanges, allowedColors, mappings, price: Number(formData.price) };
+        const dependencies = Array.from(new Map((Array.isArray(formData.dependencies) ? formData.dependencies : [])
+            .filter((item) => item?.mainProductId)
+            .map((item) => [item.mainProductId, {
+                mainProductId: item.mainProductId,
+                quantityPerMainProduct: Number(item.quantityPerMainProduct) || 1,
+            }])).values());
+        const normalizedMappings = formData.productType === 'RELATED' ? [] : mappings;
+        const basePayload = {
+            ...formData,
+            allowedRanges,
+            allowedColors,
+            dependencies: formData.productType === 'RELATED' ? dependencies : [],
+            mappings: normalizedMappings,
+            price: Number(formData.price),
+            nameEn: formData.name,
+            nameRo: formData.name,
+            descriptionEn: formData.description,
+            descriptionRo: formData.description,
+        };
+        delete basePayload.imageFile;
+        delete basePayload.imagePreview;
+
+        const payload = formData.imageFile ? new FormData() : basePayload;
+        if (formData.imageFile) {
+            Object.entries(basePayload).forEach(([key, value]) => {
+                if (Array.isArray(value) || (value && typeof value === 'object')) {
+                    payload.append(key, JSON.stringify(value));
+                } else if (value !== undefined && value !== null) {
+                    payload.append(key, value);
+                }
+            });
+            payload.append('imageFile', formData.imageFile);
+        }
         try {
             if (editingId) {
-                await dispatch(updateProduct({ id: editingId, ...payload })).unwrap();
+                await dispatch(updateProduct({ id: editingId, data: payload })).unwrap();
             } else {
                 await dispatch(addProduct(payload)).unwrap();
             }
+            await dispatch(fetchProducts()).unwrap();
             setIsFormOpen(false);
         } catch (err) {
             const ne = normalizeApiError(err);
@@ -250,7 +356,7 @@ export default function ProductsManagement() {
                             ].map((item) => (
                                 <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
@@ -263,7 +369,7 @@ export default function ProductsManagement() {
                         </div>
                     </div>
 
-                    <Button size="lg" onClick={() => handleOpenForm()} className="gap-2">
+                    <Button size="md" onClick={() => handleOpenForm()} className="gap-2">
                         <Plus className="h-4.5 w-4.5" />
                         {t('adminPages.products.addNew')}
                     </Button>
@@ -280,7 +386,7 @@ export default function ProductsManagement() {
                         placeholder={t('adminPages.products.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                     />
                     </div>
 
@@ -342,10 +448,10 @@ export default function ProductsManagement() {
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center justify-center gap-3">
-                                                <button onClick={() => handleOpenForm(p)} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
+                                                <button onClick={() => handleOpenForm(p)} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
                                                     <Edit className="w-4.5 h-4.5" />
                                                 </button>
-                                                <button onClick={() => setDeleteModal({ isOpen: true, productId: p.id })} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                                <button onClick={() => setDeleteModal({ isOpen: true, productId: p.id })} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
                                                     <Trash2 className="w-4.5 h-4.5" />
                                                 </button>
                                             </div>
@@ -379,7 +485,7 @@ export default function ProductsManagement() {
                         </div>
                         <div className="flex gap-4">
                             <Button variant="ghost" onClick={() => setIsFormOpen(false)} className="text-[10px] font-semibold uppercase tracking-widest">{t('adminPages.products.modal.cancel')}</Button>
-                            <Button size="lg" className="gap-3" onClick={handleSubmit}>
+                            <Button size="md" className="gap-3" onClick={handleSubmit}>
                                 <Save className="w-5 h-5" /> {t('adminPages.products.modal.save')}
                             </Button>
                         </div>
@@ -438,50 +544,57 @@ export default function ProductsManagement() {
                                 className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-5 py-4 text-sm font-medium text-textPrimary transition-all placeholder:text-textSecondary focus:border-primary-500/45 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                             />
                         </div>
-                        <div className="space-y-4 border-t border-white/8 pt-2">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">Romanian + English</p>
-                                <p className="text-xs font-medium text-textSecondary">Optional localized customer-facing product content.</p>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {PRODUCT_LOCALIZED_LANGUAGES.map(({ key, label }) => {
-                                    const nameKey = `name${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-                                    const descriptionKey = `description${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-                                    return (
-                                        <React.Fragment key={key}>
-                                            <Input
-                                                label={`Name (${label})`}
-                                                icon={Package}
-                                                value={formData[nameKey] ?? ''}
-                                                onChange={(e) => setFormData({ ...formData, [nameKey]: e.target.value })}
-                                                placeholder={`Product name (${label})`}
-                                            />
-                                            <div className="space-y-2">
-                                                <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{`Description (${label})`}</label>
-                                                <textarea
-                                                    rows="3"
-                                                    value={formData[descriptionKey] ?? ''}
-                                                    onChange={(e) => setFormData({ ...formData, [descriptionKey]: e.target.value })}
-                                                    className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-5 py-4 text-sm font-medium text-textPrimary transition-all placeholder:text-textSecondary focus:border-primary-500/45 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-                                                    placeholder={`Product description (${label})`}
-                                                />
-                                            </div>
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </div>
+                        <div className="space-y-2">
+                            <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.productType', { defaultValue: 'Product Type' })}</label>
+                            <SelectMenu
+                                value={formData.productType}
+                                onChange={(nextValue) => setFormData((prev) => ({
+                                    ...prev,
+                                    productType: nextValue,
+                                    mappings: nextValue === 'RELATED' ? [] : prev.mappings,
+                                    dependencies: nextValue === 'STANDARD' ? [] : prev.dependencies,
+                                }))}
+                                options={[
+                                    { value: 'STANDARD', label: t('adminPages.products.modal.standardProduct', { defaultValue: 'Standard Product' }) },
+                                    { value: 'RELATED', label: t('adminPages.products.modal.relatedProduct', { defaultValue: 'Related Product' }) },
+                                ]}
+                                ariaLabel={t('adminPages.products.modal.productType', { defaultValue: 'Product Type' })}
+                                size="field"
+                                fullWidth
+                            />
                         </div>
+
                     </div>
 
                     {/* Image & Status */}
                     <div className="space-y-6">
-                        <Input
-                            label={t('adminPages.products.modal.imageUrl')}
-                            icon={Upload}
-                            placeholder="https://..."
-                            value={formData.image}
-                            onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                        />
+
+                        <div className="space-y-3 rounded-[1.4rem] border border-white/8 bg-white/5 p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.uploadImage', { defaultValue: 'Upload Product Image' })}</p>
+                                    <p className="mt-1 text-xs text-textSecondary">{imageSourceLabel}</p>
+                                </div>
+                                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#1c1c1c] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-textSecondary transition-colors hover:border-primary-500/25 hover:text-primary-300">
+                                    <Upload className="h-4 w-4" />
+                                    {t('adminPages.products.modal.replaceImage', { defaultValue: 'Replace Image' })}
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className="hidden"
+                                        onChange={(event) => {
+                                            handleImageFileChange(event.target.files?.[0]);
+                                            event.target.value = '';
+                                        }}
+                                    />
+                                </label>
+                            </div>
+                            {previewImageSrc ? (
+                                <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#1c1c1c] p-2">
+                                    <img src={previewImageSrc} alt={formData.name || 'Product'} className="h-40 w-full rounded-xl object-contain" />
+                                </div>
+                            ) : null}
+                        </div>
                         <div className="space-y-3">
                             <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.ranges')}</label>
                             <div className="flex flex-wrap gap-2 rounded-[1.4rem] border border-white/8 bg-white/5 p-4">
@@ -533,7 +646,53 @@ export default function ProductsManagement() {
                         </div>
                     ) : null}
 
+                    {formData.productType === 'RELATED' ? (
+                        <div className="md:col-span-2 border-t border-white/8 pt-10">
+                            <div className="mb-6 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <Layers className="h-5 w-5 text-primary-300" />
+                                    <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.mainProducts', { defaultValue: 'Main Products' })}</h4>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={handleAddDependency} className="text-[9px] uppercase tracking-[0.18em]">
+                                    <Plus className="mr-2 h-4 w-4" /> {t('adminPages.products.modal.addMainProduct', { defaultValue: 'Add Main Product' })}
+                                </Button>
+                            </div>
+                            <div className="space-y-4">
+                                {(formData.dependencies || []).map((dependency, idx) => (
+                                    <div key={idx} className="grid grid-cols-1 gap-4 rounded-[1.5rem] border border-white/8 bg-white/5 p-5 md:grid-cols-[1fr_12rem_3rem]">
+                                        <SelectMenu
+                                            value={dependency.mainProductId}
+                                            onChange={(nextValue) => handleUpdateDependency(idx, 'mainProductId', nextValue)}
+                                            options={standardProductOptions}
+                                            placeholder={t('adminPages.products.modal.selectMainProduct', { defaultValue: 'Select main product' })}
+                                            ariaLabel={t('adminPages.products.modal.mainProducts', { defaultValue: 'Main Products' })}
+                                            size="fieldDense"
+                                            fullWidth
+                                        />
+                                        <input
+                                            type="number"
+                                            min="0.000001"
+                                            step="0.01"
+                                            value={dependency.quantityPerMainProduct}
+                                            onChange={(event) => handleUpdateDependency(idx, 'quantityPerMainProduct', event.target.value)}
+                                            className="h-11 w-full rounded-xl border border-white/10 bg-[#1f1f1f] px-4 text-[11px] font-semibold text-textPrimary focus:border-primary-500/45 focus:outline-none"
+                                            aria-label={t('adminPages.products.modal.quantityPerMain', { defaultValue: 'Quantity per main product' })}
+                                        />
+                                        <button type="button" onClick={() => handleRemoveDependency(idx)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#1c1c1c] text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                            <Trash2 className="h-4.5 w-4.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                                {(formData.dependencies || []).length === 0 ? (
+                                    <div className="rounded-[2rem] border border-dashed border-white/10 bg-white/5 p-8 text-center">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary italic">{t('adminPages.products.modal.noMainProducts', { defaultValue: 'Add at least one main product to auto-calculate this related product.' })}</p>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    ) : null}
                     {/* Mappings */}
+                    {formData.productType !== 'RELATED' ? (
                     <div className="md:col-span-2 border-t border-white/8 pt-10">
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-3">
@@ -609,7 +768,7 @@ export default function ProductsManagement() {
                                                 fullWidth
                                             />
                                         </div>
-                                        <button type="button" onClick={() => handleRemoveMapping(idx)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#1c1c1c] text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                        <button type="button" onClick={() => handleRemoveMapping(idx)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#1c1c1c] text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
                                             <Trash2 className="w-4.5 h-4.5" />
                                         </button>
                                     </div>
@@ -622,6 +781,7 @@ export default function ProductsManagement() {
                             )}
                         </div>
                     </div>
+                    ) : null}
                 </div>
             </Modal>
 
@@ -648,6 +808,10 @@ export default function ProductsManagement() {
         </AnimatedPageWrapper>
     );
 }
+
+
+
+
 
 
 

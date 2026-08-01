@@ -16,6 +16,7 @@ import sequelize from '../config/database.js';
 import { isValidOfferStatus, normalizeOfferStatus } from '../constants/offerStatus.js';
 import { resolveOfferStatusTransition } from './offerstatusservice.js';
 import { getLocalizedValue, normalizeBusinessLanguage } from '../utils/localization.js';
+import { normalizeUuid, normalizeUuidArray } from '../utils/idNormalization.js';
 
 function normalizePositiveNumber(value, fallback = 0) {
     const parsed = Number(value);
@@ -98,15 +99,17 @@ function buildStoredCalculationBreakdown(offerData = {}, calculation = null, pro
 function buildStoredCalculationSnapshot(offerData = {}, project = null, calculation = null) {
     const language = normalizeBusinessLanguage(offerData.language);
     const levels = Array.isArray(offerData.levels) ? offerData.levels : [];
-    const selectedServiceIds = Array.isArray(offerData.selectedServiceIds)
-        ? offerData.selectedServiceIds
-        : Array.isArray(offerData.serviceIds)
-            ? offerData.serviceIds
-            : Array.isArray(offerData.services)
-                ? offerData.services
-                : [];
-    const selectedRangeId = offerData.selectedRangeId ?? offerData.rangeId ?? offerData.range ?? null;
-    const selectedColorId = offerData.selectedColorId ?? offerData.colorId ?? offerData.color ?? null;
+    const selectedServiceIds = normalizeUuidArray(
+        Array.isArray(offerData.selectedServiceIds)
+            ? offerData.selectedServiceIds
+            : Array.isArray(offerData.serviceIds)
+                ? offerData.serviceIds
+                : Array.isArray(offerData.services)
+                    ? offerData.services
+                    : []
+    );
+    const selectedRangeId = normalizeUuid(offerData.selectedRangeId ?? offerData.rangeId ?? offerData.range ?? null);
+    const selectedColorId = normalizeUuid(offerData.selectedColorId ?? offerData.colorId ?? offerData.color ?? null);
     const projectInfo = normalizeProjectInfo(offerData.projectInfo || {}, project, levels, language);
 
     return {
@@ -127,38 +130,53 @@ function buildStoredCalculationSnapshot(offerData = {}, project = null, calculat
     };
 }
 
-function buildOfferProductsPayload(offerId, products = []) {
-    return products.map((product) => ({
-        offerId,
-        productId: product.productId,
-        productCode: product.code,
-        productName: product.name,
-        productDescription: product.description,
-        rangeName: product.rangeName,
-        colorName: product.colorName,
-        quantity: product.quantity,
-        unitPrice: product.unitPrice,
-        subtotal: product.subtotal,
-    }));
+function buildOfferProductsPayload(offerId, products = [], relatedProducts = []) {
+    const standardLines = (Array.isArray(products) ? products : []).map((product) => ({ ...product, lineType: product.lineType || 'STANDARD' }));
+    const relatedLines = (Array.isArray(relatedProducts) ? relatedProducts : []).map((product) => ({ ...product, lineType: 'RELATED' }));
+    return [...standardLines, ...relatedLines]
+        .map((product) => ({
+            ...product,
+            productId: normalizeUuid(product.productId ?? product.id),
+        }))
+        .filter((product) => product.productId)
+        .map((product) => ({
+            offerId,
+            productId: product.productId,
+            productCode: product.code,
+            productName: product.name,
+            productDescription: product.description,
+            rangeName: product.rangeName,
+            colorName: product.colorName,
+            quantity: product.quantity,
+            unitPrice: product.unitPrice,
+            subtotal: product.subtotal,
+            lineType: product.lineType === 'RELATED' ? 'RELATED' : 'STANDARD',
+        }));
 }
 
 function buildOfferServicesPayload(offerId, services = []) {
-    return services.map((service) => ({
-        offerId,
-        serviceId: service.serviceId,
-        serviceName: service.name,
-        pricingMode: service.pricingMode,
-        calcQty: service.calcQty,
-        unitPrice: service.unitPrice,
-        subtotal: service.subtotal,
-    }));
+    return services
+        .map((service) => ({
+            ...service,
+            serviceId: normalizeUuid(service.serviceId ?? service.id),
+        }))
+        .filter((service) => service.serviceId)
+        .map((service) => ({
+            offerId,
+            serviceId: service.serviceId,
+            serviceName: service.name,
+            pricingMode: service.pricingMode,
+            calcQty: service.calcQty,
+            unitPrice: service.unitPrice,
+            subtotal: service.subtotal,
+        }));
 }
 
 async function replaceOfferLineItems(offerId, calculation, transaction) {
     await OfferProduct.destroy({ where: { offerId }, transaction });
     await OfferService.destroy({ where: { offerId }, transaction });
 
-    const offerProducts = buildOfferProductsPayload(offerId, calculation.products || []);
+    const offerProducts = buildOfferProductsPayload(offerId, calculation.products || [], calculation.relatedProducts || []);
     if (offerProducts.length) {
         await OfferProduct.bulkCreate(offerProducts, { transaction });
     }
@@ -259,6 +277,52 @@ function buildAdminOfferOrder(sort = 'created_at_desc') {
     return orders[sort] || orders.created_at_desc;
 }
 
+function isDatabaseReadError(err) {
+    return err?.name === 'SequelizeForeignKeyConstraintError' || err?.name === 'SequelizeDatabaseError';
+}
+
+const legacyOfferAttributes = {
+    exclude: ['calculationSnapshot', 'pdfFileId', 'excelFileId', 'pdfFilePath', 'excelFilePath']
+};
+
+const legacyProjectAttributes = ['id', 'name', 'description', 'levelsCount', 'multiplicationIndex', 'builtUpArea'];
+
+function buildLegacyProjectInclude({ userId = null, projectId = null, client = '' } = {}) {
+    const userInclude = {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'email', 'fullName'],
+        required: !!client,
+    };
+
+    if (client) {
+        userInclude.where = {
+            [Op.or]: [
+                { fullName: { [Op.iLike]: `%${client}%` } },
+                { email: { [Op.iLike]: `%${client}%` } },
+            ],
+        };
+    }
+
+    const projectInclude = {
+        model: Project,
+        as: 'project',
+        attributes: legacyProjectAttributes,
+        include: [
+            userInclude,
+            { model: BuildingType, as: 'buildingType', attributes: ['id', 'name'] },
+        ],
+        required: true,
+    };
+
+    if (userId) {
+        projectInclude.where = { ...(projectId ? { id: projectId } : {}), userId };
+    } else if (projectId) {
+        projectInclude.where = { id: projectId };
+    }
+
+    return projectInclude;
+}
 async function getProjectContext(projectId, transaction) {
     return Project.findByPk(projectId, {
         transaction,
@@ -271,6 +335,12 @@ async function getProjectContext(projectId, transaction) {
 function createAccessError() {
     const error = new Error('Offer not found');
     error.statusCode = 404;
+    return error;
+}
+
+function createStatusPermissionError(message) {
+    const error = new Error(message);
+    error.statusCode = 403;
     return error;
 }
 
@@ -488,15 +558,26 @@ export const listOffers = async (projectId = null, userId = null) => {
 
     include.push(projectInclude);
 
-    const offers = await Offer.findAll({
-        where: Object.keys(where).length ? where : undefined,
-        include,
-        order: [['createdAt', 'DESC']],
-    });
+    try {
+        const offers = await Offer.findAll({
+            where: Object.keys(where).length ? where : undefined,
+            include,
+            order: [['createdAt', 'DESC']],
+        });
 
-    return offers.map(toOfferListItem);
+        return offers.map(toOfferListItem);
+    } catch (err) {
+        if (!isDatabaseReadError(err)) throw err;
+
+        const offers = await Offer.findAll({
+            attributes: legacyOfferAttributes,
+            where: Object.keys(where).length ? where : undefined,
+            include: [buildLegacyProjectInclude({ userId, projectId })],
+            order: [['createdAt', 'DESC']],
+        });
+        return offers.map(toOfferListItem);
+    }
 };
-
 export const listAdminOffers = async (filters = {}) => {
     const where = {};
     const normalizedStatus = normalizeOfferStatus(filters.status);
@@ -521,6 +602,7 @@ export const listAdminOffers = async (filters = {}) => {
     }
 
     const client = typeof filters.client === 'string' ? filters.client.trim() : '';
+    const projectId = typeof filters.projectId === 'string' ? filters.projectId.trim() : '';
     const userInclude = {
         model: User,
         as: 'user',
@@ -545,6 +627,7 @@ export const listAdminOffers = async (filters = {}) => {
             as: 'project',
             attributes: ['id', 'name', 'description', 'levelsCount', 'multiplicationIndex', 'builtUpArea', 'projectComplexity'],
             required: true,
+            ...(projectId ? { where: { id: projectId } } : {}),
             include: [
                 userInclude,
                 { model: BuildingType, as: 'buildingType', attributes: ['id', 'name', 'translations'] },
@@ -557,23 +640,46 @@ export const listAdminOffers = async (filters = {}) => {
     const offset = (page - 1) * limit;
     const sort = filters.sort || 'created_at_desc';
 
-    const { rows, count } = await Offer.findAndCountAll({
-        where,
-        include,
-        order: buildAdminOfferOrder(sort),
-        limit,
-        offset,
-        distinct: true,
-    });
+    try {
+        const { rows, count } = await Offer.findAndCountAll({
+            where,
+            include,
+            order: buildAdminOfferOrder(sort),
+            limit,
+            offset,
+            distinct: true,
+        });
 
-    return {
-        items: rows.map(toAdminOfferListItem),
-        total: count,
-        page,
-        limit,
-        totalPages: Math.max(1, Math.ceil(count / limit)),
-        sort,
-    };
+        return {
+            items: rows.map(toAdminOfferListItem),
+            total: count,
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(count / limit)),
+            sort,
+        };
+    } catch (err) {
+        if (!isDatabaseReadError(err)) throw err;
+
+        const { rows, count } = await Offer.findAndCountAll({
+            attributes: legacyOfferAttributes,
+            where,
+            include: [buildLegacyProjectInclude({ client, projectId })],
+            order: buildAdminOfferOrder(sort),
+            limit,
+            offset,
+            distinct: true,
+        });
+
+        return {
+            items: rows.map(toAdminOfferListItem),
+            total: count,
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(count / limit)),
+            sort,
+        };
+    }
 };
 
 export const updateOfferStatus = async (id, status, actor = null) => {
@@ -594,6 +700,17 @@ export const updateOfferStatus = async (id, status, actor = null) => {
 
     const transition = resolveOfferStatusTransition(offer.status, status);
     const nextStatus = transition.to;
+
+    if (nextStatus === 'ordered') {
+        const currentStatus = normalizeOfferStatus(offer.status || 'draft');
+        const ownerId = offer.project?.user?.id;
+        if (!actor || ownerId !== actor.id) {
+            throw createStatusPermissionError('Only the customer who created the offer can accept it.');
+        }
+        if (currentStatus !== 'offer_generated') {
+            throw createStatusPermissionError('Only generated offers can be accepted.');
+        }
+    }
 
     await offer.update({ status: nextStatus });
     await followupService.syncOfferFollowup(offer.id, nextStatus);

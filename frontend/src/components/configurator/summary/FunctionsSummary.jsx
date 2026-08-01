@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Card, Badge } from '../../common/UIComponents';
 import {
@@ -6,6 +6,7 @@ import {
     Battery, Camera, Key, Droplets, Waves, Box, Activity,
 } from 'lucide-react';
 import { aggregateFunctionsForSummary } from '../../../utils/calculationUtils';
+import { useTranslation } from 'react-i18next';
 
 const ICON_MAP = {
     Sun,
@@ -22,10 +23,10 @@ const ICON_MAP = {
     Activity,
 };
 
-const CHANNEL_LABELS = {
-    IN: 'Per Room',
-    OUT: 'Per Level',
-    GENERAL: 'Per Project',
+const CHANNEL_LABEL_KEYS = {
+    IN: 'configurator.functions.scope.room',
+    OUT: 'configurator.functions.scope.level',
+    GENERAL: 'configurator.functions.scope.project',
 };
 
 const CHANNEL_COLORS = {
@@ -40,6 +41,7 @@ function FunctionIcon({ iconName }) {
 }
 
 export default function FunctionsSummary({ levels }) {
+    const { t } = useTranslation();
     const rawSmartFunctions = useSelector((state) => state.admin.smartFunctions);
     const smartFunctions = useMemo(
         () => (Array.isArray(rawSmartFunctions) ? rawSmartFunctions : []),
@@ -52,33 +54,33 @@ export default function FunctionsSummary({ levels }) {
             const master = smartFunctions.find((fn) => fn.id === item.id) || {};
             return {
                 ...item,
-                name: master.name || item.name || 'Configured Function',
+                name: master.name || item.name || t('configurator.summary.configuredFunction'),
                 description: master.description || item.description || '',
                 icon: master.icon || item.icon || null,
                 channelType: master.channelType || item.channelType || 'GENERAL',
             };
         })
-        .filter((item) => Number(item.totalQty) > 0), [aggregatedFunctions, smartFunctions]);
+        .filter((item) => Number(item.totalQty) > 0), [aggregatedFunctions, smartFunctions, t]);
 
     if (functions.length === 0) {
         return (
             <Card className="p-6 border-none shadow-premium-sm rounded-2xl bg-white">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary-600" /> FUNCTIONS
+                    <Activity className="w-4 h-4 text-primary-600" /> {t('offers.detail.functionsChapter')}
                 </h3>
-                <p className="text-sm text-slate-400 italic">No smart functions with quantity greater than zero are currently selected.</p>
+                <p className="text-sm text-slate-400 italic">{t('offers.detail.noFunctions')}</p>
             </Card>
         );
     }
 
     return (
-        <Card className="p-8 border-none shadow-premium-sm rounded-[2rem] bg-white">
+        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6">
             <div className="flex items-center justify-between mb-8 gap-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary-600" /> FUNCTIONS
+                    <Activity className="w-4 h-4 text-primary-600" /> {t('offers.detail.functionsChapter')}
                 </h3>
                 <Badge variant="neutral" className="bg-slate-50 border-none text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1.5">
-                    {functions.length} Used Functions
+                    {t('configurator.summary.usedFunctions', { count: functions.length })}
                 </Badge>
             </div>
 
@@ -98,17 +100,17 @@ export default function FunctionsSummary({ levels }) {
                                 </div>
                             </div>
                             <div className="text-right shrink-0">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantity</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('configurator.summary.quantity')}</p>
                                 <p className="text-xl font-black text-slate-900 tabular-nums">× {fn.totalQty}</p>
                             </div>
                         </div>
 
                         <div className="flex items-center justify-between gap-3">
                             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${CHANNEL_COLORS[fn.channelType] || CHANNEL_COLORS.GENERAL}`}>
-                                {CHANNEL_LABELS[fn.channelType] || fn.channelType}
+                                {t(CHANNEL_LABEL_KEYS[fn.channelType] || CHANNEL_LABEL_KEYS.GENERAL)}
                             </span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                Active in {fn.rooms?.length || 0} room{(fn.rooms?.length || 0) === 1 ? '' : 's'}
+                                {t('configurator.summary.activeRooms', { count: fn.rooms?.length || 0 })}
                             </span>
                         </div>
                     </div>
@@ -117,4 +119,3 @@ export default function FunctionsSummary({ levels }) {
         </Card>
     );
 }
-

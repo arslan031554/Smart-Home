@@ -94,7 +94,7 @@ export default function OffersListPage() {
     };
 
     const createNewOfferLink = (
-        <Link to="/configurator" onClick={() => dispatch(resetConfigurator())}>
+        <Link to="/configurator" state={{ freshConfigurator: true }} onClick={() => dispatch(resetConfigurator())}>
             <Button size="lg" className="gap-2">
                 <Plus className="h-4.5 w-4.5" />
                 {t('offers.createNewOffer')}
@@ -301,7 +301,7 @@ export default function OffersListPage() {
                         description={t('offers.noOffersDesc')}
                         icon={Layout}
                         action={(
-                            <Link to="/configurator" onClick={() => dispatch(resetConfigurator())}>
+                            <Link to="/configurator" state={{ freshConfigurator: true }} onClick={() => dispatch(resetConfigurator())}>
                                 <Button size="lg">{t('offers.newConfiguration')}</Button>
                             </Link>
                         )}
@@ -341,3 +341,4 @@ export default function OffersListPage() {
         </AnimatedPageWrapper>
     );
 }
+

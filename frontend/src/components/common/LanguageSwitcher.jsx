@@ -11,6 +11,7 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
   const { i18n, t } = useTranslation();
   const currentCode = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en';
   const currentLanguage = LANGS.find((lang) => lang.code === currentCode) || LANGS[0];
+  const nextLanguage = LANGS.find((lang) => lang.code !== currentCode) || LANGS[0];
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -41,6 +42,28 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
     setIsOpen(false);
   };
 
+  if (variant === 'compact') {
+    const switchLabel = t('language.switchTo', { language: t(nextLanguage.labelKey), defaultValue: 'Switch to ' + t(nextLanguage.labelKey) });
+    function handleCompactSelect() {
+      handleLanguageSelect(nextLanguage.code);
+    }
+
+    return React.createElement(
+      'button',
+      {
+        type: 'button',
+        onClick: handleCompactSelect,
+        'aria-label': switchLabel,
+        title: switchLabel,
+        className: [
+          'inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-textPrimary shadow-soft transition-all hover:border-primary-500/22 hover:bg-white/10 hover:text-primary-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10',
+          className,
+        ].filter(Boolean).join(' '),
+      },
+      React.createElement(Globe, { className: 'h-3.5 w-3.5 text-primary-300' }),
+      React.createElement('span', null, currentCode),
+    );
+  }
   if (variant === 'inline') {
     return (
       <div
@@ -121,7 +144,7 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
                       {t(lang.labelKey)}
                     </p>
                     <p className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.16em] text-textSecondary">
-                      {lang.code === 'en' ? 'Default international' : 'Romanian interface'}
+                      {t(lang.code === 'en' ? 'language.enDescription' : 'language.roDescription')}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">

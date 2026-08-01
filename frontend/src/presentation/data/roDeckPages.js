@@ -1,0 +1,67 @@
+const pageCopy = {
+  lighting: ['Iluminat inteligent', 'Lumina potrivită, la momentul potrivit — automat.', 'Confort vizual și consum redus.'],
+  shading: ['Umbrire inteligentă', 'Lumina naturală, intimitatea și aportul termic sunt controlate automat.', 'Mai mult confort, facturi mai mici.'],
+  'climate-control': ['Controlul climatizării', 'Temperatura ideală în fiecare zonă și în fiecare anotimp.', 'Confort stabil cu mai puțină energie.'],
+  ventilation: ['Ventilație inteligentă', 'Aer proaspăt și sănătos, controlat în funcție de necesarul real.', 'Calitate mai bună a aerului interior.'],
+  'multi-room-audio': ['Audio multi-room', 'Muzica preferată în fiecare cameră, controlată simplu.', 'Sunet integrat în întregul spațiu.'],
+  scenes: ['Scenarii inteligente', 'Mai multe sisteme reacționează împreună printr-o singură comandă.', 'Clădirea se adaptează rutinei tale.'],
+  'metering-cost-distribution': ['Contorizare și repartizarea costurilor', 'Măsurare clară și distribuție corectă a consumului.', 'Date transparente pentru costuri controlate.'],
+  'access-control': ['Control acces', 'Acces sigur, flexibil și ușor de administrat.', 'Control mai bun asupra fiecărei intrări.'],
+  'energy-management': ['Management energetic', 'Monitorizează, optimizează și reduce consumul clădirii.', 'Energie folosită mai inteligent.'],
+  'control-mobility': ['Control și mobilitate', 'Controlează clădirea local sau de oriunde, dintr-o singură interfață.', 'Control complet, oriunde te-ai afla.'],
+  'home-cinema': ['Cinema acasă', 'Imagine, sunet, lumină și confort într-un singur scenariu.', 'Experiență cinematografică integrată.'],
+  irrigation: ['Irigații inteligente', 'Udare automată adaptată programului și condițiilor reale.', 'Spații verzi sănătoase, fără risipă.'],
+  security: ['Securitate inteligentă', 'Detecție, alarmare și monitorizare integrate în clădire.', 'Protecție permanentă și control clar.'],
+  home: ['Locuințe inteligente', 'Confort, siguranță și eficiență adaptate vieții de acasă.', 'O casă ce răspunde natural nevoilor tale.'],
+  apartments: ['Apartamente inteligente', 'Automatizare premium într-un spațiu compact și ușor de controlat.', 'Confort smart în fiecare apartament.'],
+  condominiums: ['Condominii inteligente', 'Control coordonat pentru locuințe, spații comune și consumuri.', 'Administrare simplă pentru întreaga comunitate.'],
+  'real-estate-developments': ['Dezvoltări imobiliare', 'O infrastructură smart scalabilă pentru proiecte rezidențiale moderne.', 'Mai multă valoare pentru fiecare proprietate.'],
+  offices: ['Birouri inteligente', 'Spații productive, confortabile și eficiente pentru echipe moderne.', 'Costuri operaționale mai mici.'],
+  hotels: ['Hoteluri inteligente', 'Confort personalizat pentru oaspeți și control eficient pentru operator.', 'Experiențe mai bune pentru oaspeți.'],
+  'restaurants-bars': ['Restaurante și baruri', 'Ambianță, climatizare și energie coordonate pentru fiecare moment.', 'Atmosferă memorabilă, control simplu.'],
+  'event-spaces': ['Spații pentru evenimente', 'Scenarii flexibile pentru lumină, sunet, climatizare și acces.', 'Fiecare eveniment, configurat rapid.'],
+  schools: ['Școli inteligente', 'Siguranță, confort și eficiență pentru spații educaționale moderne.', 'Un mediu mai bun pentru învățare.'],
+  hospitals: ['Spitale inteligente', 'Control fiabil al instalațiilor critice și al confortului interior.', 'Vizibilitate și continuitate operațională.'],
+  factories: ['Fabrici inteligente', 'Monitorizare și automatizare pentru procese și consumuri industriale.', 'Productivitate mai mare, risipă redusă.'],
+  warehouses: ['Depozite inteligente', 'Iluminat, acces, securitate și energie adaptate activității logistice.', 'Operare sigură și eficientă.'],
+  parking: ['Parcări inteligente', 'Acces, iluminat, orientare și siguranță într-un sistem coordonat.', 'Circulație mai simplă și costuri reduse.'],
+  'outdoor-parks': ['Parcuri în aer liber', 'Iluminat, irigații și monitorizare pentru spații publice eficiente.', 'Spații exterioare sigure și sustenabile.'],
+  stadiums: ['Stadioane inteligente', 'Control scalabil pentru iluminat, acces, energie și siguranță.', 'Experiență optimă pentru public și operatori.'],
+  design: ['Proiectare', 'O soluție coerentă începe cu analiza corectă a clădirii și a utilizatorilor.', 'O bază tehnică sigură pentru implementare.'],
+  implementation: ['Implementare', 'Instalare, programare și integrare realizate de o echipă specializată.', 'Un sistem livrat corect și pregătit de utilizare.'],
+  maintenance: ['Mentenanță', 'Suport, optimizare și întreținere pentru performanță pe termen lung.', 'Fiabilitate după punerea în funcțiune.'],
+};
+
+export function localizeDeckPageRo(page) {
+  const [title, summary, result] = pageCopy[page.slug] || ['Soluție smart building', 'Tehnologie integrată, adaptată clădirii tale.', 'Confort, eficiență și control.'];
+  const lowerTitle = title.toLocaleLowerCase('ro-RO');
+
+  return {
+    ...page,
+    title,
+    menuLabel: title,
+    eyebrow: `${page.section === 'technology' ? 'TEHNOLOGIE' : page.section === 'buildings' ? 'CLĂDIRI' : 'SOLUȚII'} · ${title.toLocaleUpperCase('ro-RO')}`,
+    supportingHeadline: summary,
+    heroDescription: `${summary} Green Electric proiectează și integrează o soluție scalabilă, ușor de utilizat și pregătită pentru extinderi viitoare.`,
+    primaryCta: 'Află cât costă →',
+    secondaryCta: 'Descoperă tehnologia',
+    sectionHeading: `Ce poate oferi ${lowerTitle}`,
+    resultLine: result,
+    features: page.features.map((feature, index) => ({
+      ...feature,
+      title: `Beneficiu inteligent ${index + 1}`,
+      description: `${title}: funcție integrată pentru mai mult confort, control și eficiență.`,
+    })),
+    longForm: [
+      `${title} pornește de la o idee clară: toate funcțiile importante trebuie să lucreze împreună, fără a complica utilizarea zilnică. Soluția Green Electric conectează echipamentele și regulile de automatizare într-un sistem coerent.`,
+      `Controlul poate fi local, mobil sau complet automat, pe baza programului, senzorilor și scenariilor definite pentru clădire. Fiecare zonă poate avea setări și drepturi diferite, iar sistemul rămâne flexibil pe măsură ce nevoile se schimbă.`,
+      `Avantajele includ confort mai bun, consum redus, administrare simplificată și vizibilitate asupra funcționării clădirii. Integrarea de la început reduce compromisurile și face extinderile viitoare mai ușoare.`,
+      `Green Electric asigură analiza, proiectarea, integrarea, punerea în funcțiune și suportul pe termen lung. Configurează proiectul pentru a primi o propunere adaptată spațiului, bugetului și nivelului de automatizare dorit.`,
+    ],
+    closingDescription: `Descoperă soluția potrivită de ${lowerTitle} pentru clădirea ta.`,
+    closingCta: 'Configurează un proiect →',
+    seoTitle: `${title} | Green Electric`,
+    seoDescription: `${summary} Configurează proiectul și solicită o estimare personalizată.`,
+    imageDirection: `${title} într-o clădire modernă`,
+  };
+}

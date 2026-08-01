@@ -488,6 +488,107 @@ async function processOfferFollowups(now) {
     }
 }
 
+function buildFollowupError(message, statusCode = 400) {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    return error;
+}
+
+async function findOfferFollowupWithCustomer(offerId) {
+    return OfferFollowup.findOne({
+        where: { offerId },
+        include: [{
+            model: Offer,
+            as: 'offer',
+            include: [{
+                model: Project,
+                as: 'project',
+                include: [{ model: User, as: 'user' }],
+            }],
+        }],
+    });
+}
+
+export async function sendOfferReminderEmailNow(offerId, actor = null) {
+    await assertOfferFollowupAccess(offerId, actor);
+
+    let followup = await findOfferFollowupWithCustomer(offerId);
+    if (!followup) {
+        const offer = await Offer.findByPk(offerId, { attributes: ['id', 'status'] });
+        if (!offer) throw createOfferAccessError();
+        await syncOfferFollowup(offerId, offer.status);
+        followup = await findOfferFollowupWithCustomer(offerId);
+    }
+
+    if (!followup?.offer) throw createOfferAccessError();
+
+    const offerStatus = normalizeOfferStatus(followup.offer.status || 'draft');
+    if (!OFFER_REMINDER_ELIGIBLE_STATUSES.includes(offerStatus)) {
+        throw buildFollowupError('Reminder email can only be sent for generated offers.', 400);
+    }
+
+    const user = followup.offer.project?.user;
+    if (!user?.email) {
+        throw buildFollowupError('Customer email is missing for this offer.', 400);
+    }
+
+    const patternDays = parsePatternDays(followup.pattern);
+    const nextIndex = parseReminderIndex(followup.status) + 1;
+    const cadenceDay = patternDays[nextIndex - 1] ?? patternDays[patternDays.length - 1] ?? 0;
+    const language = getLanguage(followup.offer?.calculationSnapshot?.language);
+    const offerUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/offers/${followup.offer.id}`;
+    const vars = {
+        name: user.fullName || 'there',
+        offerNumber: followup.offer.offerNumber,
+        offerUrl,
+    };
+    const defaults = getDefaultOfferReminderContent({
+        language,
+        name: vars.name,
+        offerNumber: vars.offerNumber,
+        offerUrl,
+    });
+    const tmplEmail = await resolveTemplate({ channel: 'email', step: nextIndex, language });
+    const resolvedEmail = tmplEmail ? applyTemplatePlaceholders(tmplEmail, vars) : null;
+    const subject = resolvedEmail?.subject || defaults.subject;
+    const emailBody = resolvedEmail?.body || defaults.emailBody;
+
+    const { sentAny, attemptedAny } = await deliverReminderChannels({
+        context: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+        reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+        reminderStep: nextIndex,
+        cadenceDay,
+        projectId: followup.offer.projectId,
+        offerId: followup.offer.id,
+        configuratorDraftId: null,
+        channelEmail: true,
+        channelSms: false,
+        user,
+        subject,
+        emailBody,
+        smsBody: null,
+        emailTemplate: tmplEmail,
+        smsTemplate: null,
+    });
+
+    if (!attemptedAny) {
+        throw buildFollowupError('Reminder email was not attempted.', 400);
+    }
+
+    const now = new Date();
+    const base = followup.offer.generatedAt ? new Date(followup.offer.generatedAt) : new Date(followup.offer.createdAt || Date.now());
+    const nextReminderAt = computeNextReminderAt(base, patternDays, nextIndex);
+    await followup.update({
+        enabled: Boolean(nextReminderAt),
+        channelEmail: true,
+        lastReminderAt: now,
+        nextReminderAt,
+        status: nextReminderAt ? (sentAny ? `reminded_${nextIndex}` : `attempted_${nextIndex}`) : 'completed',
+        reason: FOLLOWUP_CONTEXTS.OFFER_NOT_ORDERED,
+    });
+
+    return followup.reload();
+}
 async function processConfiguratorDraftFollowups(now) {
     const pendingDrafts = await ConfiguratorDraft.findAll({
         where: {

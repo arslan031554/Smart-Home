@@ -69,11 +69,20 @@ const errorHandler = (err, req, res, next) => {
 
     // Sequelize foreign key / DB constraint errors â†’ 400
     if (err.name === 'SequelizeForeignKeyConstraintError' || err.name === 'SequelizeDatabaseError') {
-        // Postgres invalid_text_representation (e.g. bad UUID)
+        const databaseDetail = String(err?.parent?.message || err?.parent?.detail || '');
+        const isInvalidEnumValue =
+            err?.parent?.routine === 'enum_in' ||
+            databaseDetail.toLowerCase().includes('invalid input value for enum');
+
+        // Postgres invalid_text_representation covers UUIDs and enum values.
         if (err?.parent?.code === '22P02') {
             statusCode = 400;
             message = 'Validation failed';
-            fieldErrors = fieldErrors || { form: 'One or more IDs are not in a valid format.' };
+            fieldErrors = fieldErrors || {
+                form: isInvalidEnumValue
+                    ? 'The database schema does not support a required application value. Please run the latest database migrations.'
+                    : 'One or more IDs are not in a valid format.'
+            };
         } else {
             statusCode = 400;
             message = 'Validation failed';

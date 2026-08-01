@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,7 +63,7 @@ export const SectionTitle = ({ title, subtitle, badge, align = 'left', className
                 {badge}
             </Badge>
         ) : null}
-        <h2 className="text-3xl font-heading font-black uppercase leading-tight tracking-normal text-textPrimary sm:text-4xl lg:text-5xl">{title}</h2>
+        <h2 className="text-2xl font-heading font-black uppercase leading-tight tracking-normal text-textPrimary sm:text-3xl lg:text-4xl">{title}</h2>
         {subtitle ? (
             <p className={cn('text-sm md:text-base text-textSecondary leading-relaxed max-w-3xl', align === 'center' && 'mx-auto')}>
                 {subtitle}
@@ -83,7 +84,7 @@ export const Button = React.forwardRef(({
     className, variant = 'primary', size = 'md', loading = false, children, ...props
 }, ref) => {
     const variants = {
-        primary: 'bg-orange text-white shadow-orange hover:bg-emerald',
+        primary: 'bg-orange text-white shadow-soft hover:bg-emerald',
         secondary: 'bg-white text-graphite border border-emerald/25 shadow-emerald/10 hover:border-emerald hover:bg-emerald/10 hover:text-emerald',
         accent: 'bg-emerald text-white shadow-glow hover:bg-orange',
         outline: 'bg-transparent text-emerald border border-emerald/45 hover:bg-emerald/10 hover:border-emerald',
@@ -93,9 +94,9 @@ export const Button = React.forwardRef(({
     };
 
     const sizes = {
-        sm: 'h-10 px-4 text-xs rounded-full',
-        md: 'h-12 px-6 text-xs rounded-full',
-        lg: 'h-14 px-7 text-xs rounded-full',
+        sm: 'min-h-8 px-3 py-1.5 text-[11px] rounded-full',
+        md: 'min-h-9 px-4 py-2 text-[11px] rounded-full',
+        lg: 'min-h-10 px-5 py-2.5 text-xs rounded-full',
     };
 
     return (
@@ -103,10 +104,10 @@ export const Button = React.forwardRef(({
             ref={ref}
             disabled={loading || props.disabled}
             className={cn(
-                'inline-flex items-center justify-center gap-2 whitespace-nowrap font-black uppercase tracking-[0.14em] transition-all duration-300',
+                'inline-flex min-w-0 items-center justify-center gap-2 text-center font-black uppercase tracking-[0.08em] transition-all duration-300',
                 'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/20',
                 'disabled:pointer-events-none disabled:opacity-55',
-                'hover:-translate-y-0.5 active:translate-y-0',
+                'leading-tight hover:-translate-y-0.5 active:translate-y-0',
                 variants[variant],
                 sizes[size],
                 className,
@@ -132,9 +133,9 @@ export const Input = React.forwardRef(({ label, error, icon: Icon, className, ..
             <input
                 ref={ref}
                 className={cn(
-                    'w-full rounded-lg border border-emerald/16 bg-white py-3.5 text-sm font-semibold text-textPrimary shadow-soft transition-all duration-300',
+                    'w-full min-h-10 rounded-lg border border-emerald/18 bg-white/95 py-2.5 text-sm font-medium text-textPrimary shadow-soft transition-all duration-300',
                     'placeholder:text-textSecondary focus:border-emerald/45 focus:outline-none focus:ring-4 focus:ring-emerald/12',
-                    Icon ? 'pl-12 pr-4' : 'px-4',
+                    Icon ? 'pl-10 pr-3.5' : 'px-3.5',
                     error && 'border-red-400/60 focus:border-red-400 focus:ring-red-400/10',
                     className,
                 )}
@@ -269,40 +270,66 @@ export const Alert = ({ children, variant = 'info', className, icon }) => {
     );
 };
 
-export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = 'max-w-xl' }) => (
-    <AnimatePresence>
-        {isOpen ? (
-            <div className="fixed inset-0 z-[1200] flex items-center justify-center px-4 pb-28 pt-24 sm:px-6 sm:pb-32 sm:pt-28">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-                    onClick={onClose}
-                />
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.96, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96, y: -10 }}
-                    className={cn(
-                        'premium-panel relative flex max-h-[calc(100vh-13rem)] w-full flex-col overflow-hidden rounded-lg border border-emerald/15 sm:max-h-[calc(100vh-15rem)]',
-                        maxWidth
-                    )}
-                >
-                    <div className="flex flex-shrink-0 items-center justify-between border-b border-emerald/12 px-8 py-6">
-                        <h3 className="text-2xl font-heading font-black uppercase text-textPrimary">{title}</h3>
-                        <button onClick={onClose} className="rounded-full border border-emerald/12 p-2 text-textSecondary transition-colors hover:border-emerald/30 hover:text-emerald">
-                            <X className="h-5 w-5" />
-                        </button>
-                    </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto px-8 py-7 text-textSecondary">{children}</div>
-                    {footer ? <div className="flex flex-shrink-0 items-center justify-end gap-3 border-t border-emerald/12 px-8 py-5">{footer}</div> : null}
-                </motion.div>
-            </div>
-        ) : null}
-    </AnimatePresence>
-);
+export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = 'max-w-xl' }) => {
+    React.useEffect(() => {
+        if (!isOpen || typeof document === 'undefined') return undefined;
+        const previousOverflow = document.body.style.overflow;
+        const previousPaddingRight = document.body.style.paddingRight;
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        document.body.style.overflow = 'hidden';
+        if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
 
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') onClose?.();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.body.style.paddingRight = previousPaddingRight;
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen, onClose]);
+
+    const modal = (
+        <AnimatePresence>
+            {isOpen ? (
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center overflow-x-hidden px-3 py-3 sm:px-6 sm:py-6">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={typeof title === 'string' ? title : undefined}
+                        className={cn(
+                            'premium-panel relative flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-lg border border-emerald/15 sm:max-h-[calc(100dvh-3rem)]',
+                            maxWidth
+                        )}
+                    >
+                        <div className="sticky top-0 z-10 flex flex-shrink-0 items-center justify-between gap-4 border-b border-emerald/12 bg-inherit px-5 py-4 sm:px-8 sm:py-6">
+                            <h3 className="min-w-0 break-words text-xl font-heading font-black uppercase leading-tight text-textPrimary sm:text-2xl">{title}</h3>
+                            <button type="button" onClick={onClose} className="shrink-0 rounded-full border border-emerald/12 p-2 text-textSecondary transition-colors hover:border-emerald/30 hover:text-emerald">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 text-textSecondary sm:px-8 sm:py-7">{children}</div>
+                        {footer ? <div className="sticky bottom-0 z-10 flex flex-shrink-0 items-center justify-end gap-3 border-t border-emerald/12 bg-inherit px-5 py-4 sm:px-8 sm:py-5">{footer}</div> : null}
+                    </motion.div>
+                </div>
+            ) : null}
+        </AnimatePresence>
+    );
+
+    if (typeof document === 'undefined') return modal;
+    return createPortal(modal, document.body);
+};
 export const Skeleton = ({ className, repeat = 1 }) => (
     <>
         {Array.from({ length: repeat }).map((_, i) => (
@@ -344,7 +371,7 @@ export const Select = React.forwardRef(({ label, error, className, children, ...
             <select
                 ref={ref}
                 className={cn(
-                    'w-full appearance-none rounded-lg border border-emerald/16 bg-white px-4 py-3.5 pr-10 text-sm font-semibold text-textPrimary shadow-soft transition-all duration-300',
+                    'w-full min-h-10 appearance-none rounded-lg border border-emerald/18 bg-white/95 px-3.5 py-2.5 pr-10 text-sm font-medium text-textPrimary shadow-soft transition-all duration-300',
                     'focus:border-emerald/45 focus:outline-none focus:ring-4 focus:ring-emerald/12',
                     error && 'border-red-400/60 focus:border-red-400 focus:ring-red-400/10',
                     className,
@@ -365,7 +392,7 @@ export const Table = ({ children, className }) => (
 );
 
 export const PageHeader = ({ title, subtitle, badge, actions, className }) => (
-    <div className={cn('hero-frame overflow-hidden rounded-lg px-6 py-8 sm:px-8', className)}>
+    <div className={cn('hero-frame overflow-hidden rounded-lg px-5 py-7 sm:px-7', className)}>
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <SectionTitle title={title} subtitle={subtitle} badge={badge} className="mb-0" />
             {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
@@ -394,3 +421,5 @@ export const ErrorState = ({ title = 'Something went wrong', description, action
         {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
     </Card>
 );
+
+

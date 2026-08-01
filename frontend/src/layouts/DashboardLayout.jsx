@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { createElement, useMemo, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    LayoutDashboard, User, Settings, Briefcase, Bell, Search, Menu, X, LogOut, FileText, Activity, Home, Sliders,
+    LayoutDashboard, User, Settings, Briefcase, Bell, Search, Menu, X, LogOut, FileText, Activity, Home, Sliders, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,6 +10,7 @@ import ScrollToTop from '@/components/common/ScrollToTop';
 import { useTranslation } from 'react-i18next';
 import { hasAdminAccess } from '../constants/adminPermissions';
 import { Badge } from '@/components/common/UIComponents';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 
 export default function DashboardLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -48,7 +49,7 @@ export default function DashboardLayout() {
         .toUpperCase() || 'U';
 
     return (
-        <div className="min-h-screen bg-gradient-surface text-textPrimary">
+        <div className="dashboard-theme min-h-screen bg-gradient-surface text-textPrimary">
             <ScrollToTop />
 
             <div className="flex min-h-screen">
@@ -60,20 +61,36 @@ export default function DashboardLayout() {
                 ) : null}
 
                 <aside className={clsx(
-                    'dark-surface fixed inset-y-0 left-0 z-50 w-80 border-r border-white/10 backdrop-blur-2xl transition-transform duration-300 md:relative md:translate-x-0',
-                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                    'dark-surface fixed inset-y-0 left-0 z-50 border-r border-white/10 backdrop-blur-2xl transition-all duration-300 md:relative',
+                    isSidebarOpen ? 'w-80 translate-x-0' : 'w-80 -translate-x-full md:w-20 md:translate-x-0',
                 )}>
-                    <div className="flex h-full flex-col px-5 py-6">
-                        <Link to="/" className="group flex items-center gap-3 px-2 pb-8">
+                    <button
+                        type="button"
+                        aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                        title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                        onClick={() => setIsSidebarOpen((prev) => !prev)}
+                        className="absolute -right-4 top-24 z-[60] hidden h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-[#102b12] text-primary-200 shadow-premium transition-all hover:border-primary-300/35 hover:bg-primary-500 hover:text-white md:flex"
+                    >
+                        <ChevronLeft className={clsx('h-4 w-4 transition-transform duration-300', !isSidebarOpen && 'rotate-180')} />
+                    </button>
+
+                    <div className={clsx(
+                        'flex h-full flex-col py-6 transition-all duration-300',
+                        isSidebarOpen ? 'px-5' : 'px-3',
+                    )}>
+                        <Link to="/" className={clsx('group flex items-center pb-8', isSidebarOpen ? 'gap-3 px-2' : 'justify-center px-0')} title="Home">
                             <img
                                 src="/images/green-electric-logo.png"
-                                alt="Green Electric City"
-                                className="h-14 w-auto max-w-[230px] rounded-md bg-white p-2 object-contain shadow-lg shadow-emerald/10 transition-transform duration-300 group-hover:-translate-y-0.5"
+                                alt="Green Electric Innovations"
+                                className={clsx(
+                                'w-auto object-contain shadow-lg shadow-emerald/10 transition-all duration-300 group-hover:-translate-y-0.5',
+                                isSidebarOpen ? 'h-14 max-w-[230px]' : 'h-8 max-w-12',
+                            )}
                             />
                         </Link>
 
-                        <nav className="space-y-2">
-                            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300">
+                        <nav className={clsx('space-y-2', !isSidebarOpen && 'flex flex-col items-center')}>
+                            <p className={clsx('px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300', !isSidebarOpen && 'sr-only')}>
                                 {t('dashboardLayout.menu')}
                             </p>
                             {menuItems.map((item) => {
@@ -83,44 +100,54 @@ export default function DashboardLayout() {
                                     <Link
                                         key={item.href}
                                         to={item.href}
-                                        onClick={() => setIsSidebarOpen(false)}
+                                        onClick={() => {
+                                            if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false);
+                                        }}
                                         className={clsx(
-                                            'group flex items-center gap-3 rounded-[1.25rem] border px-4 py-3 text-sm transition-all duration-300',
+                                            'group flex min-h-10 items-center rounded-[1.25rem] border text-sm transition-all duration-300',
+                                            isSidebarOpen ? 'w-full gap-3 px-4 py-2.5' : 'w-11 justify-center px-2 py-2.5',
                                             isActive
                                                 ? 'border-primary-500/20 bg-primary-500/12 text-primary-200'
                                                 : 'border-transparent text-textSecondary hover:border-white/8 hover:bg-white/5 hover:text-textPrimary',
                                         )}
+                                        title={!isSidebarOpen ? item.name : undefined}
                                     >
                                         <Icon className={clsx('h-4.5 w-4.5', isActive ? 'text-primary-300' : 'text-textSecondary group-hover:text-primary-300')} />
-                                        <span className="font-medium">{item.name}</span>
+                                        <span className={clsx('font-medium', !isSidebarOpen && 'sr-only')}>{item.name}</span>
                                     </Link>
                                 );
                             })}
 
                             {hasAdminAccess(user) ? (
-                                <div className="pt-6">
-                                    <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300">
+                                <div className={clsx('pt-6', !isSidebarOpen && 'w-full')}>
+                                    <p className={clsx('px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300', !isSidebarOpen && 'sr-only')}>
                                         {t('nav.admin')}
                                     </p>
                                     <Link
                                         to="/admin"
-                                        onClick={() => setIsSidebarOpen(false)}
-                                        className="mt-2 flex items-center gap-3 rounded-[1.25rem] border border-transparent px-4 py-3 text-sm text-textSecondary transition-all hover:border-white/8 hover:bg-white/5 hover:text-textPrimary"
+                                        onClick={() => {
+                                            if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false);
+                                        }}
+                                        className={clsx(
+                                            'mt-2 flex min-h-10 items-center rounded-[1.25rem] border border-transparent text-sm text-textSecondary transition-all hover:border-white/8 hover:bg-white/5 hover:text-textPrimary',
+                                            isSidebarOpen ? 'w-full gap-3 px-4 py-2.5' : 'mx-auto w-11 justify-center px-2 py-2.5',
+                                        )}
+                                        title={!isSidebarOpen ? t('dashboardLayout.admin') : undefined}
                                     >
                                         <Activity className="h-4.5 w-4.5 text-textSecondary" />
-                                        <span className="font-medium">{t('dashboardLayout.admin')}</span>
+                                        <span className={clsx('font-medium', !isSidebarOpen && 'sr-only')}>{t('dashboardLayout.admin')}</span>
                                     </Link>
                                 </div>
                             ) : null}
                         </nav>
 
-                        <div className="mt-auto space-y-4 border-t border-white/8 pt-6">
-                            <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
-                                <div className="flex items-center gap-3">
+                        <div className={clsx('mt-auto space-y-4 border-t border-white/8 pt-6', !isSidebarOpen && 'space-y-3')}>
+                            <div className={clsx('rounded-[1.5rem] border border-white/8 bg-white/5', isSidebarOpen ? 'p-4' : 'p-2')}>
+                                <div className={clsx('flex items-center', isSidebarOpen ? 'gap-3' : 'justify-center')}>
                                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-sm font-semibold text-primary-200">
                                         {initials}
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className={clsx('min-w-0', !isSidebarOpen && 'sr-only')}>
                                         <p className="truncate text-sm font-medium text-textPrimary">{user?.fullName || user?.email || t('dashboardLayout.user')}</p>
                                         <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
                                             {user?.role === 'admin' ? t('nav.admin') : t('dashboardLayout.customer')}
@@ -131,10 +158,13 @@ export default function DashboardLayout() {
 
                             <button
                                 onClick={handleLogout}
-                                className="flex w-full items-center justify-center gap-2 rounded-full border border-red-500/16 px-4 py-3 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200"
+                                className={clsx(
+                                    'flex w-full items-center justify-center gap-2 rounded-full border border-red-500/16 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200',
+                                    isSidebarOpen ? 'px-4 py-3' : 'h-10 px-2 py-2',
+                                )}
                             >
                                 <LogOut className="h-4 w-4" />
-                                {t('nav.logout')}
+                                <span className={clsx(!isSidebarOpen && 'sr-only')}>{t('nav.logout')}</span>
                             </button>
                         </div>
                     </div>
@@ -146,9 +176,16 @@ export default function DashboardLayout() {
                             <div className="flex min-w-0 items-center gap-3">
                                 <button
                                     onClick={() => setIsSidebarOpen((prev) => !prev)}
-                                    className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-all hover:border-primary-500/20 hover:text-primary-300 md:hidden"
+                                    aria-label={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                                    title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-textSecondary transition-all hover:border-primary-500/20 hover:text-primary-300"
                                 >
-                                    {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                                    <span className="md:hidden">
+                                        {isSidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                                    </span>
+                                    <span className="hidden md:block">
+                                        {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </span>
                                 </button>
 
                                 <nav className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/5 p-1.5 backdrop-blur-xl lg:flex">
@@ -163,7 +200,7 @@ export default function DashboardLayout() {
                                                 key={item.href}
                                                 to={item.href}
                                                 className={clsx(
-                                                    'flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-300',
+                                                    'flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-300',
                                                     isActive
                                                         ? 'bg-primary-500/14 text-primary-200 shadow-soft border border-primary-500/18'
                                                         : 'text-textSecondary hover:bg-white/6 hover:text-textPrimary',
@@ -178,30 +215,32 @@ export default function DashboardLayout() {
                             </div>
 
                             <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                                {createElement(LanguageSwitcher, { variant: 'compact', className: 'sm:hidden' })}
+                                {createElement(LanguageSwitcher, { variant: 'inline', className: 'hidden sm:inline-flex' })}
                                 <div className="relative hidden w-72 min-[1720px]:block">
                                     <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-textSecondary" />
                                     <input
                                         type="text"
                                         placeholder={t('dashboardLayout.searchPlaceholder')}
-                                        className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                                        className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                                     />
                                 </div>
 
-                                <button className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-all hover:border-primary-500/20 hover:text-primary-300">
+                                <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-textSecondary transition-all hover:border-primary-500/20 hover:text-primary-300">
                                     <Bell className="h-4.5 w-4.5" />
-                                    <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-primary-300" />
+                                    <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary-300" />
                                 </button>
 
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsDropdownOpen((prev) => !prev)}
-                                        className="flex max-w-[18rem] items-center gap-3 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 transition-all hover:border-primary-500/20 hover:bg-white/8"
+                                        className="flex max-w-[18rem] items-center gap-2.5 rounded-md border border-white/10 bg-white/5 px-2 py-1 transition-all hover:border-primary-500/20 hover:bg-white/8"
                                     >
-                                        <div className="hidden min-w-0 text-right sm:block">
+                                        {/* <div className="hidden min-w-0 text-right sm:block">
                                             <p className="truncate text-sm font-medium text-textPrimary">{user?.fullName || user?.email || t('dashboardLayout.user')}</p>
                                             <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{user?.email}</p>
-                                        </div>
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-sm font-semibold text-primary-200">
+                                        </div> */}
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-[11px] font-semibold text-primary-200">
                                             {initials}
                                         </div>
                                     </button>

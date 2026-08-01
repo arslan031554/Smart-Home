@@ -494,6 +494,12 @@ const configuratorSlice = createSlice({
             clearCalculation(state);
         },
 
+        clearConfiguratorCalculation: (state) => {
+            clearCalculation(state);
+            state.isCalculating = false;
+            state.calcError = null;
+        },
+
         reopenOffer: (state, action) => {
             const reopened = extractOfferConfiguratorState(action.payload || {});
             state.levels = reopened.levels.length ? reopened.levels : [{ id: 1, name: 'Ground Floor', rooms: [] }];
@@ -593,6 +599,7 @@ export const {
     setComments,
     setRange,
     setColor,
+    clearConfiguratorCalculation,
     reopenOffer,
     setIsGuest,
     hydrateConfigurator,
@@ -600,3 +607,4 @@ export const {
 } = configuratorSlice.actions;
 
 export default configuratorSlice.reducer;
+

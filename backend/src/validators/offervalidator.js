@@ -39,6 +39,7 @@ export const adminOfferListQueryValidator = [
     query('date_from').optional({ values: 'falsy' }).isISO8601({ strict: true }).withMessage('date_from must be a valid ISO date'),
     query('date_to').optional({ values: 'falsy' }).isISO8601({ strict: true }).withMessage('date_to must be a valid ISO date'),
     query('client').optional({ values: 'falsy' }).trim().isLength({ max: 160 }).withMessage('client must be at most 160 characters'),
+    query('projectId').optional({ values: 'falsy' }).isUUID().withMessage('projectId must be a valid project ID'),
     query('min_value').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('min_value must be a non-negative number'),
     query('max_value').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('max_value must be a non-negative number'),
     query('page').optional({ values: 'falsy' }).isInt({ min: 1, max: 10000 }).withMessage('page must be a positive integer'),

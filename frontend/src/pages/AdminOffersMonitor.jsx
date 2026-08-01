@@ -10,8 +10,8 @@ import {
     Button, Badge, Card, SectionTitle, AnimatedPageWrapper,
 } from '@/components/common/UIComponents';
 import SelectMenu from '@/components/common/SelectMenu';
-import { Link } from 'react-router-dom';
-import { updateOfferStatus, snoozeFollowUp, updateFollowUpSettings } from '@/features/offers/offersSlice';
+import { Link, useSearchParams } from 'react-router-dom';
+import { snoozeFollowUp, updateFollowUpSettings } from '@/features/offers/offersSlice';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import api from '@/utils/api';
@@ -20,6 +20,7 @@ import { OFFER_STATUSES, OFFER_STATUS_TRANSLATION_KEYS, isOfferGeneratedStatus, 
 export default function AdminOffersMonitor() {
     const dispatch = useDispatch();
     const { t, i18n } = useTranslation();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [offers, setOffers] = useState([]);
     const [offersLoading, setOffersLoading] = useState(false);
     const [offersError, setOffersError] = useState(null);
@@ -31,6 +32,8 @@ export default function AdminOffersMonitor() {
         sort: 'created_at_desc',
     });
     const [clientFilter, setClientFilter] = useState('');
+    const [projectFilter, setProjectFilter] = useState('');
+    const [projectFilterLabel, setProjectFilterLabel] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -53,6 +56,7 @@ export default function AdminOffersMonitor() {
             if (dateFrom) params.date_from = dateFrom;
             if (dateTo) params.date_to = dateTo;
             if (clientFilter.trim()) params.client = clientFilter.trim();
+            if (projectFilter) params.projectId = projectFilter;
             if (minValue !== '') params.min_value = minValue;
             if (maxValue !== '') params.max_value = maxValue;
 
@@ -72,11 +76,19 @@ export default function AdminOffersMonitor() {
         } finally {
             setOffersLoading(false);
         }
-    }, [clientFilter, dateFrom, dateTo, maxValue, minValue, pagination.limit, pagination.page, sort, statusFilter, t]);
+    }, [clientFilter, dateFrom, dateTo, maxValue, minValue, pagination.limit, pagination.page, projectFilter, sort, statusFilter, t]);
 
     useEffect(() => {
+        const nextProjectId = searchParams.get('projectId') || '';
+        const nextProjectLabel = searchParams.get('project') || '';
+        const nextClient = searchParams.get('client') || '';
+        setProjectFilter(nextProjectId);
+        setProjectFilterLabel(nextProjectLabel);
+        setClientFilter(nextClient);
+    }, [searchParams]);
+    useEffect(() => {
         fetchAdminOffers(1);
-    }, [clientFilter, dateFrom, dateTo, maxValue, minValue, sort, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [clientFilter, dateFrom, dateTo, maxValue, minValue, projectFilter, sort, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const formatCurrency = (value) => new Intl.NumberFormat(locale, {
@@ -123,12 +135,11 @@ export default function AdminOffersMonitor() {
         setMinValue('');
         setMaxValue('');
         setSort('created_at_desc');
+        setProjectFilter('');
+        setProjectFilterLabel('');
+        setSearchParams({});
     };
 
-    const handleStatusChange = async (id, newStatus) => {
-        await dispatch(updateOfferStatus({ id, status: newStatus }));
-        fetchAdminOffers(pagination.page);
-    };
 
     const handleFollowupChannelToggle = async (offer, patch) => {
         if (!offer?.id) return;
@@ -192,7 +203,7 @@ export default function AdminOffersMonitor() {
                             placeholder={t('offers.adminMonitor.clientSearchPlaceholder', { defaultValue: 'Client name or email' })}
                             value={clientFilter}
                             onChange={(e) => setClientFilter(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                         />
                     </div>
 
@@ -236,7 +247,7 @@ export default function AdminOffersMonitor() {
                                 optionLabelClassName="text-[11px] font-semibold"
                             />
                         ))}
-                        <label className="flex min-w-[154px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                        <label className="flex min-w-[140px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
                             <Calendar className="h-4 w-4 text-textSecondary" />
                             <input
                                 type="date"
@@ -246,7 +257,7 @@ export default function AdminOffersMonitor() {
                                 aria-label={t('offers.adminMonitor.filters.dateFrom', { defaultValue: 'Date from' })}
                             />
                         </label>
-                        <label className="flex min-w-[154px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                        <label className="flex min-w-[140px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
                             <Calendar className="h-4 w-4 text-textSecondary" />
                             <input
                                 type="date"
@@ -256,7 +267,7 @@ export default function AdminOffersMonitor() {
                                 aria-label={t('offers.adminMonitor.filters.dateTo', { defaultValue: 'Date to' })}
                             />
                         </label>
-                        <label className="flex min-w-[132px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                        <label className="flex min-w-[118px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
                             <Euro className="h-4 w-4 text-textSecondary" />
                             <input
                                 type="number"
@@ -267,7 +278,7 @@ export default function AdminOffersMonitor() {
                                 className="w-full bg-transparent text-[11px] font-semibold uppercase tracking-[0.12em] text-textPrimary outline-none placeholder:text-textSecondary"
                             />
                         </label>
-                        <label className="flex min-w-[132px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
+                        <label className="flex min-w-[118px] items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-textPrimary focus-within:border-primary-500/25 focus-within:ring-4 focus-within:ring-primary-500/10">
                             <Euro className="h-4 w-4 text-textSecondary" />
                             <input
                                 type="number"
@@ -286,6 +297,19 @@ export default function AdminOffersMonitor() {
                 </div>
             </Card>
 
+            {projectFilter ? (
+                <Card className="rounded-[1.5rem] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminProjects.projectFilter', { defaultValue: 'Project Filter' })}</p>
+                            <p className="mt-1 text-sm font-medium text-textPrimary">{projectFilterLabel || projectFilter}</p>
+                        </div>
+                        <Link to="/admin/projects" className="text-sm font-medium text-primary-300 transition-colors hover:text-primary-200">
+                            {t('adminProjects.backToProjects', { defaultValue: 'Back to Projects' })}
+                        </Link>
+                    </div>
+                </Card>
+            ) : null}
             {offersError ? (
                 <Card className="rounded-[2rem] p-6">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -448,7 +472,7 @@ export default function AdminOffersMonitor() {
                     ].map((item) => (
                         <Card key={item.label} className="rounded-[1.7rem] p-5">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                     <item.icon className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -471,12 +495,12 @@ export default function AdminOffersMonitor() {
                 <Card className="overflow-hidden rounded-[2rem] p-0">
                     {offersLoading && !offers.length ? (
                         <div className="flex min-h-[260px] flex-col items-center justify-center gap-4">
-                            <Loader2 className="h-10 w-10 animate-spin text-primary-300" />
+                            <Loader2 className="h-9 w-9 animate-spin text-primary-300" />
                             <p className="text-sm font-medium uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.loading')}</p>
                         </div>
                     ) : offers.length === 0 ? (
                         <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 px-6 text-center">
-                            <Bell className="h-10 w-10 text-primary-300" />
+                            <Bell className="h-9 w-9 text-primary-300" />
                             <div>
                                 <p className="text-lg font-medium text-textPrimary">{t('offers.adminMonitor.emptyTitle', { defaultValue: 'No offers match these filters' })}</p>
                                 <p className="mt-2 text-sm text-textSecondary">{t('offers.adminMonitor.emptyDesc', { defaultValue: 'Reset filters or widen the date and value range.' })}</p>
@@ -510,7 +534,7 @@ export default function AdminOffersMonitor() {
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-3">
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                                     <Layers className="h-4.5 w-4.5" />
                                                 </div>
                                                 <div>
@@ -538,23 +562,14 @@ export default function AdminOffersMonitor() {
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="flex items-center justify-center gap-2">
-                                                {isOfferGeneratedStatus(offer.status) ? (
-                                                    <button
-                                                        onClick={() => handleStatusChange(offer.id, 'ordered')}
-                                                        className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-500/18 bg-emerald-500/10 text-emerald-300 transition-colors hover:bg-emerald-500/16"
-                                                        title={t('offers.adminMonitor.markOrdered')}
-                                                    >
-                                                        <CheckCircle className="h-4 w-4" />
-                                                    </button>
-                                                ) : null}
                                                 <Link to={`/admin/offers/${offer.id}`}>
-                                                    <button className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300" title={t('offers.adminMonitor.viewOffer')}>
+                                                    <button className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300" title={t('offers.adminMonitor.viewOffer')}>
                                                         <Eye className="h-4 w-4" />
                                                     </button>
                                                 </Link>
                                                 <button
                                                     onClick={() => handleDownloadOffer(offer)}
-                                                    className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
+                                                    className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
                                                     title={t('offers.adminMonitor.download')}
                                                     disabled={downloadingOfferId === offer.id}
                                                 >

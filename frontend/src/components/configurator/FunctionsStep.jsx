@@ -13,6 +13,7 @@ import {
 import { clsx } from 'clsx';
 import { Badge, Card, SectionTitle, Button } from '../common/UIComponents';
 import { normalizeRoomCount } from '../../utils/configuratorNormalization';
+import { useTranslation } from 'react-i18next';
 
 const ICON_MAP = {
     Sun,
@@ -31,9 +32,9 @@ const ICON_MAP = {
 };
 
 const SCOPE_MAP = {
-    IN: { label: 'Per Room', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
-    OUT: { label: 'Per Level', cls: 'bg-blue-50 text-blue-700 border border-blue-100' },
-    GENERAL: { label: 'Per Project', cls: 'bg-violet-50 text-violet-700 border border-violet-100' },
+    IN: { labelKey: 'configurator.functions.scope.room', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
+    OUT: { labelKey: 'configurator.functions.scope.level', cls: 'bg-blue-50 text-blue-700 border border-blue-100' },
+    GENERAL: { labelKey: 'configurator.functions.scope.project', cls: 'bg-violet-50 text-violet-700 border border-violet-100' },
 };
 
 function getIcon(name, cls = 'w-5 h-5') {
@@ -60,15 +61,17 @@ function getFunctionDemandBadges(func) {
 }
 
 const ScopeBadge = ({ channelType }) => {
-    const { label, cls } = SCOPE_MAP[channelType] || SCOPE_MAP.IN;
+    const { t } = useTranslation();
+    const { labelKey, cls } = SCOPE_MAP[channelType] || SCOPE_MAP.IN;
     return (
         <span className={clsx('inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider', cls)}>
-            {label}
+            {t(labelKey)}
         </span>
     );
 };
 
 const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityChange }) => {
+    const { t } = useTranslation();
     const demandBadges = getFunctionDemandBadges(func);
     const isAdded = Boolean(addedFunc);
 
@@ -115,7 +118,7 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
                             {badge.label}
                         </span>
                     ))}
-                    {isAdded ? <Badge variant="success" className="h-4 text-[8px]">Active</Badge> : null}
+                    {isAdded ? <Badge variant="success" className="h-4 text-[8px]">{t('configurator.functions.active', { defaultValue: 'Active' })}</Badge> : null}
                 </div>
 
                 <p className="h-8 text-xs leading-relaxed text-slate-500 line-clamp-2">{func.description}</p>
@@ -123,7 +126,7 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
                 {isAdded ? (
                     <div className="space-y-3 pt-2">
                         <div className="group flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Quantity</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('configurator.summary.quantity')}</span>
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => {
@@ -157,7 +160,7 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
                             className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-100 text-[10px] font-bold uppercase tracking-widest text-red-500 transition-all hover:border-red-200 hover:bg-red-50"
                         >
                             <X className="h-3.5 w-3.5" />
-                            Remove Function
+                            {t('configurator.functions.remove', { defaultValue: 'Remove Function' })}
                         </button>
                     </div>
                 ) : (
@@ -167,7 +170,7 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
                             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-[10px] font-bold uppercase tracking-widest text-white shadow-md transition-all hover:bg-primary-600 hover:shadow-lg"
                         >
                             <Plus className="h-4 w-4" />
-                            Add Function
+                            {t('configurator.functions.add', { defaultValue: 'Add Function' })}
                         </button>
                     </div>
                 )}
@@ -178,6 +181,7 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
 FunctionCard.displayName = 'FunctionCard';
 
 const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) => {
+    const { t } = useTranslation();
     const demandBadges = getFunctionDemandBadges(func);
 
     const handleQtyBlur = (event) => {
@@ -187,7 +191,7 @@ const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) =
     };
 
     return (
-        <Card className="rounded-[2rem] border border-primary-100 bg-white p-5 shadow-sm">
+        <Card className="rounded-[1.25rem] border border-primary-100 bg-white p-5 shadow-sm">
             <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
@@ -202,7 +206,7 @@ const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) =
                     <button
                         onClick={onRemove}
                         className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 transition-all hover:border-red-200 hover:bg-red-100"
-                        title="Remove function"
+                        title={t('configurator.functions.remove', { defaultValue: 'Remove Function' })}
                     >
                         <X className="h-4 w-4" />
                     </button>
@@ -225,7 +229,7 @@ const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) =
                 ) : null}
 
                 <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Quantity</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('configurator.summary.quantity')}</span>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => {
@@ -260,6 +264,7 @@ const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) =
 SelectedFunctionCard.displayName = 'SelectedFunctionCard';
 
 export default function FunctionsStep() {
+    const { t } = useTranslation();
     const dispatch = useDispatch();
     const levelsFromStore = useSelector((state) => state.configurator?.levels);
     const allFunctionsFromStore = useSelector((state) => state.admin.smartFunctions);
@@ -289,10 +294,10 @@ export default function FunctionsStep() {
             functions: Array.isArray(room?.functions) ? room.functions : [],
             levelId: level.id,
             levelName: level.name,
-            roomTypeName: roomTypeMap.get(room.type)?.name || room.type || 'Room',
+            roomTypeName: roomTypeMap.get(room.type)?.name || room.type || t('configurator.summary.room'),
             roomCount: normalizeRoomCount(room.roomCount ?? room.count),
         }));
-    }), [levels, roomTypeMap]);
+    }), [levels, roomTypeMap, t]);
 
     const firstRoomId = useMemo(() => allRooms[0]?.id || null, [allRooms]);
 
@@ -329,7 +334,7 @@ export default function FunctionsStep() {
                 id: functionId,
                 smartFunctionId: functionId,
                 quantity: normalizeRoomCount(selection?.quantity),
-                name: master.name || selection?.name || 'Configured Function',
+                name: master.name || selection?.name || t('configurator.summary.configuredFunction'),
                 code: master.code || selection?.code || functionId,
                 description: master.description || selection?.description || '',
                 icon: master.icon || selection?.icon || null,
@@ -339,7 +344,7 @@ export default function FunctionsStep() {
                 generalChannelCount: master.generalChannelCount ?? selection?.generalChannelCount ?? 0,
             };
         }).filter((selection) => Boolean(selection.id));
-    }, [allFunctions, currentRoom]);
+    }, [allFunctions, currentRoom, t]);
 
     const selectedFunctionIds = useMemo(
         () => new Set(currentRoomSelections.map((func) => func.id)),
@@ -387,22 +392,22 @@ export default function FunctionsStep() {
     }, 0), [levels]);
 
     return (
-        <div className="mx-auto max-w-7xl space-y-10 animate-fade-in pb-20">
+        <div className="mx-auto max-w-7xl space-y-6 animate-fade-in pb-16 sm:space-y-8 sm:pb-20">
             <div className="flex flex-col justify-between gap-8 border-b border-slate-100 pb-8 md:flex-row md:items-end">
                 <SectionTitle
-                    title="Select Smart Functions for Each Room"
-                    subtitle="Only compatible smart functions for the selected room are shown. Products and services are calculated automatically from these room-by-room choices."
-                    badge="Step 03: Smart Functions"
+                    title={t('configurator.functions.title', { defaultValue: 'Select Smart Functions for Each Room' })}
+                    subtitle={t('configurator.functions.subtitle', { defaultValue: 'Only compatible smart functions for the selected room are shown. Products and services are calculated automatically from these room-by-room choices.' })}
+                    badge={t('configurator.functions.badge', { defaultValue: 'Step 03: Smart Functions' })}
                 />
 
-                <div className="flex flex-shrink-0 items-center gap-6 rounded-[1.5rem] border border-slate-100 bg-primary-50 p-5 shadow-premium-sm">
+                <div className="flex flex-shrink-0 items-center gap-6 rounded-[1.15rem] border border-slate-100 bg-[#f7f8f2] p-4 shadow-sm sm:p-5">
                     <div className="px-2 text-center">
-                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Functions Selected</p>
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.selectedCount', { defaultValue: 'Functions Selected' })}</p>
                         <p className="text-3xl font-black tabular-nums text-slate-900">{totalSelectedCount}</p>
                     </div>
                     <div className="h-10 w-px bg-slate-100" />
                     <div className="px-2 text-center">
-                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Rooms Covered</p>
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.roomsCovered', { defaultValue: 'Rooms Covered' })}</p>
                         <p className="text-3xl font-black tabular-nums text-primary-600">{coveredRoomsCount}</p>
                     </div>
                 </div>
@@ -411,13 +416,13 @@ export default function FunctionsStep() {
             <div className="flex flex-col gap-10 xl:flex-row">
                 <aside className="flex-shrink-0 space-y-6 xl:w-80">
                     <div className="flex items-center justify-between px-2">
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-500">Rooms</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-500">{t('configurator.functions.rooms', { defaultValue: 'Rooms' })}</h3>
                         <Badge variant="neutral" className="border-none bg-slate-100 text-[8px] font-bold">
                             {allRooms.length} Total Rooms
                         </Badge>
                     </div>
 
-                    <div className="max-h-[650px] overflow-hidden overflow-y-auto rounded-[2rem] border border-slate-100 bg-primary-100 shadow-premium-sm">
+                    <div className="max-h-[650px] overflow-hidden overflow-y-auto rounded-[1.15rem] border border-slate-100 bg-[#f7f8f2] shadow-sm">
                         {levels.map((level) => {
                             const levelRooms = Array.isArray(level?.rooms) ? level.rooms : [];
                             return (
@@ -482,7 +487,7 @@ export default function FunctionsStep() {
                                                 </button>
                                             );
                                         }) : (
-                                            <div className="px-6 py-5 text-[11px] font-medium italic text-slate-400">No spaces configured</div>
+                                            <div className="px-6 py-5 text-[11px] font-medium italic text-slate-400">{t('configurator.functions.noSpaces', { defaultValue: 'No spaces configured' })}</div>
                                         )}
                                     </div>
                                 </div>
@@ -490,12 +495,12 @@ export default function FunctionsStep() {
                         })}
                     </div>
 
-                    <Card className="space-y-5 rounded-[2rem] border-none bg-slate-900 p-6 shadow-xl">
+                    <Card className="space-y-5 rounded-[1.15rem] border-none bg-slate-900 p-5 shadow-xl sm:p-6">
                         <div className="flex items-center gap-3">
                             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-500/20">
                                 <Activity className="h-4 w-4 text-primary-400" />
                             </div>
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Function Scope</h4>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">{t('configurator.functions.scopeTitle', { defaultValue: 'Function Scope' })}</h4>
                         </div>
 
                         <div className="space-y-4">
@@ -520,12 +525,12 @@ export default function FunctionsStep() {
                 <main className="flex-grow space-y-8">
                     {currentRoom ? (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                            <Card className="group relative mb-8 overflow-hidden rounded-[2.5rem] border-none bg-primary-50 p-8 shadow-premium-sm">
+                            <Card className="group relative mb-6 overflow-hidden rounded-[1.25rem] border-none bg-[#f7f8f2] p-5 shadow-sm sm:mb-8 sm:p-6">
                                 <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary-50 opacity-40 blur-[80px] transition-transform duration-1000 group-hover:scale-110" />
 
                                 <div className="relative z-10 flex flex-col justify-between gap-8 md:flex-row md:items-center">
                                     <div className="flex items-center gap-6">
-                                        <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-slate-900 shadow-lg transition-colors duration-500 group-hover:bg-primary-600">
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-md] bg-slate-900 shadow-lg transition-colors duration-500 group-hover:bg-primary-600">
                                             <Home className="h-8 w-8 text-white" />
                                         </div>
                                         <div>
@@ -544,7 +549,7 @@ export default function FunctionsStep() {
 
                                     <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-3 shadow-inner">
                                         <div className="px-4 text-right">
-                                            <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">Functions Selected</p>
+                                            <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">{t('configurator.functions.selectedCount', { defaultValue: 'Functions Selected' })}</p>
                                             <p className="text-xl font-black text-slate-900">{currentRoomSelections.length}</p>
                                         </div>
                                         {currentRoom.roomCount > 1 ? (
@@ -552,7 +557,7 @@ export default function FunctionsStep() {
                                                 <div className="h-8 w-px bg-slate-200" />
                                                 <div className="px-4 text-right">
                                                     <div className="mb-1.5 flex items-center justify-end gap-1.5">
-                                                        <Badge variant="primary" className="h-4 text-[8px] font-black">Repeated Room Count</Badge>
+                                                        <Badge variant="primary" className="h-4 text-[8px] font-black">{t('configurator.functions.repeatedRoomCount', { defaultValue: 'Repeated Room Count' })}</Badge>
                                                     </div>
                                                     <p className="text-[8px] font-black uppercase leading-none tracking-widest text-slate-400">
                                                         Function quantities are entered per room.
@@ -567,10 +572,10 @@ export default function FunctionsStep() {
                             </Card>
 
                             {availableFunctions.length > 0 ? (
-                                <div className="mt-10 space-y-12">
+                                <div className="mt-8 space-y-6 sm:mt-10">
                                     <section className="space-y-6">
                                         <div className="flex items-center justify-between gap-4 px-4">
-                                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Selected Functions In This Room</h3>
+                                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.selectedInRoom', { defaultValue: 'Selected Functions In This Room' })}</h3>
                                             <Badge variant="neutral" className="border-none bg-slate-100 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest">
                                                 {currentRoomSelections.length} Active
                                             </Badge>
@@ -588,7 +593,7 @@ export default function FunctionsStep() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <Card className="rounded-[2rem] border border-dashed border-slate-200 bg-white/80 p-6 shadow-none">
+                                            <Card className="rounded-[1.15rem] border border-dashed border-slate-200 bg-white/80 p-5 shadow-none sm:p-6">
                                                 <p className="text-sm leading-relaxed text-slate-500">
                                                     No functions have been selected for <strong>{currentRoom.name}</strong> yet. Use the compatible function list below to add them one by one.
                                                 </p>
@@ -599,7 +604,7 @@ export default function FunctionsStep() {
                                     <section className="space-y-6">
                                         <div className="flex flex-col justify-between gap-4 px-4 md:flex-row md:items-end">
                                             <div className="space-y-2">
-                                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Add Compatible Functions</h3>
+                                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.addCompatible', { defaultValue: 'Add Compatible Functions' })}</h3>
                                                 <p className="text-xs font-medium text-slate-500">
                                                     Only functions mapped to the selected room type are shown here.
                                                 </p>
@@ -616,7 +621,7 @@ export default function FunctionsStep() {
                                                     type="text"
                                                     value={functionSearch}
                                                     onChange={(event) => setFunctionSearch(event.target.value)}
-                                                    placeholder="Search compatible functions..."
+                                                    placeholder={t('configurator.functions.search', { defaultValue: 'Search compatible functions...' })}
                                                     className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-primary-300 focus:ring-4 focus:ring-primary-500/10"
                                                 />
                                             </div>
@@ -636,29 +641,29 @@ export default function FunctionsStep() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <Card className="rounded-[2rem] border border-dashed border-slate-200 bg-white/80 p-6 shadow-none">
+                                            <Card className="rounded-[1.15rem] border border-dashed border-slate-200 bg-white/80 p-5 shadow-none sm:p-6">
                                                 <p className="text-sm leading-relaxed text-slate-500">
                                                     {addableFunctions.length === 0
-                                                        ? 'All compatible functions are already added to this room.'
-                                                        : 'No compatible functions match your search.'}
+                                                        ? t('configurator.functions.allSelected', { defaultValue: 'All compatible functions are already added to this room.' })
+                                                        : t('configurator.functions.noSearchMatch', { defaultValue: 'No compatible functions match your search.' })}
                                                 </p>
                                             </Card>
                                         )}
                                     </section>
                                 </div>
                             ) : (
-                                <div className="space-y-6 rounded-[3rem] border-4 border-dashed border-slate-100 bg-slate-50/50 py-24 text-center">
-                                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border border-slate-100 bg-white shadow-premium-sm">
+                                <div className="space-y-6 rounded-md] border border-dashed border-slate-200 bg-slate-50/50 py-16 text-center sm:py-20">
+                                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.25rem] border border-slate-100 bg-white shadow-sm sm:h-24 sm:w-24">
                                         <ShieldAlert className="h-10 w-10 text-slate-200" />
                                     </div>
                                     <div className="mx-auto max-w-md px-6">
-                                        <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">No compatible functions available</h4>
+                                        <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{t('configurator.functions.noneAvailable', { defaultValue: 'No compatible functions available' })}</h4>
                                         <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                                            No compatible functions are available for this room type: <strong>{currentRoom.roomTypeName}</strong>.
+                                            {t('configurator.functions.noneAvailableForType', { roomType: currentRoom.roomTypeName, defaultValue: 'No compatible functions are available for this room type: {{roomType}}.' })}
                                         </p>
                                         <div className="pt-8">
                                             <Button variant="outline" className="gap-2 rounded-xl text-xs font-bold uppercase tracking-widest" onClick={() => setSelectedRoomId(null)}>
-                                                Select Different Room
+                                                {t('configurator.functions.selectDifferentRoom', { defaultValue: 'Select Different Room' })}
                                             </Button>
                                         </div>
                                     </div>
@@ -667,33 +672,33 @@ export default function FunctionsStep() {
                         </div>
                     ) : (
                         <div className="space-y-8 py-40 text-center animate-in fade-in zoom-in-95 duration-700">
-                            <div className="group mx-auto flex h-28 w-28 items-center justify-center rounded-[2.5rem] border border-slate-100 bg-slate-50 shadow-inner">
+                            <div className="group mx-auto flex h-24 w-24 items-center justify-center rounded-md] border border-slate-100 bg-slate-50 shadow-inner sm:h-28 sm:w-28">
                                 <Monitor className="h-12 w-12 text-slate-200 transition-colors duration-500 group-hover:text-primary-200" />
                             </div>
                             <div className="mx-auto max-w-sm">
-                                <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Select a Room</h3>
+                                <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">{t('configurator.functions.selectRoom', { defaultValue: 'Select a Room' })}</h3>
                                 <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-                                    Choose a room from the left panel to begin assigning smart functions.
+                                    {t('configurator.functions.selectRoomHelp', { defaultValue: 'Choose a room from the left panel to begin assigning smart functions.' })}
                                 </p>
                             </div>
                             <div className="flex items-center justify-center gap-2 text-primary-400">
                                 <Sparkles className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Backoffice-Driven Mapping</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">{t('configurator.functions.mappingBadge', { defaultValue: 'Backoffice-Driven Mapping' })}</span>
                             </div>
                         </div>
                     )}
                 </main>
             </div>
 
-            <div className="group relative flex items-start gap-4 overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 p-8 shadow-2xl">
+            <div className="group relative flex items-start gap-4 overflow-hidden rounded-[1.25rem] border border-slate-800 bg-slate-900 p-5 shadow-xl sm:p-6">
                 <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary-600/10 blur-2xl transition-transform duration-1000 group-hover:scale-150" />
                 <div className="relative mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-500/20 text-primary-400 shadow-inner">
                     <Info className="h-6 w-6" />
                 </div>
                 <div className="relative z-10 space-y-2">
-                    <h5 className="text-sm font-semibold uppercase tracking-widest text-white">Information</h5>
+                    <h5 className="text-sm font-semibold uppercase tracking-widest text-white">{t('configurator.functions.information', { defaultValue: 'Information' })}</h5>
                     <p className="max-w-4xl text-sm font-medium leading-relaxed text-white">
-                        You choose what each room should do. The system then calculates products, services, and totals from the backoffice master data and channel rules.
+                        {t('configurator.functions.informationBody', { defaultValue: 'You choose what each room should do. The system then calculates products, services, and totals from the backoffice master data and channel rules.' })}
                     </p>
                 </div>
             </div>

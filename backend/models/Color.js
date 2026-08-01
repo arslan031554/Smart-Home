@@ -52,6 +52,12 @@ Color.associate = (models) => {
         foreignKey: 'colorId',
         as: 'products'
     });
+    Color.belongsToMany(models.ProductRange, {
+        through: models.ProductRangeColor,
+        foreignKey: 'colorId',
+        otherKey: 'productRangeId',
+        as: 'productRanges'
+    });
 };
 
 export default Color;

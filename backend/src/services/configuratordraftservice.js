@@ -37,7 +37,7 @@ function normalizeSnapshot(snapshot = {}) {
     };
 }
 
-function buildIdentifierWhere({ userId, guestSessionId, allowConverted = false }) {
+function buildIdentifierWhere({ userId, guestSessionId, allowConverted = false } = {}) {
     const where = {
         ...(allowConverted ? {} : { configurationStatus: 'active' }),
     };
@@ -87,7 +87,6 @@ export async function getCurrentDraft({ userId = null, guestSessionId = null } =
     if (!drafts.length) return null;
     if (drafts.length === 1) return toDraftResponse(drafts[0]);
 
-    // Prefer account-owned drafts, otherwise the most recently updated one.
     const preferred = drafts.find((draft) => draft.userId) || drafts[0];
     return toDraftResponse(preferred);
 }
@@ -114,45 +113,49 @@ export async function upsertCurrentDraft({ userId = null, guestSessionId = null,
     const nextReminderAt = addDays(now, firstCadenceDay);
     const smsFollowupEnabled = isSmsFollowupEnabled();
 
-    let draft = await ConfiguratorDraft.findOne({
-        where: buildIdentifierWhere({ userId, guestSessionId }),
-        order: [['updatedAt', 'DESC']],
-    });
-
-    const payload = {
-        snapshot,
-        configurationStatus: 'active',
-        convertedOfferId: null,
-        enabled: true,
-        channelEmail: user ? Boolean(user.email) : false,
-        channelSms: user ? smsFollowupEnabled && Boolean(user.phone) : false,
-        lastActivityAt: now,
-        lastReminderAt: null,
-        nextReminderAt,
-        pattern,
-        reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
-        status: 'pending',
-        lastStep: normalizeStep(snapshot.currentStep),
-        language: normalizeLanguage(snapshot.language),
-        source: userId ? 'account' : 'guest',
-        guestSessionId: guestSessionId || draft?.guestSessionId || null,
-    };
-
-    if (draft) {
-        draft = await draft.update({
-            ...payload,
-            userId: userId || draft.userId || null,
+    return await ConfiguratorDraft.sequelize.transaction(async (transaction) => {
+        let draft = await ConfiguratorDraft.findOne({
+            where: buildIdentifierWhere({ userId, guestSessionId }),
+            order: [['updatedAt', 'DESC']],
+            transaction,
+            lock: transaction.LOCK.UPDATE,
         });
-        return toDraftResponse(draft);
-    }
 
-    const created = await ConfiguratorDraft.create({
-        userId,
-        guestSessionId: guestSessionId || null,
-        ...payload,
+        const payload = {
+            snapshot,
+            configurationStatus: 'active',
+            convertedOfferId: null,
+            enabled: true,
+            channelEmail: user ? Boolean(user.email) : false,
+            channelSms: user ? smsFollowupEnabled && Boolean(user.phone) : false,
+            lastActivityAt: now,
+            lastReminderAt: null,
+            nextReminderAt,
+            pattern,
+            reason: FOLLOWUP_CONTEXTS.UNFINISHED_CONFIGURATION,
+            status: 'pending',
+            lastStep: normalizeStep(snapshot.currentStep),
+            language: normalizeLanguage(snapshot.language),
+            source: userId ? 'account' : 'guest',
+            guestSessionId: guestSessionId || draft?.guestSessionId || null,
+        };
+
+        if (draft) {
+            draft = await draft.update({
+                ...payload,
+                userId: userId || draft.userId || null,
+            }, { transaction });
+            return toDraftResponse(draft);
+        }
+
+        const created = await ConfiguratorDraft.create({
+            userId,
+            guestSessionId: guestSessionId || null,
+            ...payload,
+        }, { transaction });
+
+        return toDraftResponse(created);
     });
-
-    return toDraftResponse(created);
 }
 
 export async function attachGuestDraftToUser({ userId, guestSessionId }) {
@@ -162,66 +165,76 @@ export async function attachGuestDraftToUser({ userId, guestSessionId }) {
     const user = await User.findByPk(userId, { attributes: ['id', 'email', 'phone'] });
     if (!user) throw new Error('User not found');
 
-    const guestDraft = await ConfiguratorDraft.findOne({
-        where: { guestSessionId, configurationStatus: 'active' },
-        order: [['updatedAt', 'DESC']],
-    });
+    return await ConfiguratorDraft.sequelize.transaction(async (transaction) => {
+        const guestDraft = await ConfiguratorDraft.findOne({
+            where: { guestSessionId, configurationStatus: 'active' },
+            order: [['updatedAt', 'DESC']],
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
 
-    if (!guestDraft) return null;
+        if (!guestDraft) return null;
 
-    const existingAccountDraft = await ConfiguratorDraft.findOne({
-        where: { userId, configurationStatus: 'active' },
-        order: [['updatedAt', 'DESC']],
-    });
+        const existingAccountDraft = await ConfiguratorDraft.findOne({
+            where: { userId, configurationStatus: 'active' },
+            order: [['updatedAt', 'DESC']],
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
 
-    if (existingAccountDraft && existingAccountDraft.id !== guestDraft.id) {
-        const guestTs = Date.parse(guestDraft.updatedAt || guestDraft.lastActivityAt || '');
-        const accountTs = Date.parse(existingAccountDraft.updatedAt || existingAccountDraft.lastActivityAt || '');
-        const useGuest = Number.isFinite(guestTs) && (!Number.isFinite(accountTs) || guestTs >= accountTs);
+        if (existingAccountDraft && existingAccountDraft.id !== guestDraft.id) {
+            const guestTs = Date.parse(guestDraft.updatedAt || guestDraft.lastActivityAt || '');
+            const accountTs = Date.parse(existingAccountDraft.updatedAt || existingAccountDraft.lastActivityAt || '');
+            const useGuest = Number.isFinite(guestTs) && (!Number.isFinite(accountTs) || guestTs >= accountTs);
 
-        if (useGuest) {
-            await existingAccountDraft.update({
-                snapshot: normalizeSnapshot(guestDraft.snapshot || {}),
-                lastStep: guestDraft.lastStep || 1,
-                language: guestDraft.language || 'en',
-                channelEmail: Boolean(user.email),
-                channelSms: isSmsFollowupEnabled() && Boolean(user.phone),
-                lastActivityAt: guestDraft.lastActivityAt || new Date(),
-                nextReminderAt: guestDraft.nextReminderAt || addDays(new Date(), getConfiguredFollowupCadenceDays(guestDraft.pattern)[0]),
-                status: 'pending',
-                enabled: true,
-            });
+            if (useGuest) {
+                await existingAccountDraft.update({
+                    snapshot: normalizeSnapshot(guestDraft.snapshot || {}),
+                    lastStep: guestDraft.lastStep || 1,
+                    language: guestDraft.language || 'en',
+                    channelEmail: Boolean(user.email),
+                    channelSms: isSmsFollowupEnabled() && Boolean(user.phone),
+                    lastActivityAt: guestDraft.lastActivityAt || new Date(),
+                    nextReminderAt: guestDraft.nextReminderAt || addDays(new Date(), getConfiguredFollowupCadenceDays(guestDraft.pattern)[0]),
+                    status: 'pending',
+                    enabled: true,
+                }, { transaction });
+            }
+
+            await guestDraft.destroy({ transaction });
+            return toDraftResponse(existingAccountDraft);
         }
 
-        await guestDraft.destroy();
-        return toDraftResponse(existingAccountDraft);
-    }
+        await guestDraft.update({
+            userId,
+            source: 'account',
+            channelEmail: Boolean(user.email),
+            channelSms: isSmsFollowupEnabled() && Boolean(user.phone),
+        }, { transaction });
 
-    await guestDraft.update({
-        userId,
-        source: 'account',
-        channelEmail: Boolean(user.email),
-        channelSms: isSmsFollowupEnabled() && Boolean(user.phone),
+        return toDraftResponse(guestDraft);
     });
-
-    return toDraftResponse(guestDraft);
 }
 
 export async function completeCurrentDraft({ userId = null, guestSessionId = null, offerId = null } = {}) {
-    const draft = await ConfiguratorDraft.findOne({
-        where: buildIdentifierWhere({ userId, guestSessionId }),
-        order: [['updatedAt', 'DESC']],
+    return await ConfiguratorDraft.sequelize.transaction(async (transaction) => {
+        const draft = await ConfiguratorDraft.findOne({
+            where: buildIdentifierWhere({ userId, guestSessionId }),
+            order: [['updatedAt', 'DESC']],
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!draft) return null;
+
+        const updated = await draft.update({
+            configurationStatus: offerId ? 'converted' : 'completed',
+            convertedOfferId: offerId || null,
+            enabled: false,
+            nextReminderAt: null,
+            status: 'completed',
+        }, { transaction });
+
+        return toDraftResponse(updated);
     });
-
-    if (!draft) return null;
-
-    const updated = await draft.update({
-        configurationStatus: offerId ? 'converted' : 'completed',
-        convertedOfferId: offerId || null,
-        enabled: false,
-        nextReminderAt: null,
-        status: 'completed',
-    });
-
-    return toDraftResponse(updated);
 }

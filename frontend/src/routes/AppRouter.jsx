@@ -32,12 +32,14 @@ import PresentationPortfolioPage from '../presentation/pages/PortfolioPage';
 import PresentationMediaPage from '../presentation/pages/MediaPage';
 import PresentationContactPage from '../presentation/pages/ContactPage';
 import PresentationServicePage from '../presentation/pages/ServicePage';
+import DeckContentPage from '../presentation/pages/DeckContentPage';
 
 // Admin Pages
 import AdminDashboard from '../pages/AdminDashboard';
 import ProductsManagement from '../pages/ProductsManagement';
 import MasterDataManagement from '../pages/MasterDataManagement';
 import AdminOffersMonitor from '../pages/AdminOffersMonitor';
+import AdminProjectsMonitor from '../pages/AdminProjectsMonitor';
 import EmployeeManagement from '../pages/EmployeeManagement';
 import PermissionsManagement from '../pages/PermissionsManagement';
 import AdminSettingsPage from '../pages/AdminSettingsPage';
@@ -87,6 +89,10 @@ const router = createBrowserRouter([
             { path: 'servicii', element: <PresentationServicesPage /> },
             { path: 'servicii/:slug', element: <PresentationServiceRoute /> },
             { path: 'portofoliu', element: <PresentationPortfolioPage /> },
+            { path: 'portfolio', element: <PresentationPortfolioPage /> },
+            { path: 'technology/:slug', element: <DeckContentPage section="technology" /> },
+            { path: 'buildings/:slug', element: <DeckContentPage section="buildings" /> },
+            { path: 'solutions/:slug', element: <DeckContentPage section="solutions" /> },
             { path: 'media', element: <PresentationMediaPage /> },
             { path: 'contact', element: <PresentationContactPage /> },
         ],
@@ -149,6 +155,7 @@ const router = createBrowserRouter([
             { index: true, element: <AdminDashboard /> },
             { path: 'products', element: <AdminPermissionRoute permission="view_hardware"><ProductsManagement /></AdminPermissionRoute> },
             { path: 'offers', element: <AdminPermissionRoute permission="view_offers"><AdminOffersMonitor /></AdminPermissionRoute> },
+            { path: 'projects', element: <AdminPermissionRoute permission="view_offers"><AdminProjectsMonitor /></AdminPermissionRoute> },
             { path: 'employees', element: <AdminPermissionRoute permission="manage_employees"><EmployeeManagement /></AdminPermissionRoute> },
             { path: 'users', element: <AdminPermissionRoute permission="manage_employees"><UsersManagement /></AdminPermissionRoute> },
             { path: 'permissions', element: <AdminPermissionRoute permission="manage_employees"><PermissionsManagement /></AdminPermissionRoute> },
@@ -184,7 +191,7 @@ const router = createBrowserRouter([
                 { name: 'priceMultiplier', label: 'Range Price Multiplier', type: 'number', placeholder: '1.0' },
                 { name: 'isVisible', label: 'Visible to customer', type: 'toggle', default: true }
             ]} /></AdminPermissionRoute> },
-            { path: 'colors', element: <AdminPermissionRoute permission="view_hardware"><MasterDataManagement title="Device Colors" entityName="Color" icon={Palette} storeKey="colors" extraFields={[{ name: 'hex', label: 'Hex Code', type: 'text', placeholder: '#FFFFFF' }, { name: 'isVisible', label: 'Visible to customer', type: 'toggle', default: true }]} /></AdminPermissionRoute> },
+            { path: 'colors', element: <AdminPermissionRoute permission="view_hardware"><MasterDataManagement title="Device Colors" entityName="Color" icon={Palette} storeKey="colors" extraFields={[{ name: 'hex', label: 'Hex Code', type: 'text', placeholder: '#FFFFFF' }, { name: 'productRanges', label: 'Assigned Product Ranges', type: 'multiselect', sourceKey: 'productRanges' }, { name: 'isVisible', label: 'Visible to customer', type: 'toggle', default: true }]} /></AdminPermissionRoute> },
             { path: 'services', element: <AdminPermissionRoute permission="view_hardware"><MasterDataManagement title="Professional Services" entityName="Service" icon={Briefcase} storeKey="services" extraFields={[
                 { name: 'price', label: 'Service Price', type: 'number', placeholder: '0.00' },
                 { name: 'type', label: 'Pricing Mode', type: 'select', options: [

@@ -14,6 +14,8 @@ import Product from './Product.js';
 import ProductRangeProduct from './ProductRangeProduct.js';
 import ProductColorProduct from './ProductColorProduct.js';
 import ProductFunctionMapping from './ProductFunctionMapping.js';
+import ProductDependency from './ProductDependency.js';
+import ProductRangeColor from './ProductRangeColor.js';
 import Service from './Service.js';
 import DiscountRule from './DiscountRule.js';
 import Offer from './Offer.js';
@@ -46,6 +48,8 @@ const models = {
     ProductRangeProduct,
     ProductColorProduct,
     ProductFunctionMapping,
+    ProductDependency,
+    ProductRangeColor,
     Service,
     DiscountRule,
     Offer,
@@ -85,6 +89,8 @@ export {
     ProductRangeProduct,
     ProductColorProduct,
     ProductFunctionMapping,
+    ProductDependency,
+    ProductRangeColor,
     Service,
     DiscountRule,
     Offer,

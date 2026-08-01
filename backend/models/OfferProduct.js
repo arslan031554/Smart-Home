@@ -53,6 +53,11 @@ OfferProduct.init({
     subtotal: {
         type: DataTypes.FLOAT,
         defaultValue: 0
+    },
+    lineType: {
+        type: DataTypes.ENUM('STANDARD', 'RELATED'),
+        allowNull: false,
+        defaultValue: 'STANDARD'
     }
 }, {
     sequelize,

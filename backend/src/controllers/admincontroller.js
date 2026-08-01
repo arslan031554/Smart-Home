@@ -22,7 +22,7 @@ const createCrudHandlers = (modelName, displayName) => ({
     },
     create: async (req, res, next) => {
         try {
-            const data = await adminService.create(modelName, req.body);
+            const data = await adminService.create(modelName, { ...req.body, __uploadedFile: req.file || null });
             sendResponse(res, 201, true, `${displayName} created`, data);
         } catch (error) {
             next(error);
@@ -30,7 +30,7 @@ const createCrudHandlers = (modelName, displayName) => ({
     },
     update: async (req, res, next) => {
         try {
-            const data = await adminService.update(modelName, req.params.id, req.body);
+            const data = await adminService.update(modelName, req.params.id, { ...req.body, __uploadedFile: req.file || null });
             sendResponse(res, 200, true, `${displayName} updated`, data);
         } catch (error) {
             next(error);
@@ -112,6 +112,16 @@ export const employeeHandlers = {
     }
 };
 
+export const projectHandlers = {
+    getAll: async (_req, res, next) => {
+        try {
+            const data = await adminService.getProjects();
+            sendResponse(res, 200, true, 'Projects fetched', data);
+        } catch (error) {
+            next(error);
+        }
+    },
+};
 export const userHandlers = {
     getAll: async (_req, res, next) => {
         try {
@@ -132,24 +142,49 @@ export const userHandlers = {
     },
 };
 
-// Harden Product list endpoint against inconsistent relations causing DB constraint errors.
+// Harden Product read endpoints against production schema drift while migrations catch up.
+function isDatabaseReadError(err) {
+    return err?.name === 'SequelizeForeignKeyConstraintError' || err?.name === 'SequelizeDatabaseError';
+}
+
+const productReadFallbackOptions = {
+    include: [],
+    attributes: { exclude: ['productType'] }
+};
+
 productHandlers.getAll = async (req, res, next) => {
     try {
         try {
             const data = await adminService.getAll('Product');
             return sendResponse(res, 200, true, 'Product fetched', data);
         } catch (err) {
-            if (err?.name === 'SequelizeForeignKeyConstraintError' || err?.name === 'SequelizeDatabaseError') {
-                const data = await adminService.getAll('Product', { include: [] });
-                return sendResponse(res, 200, true, 'Product fetched (with limited relations due to inconsistent data)', data);
-            }
-            throw err;
+            if (!isDatabaseReadError(err)) throw err;
+
+            const data = await adminService.getAll('Product', productReadFallbackOptions);
+            return sendResponse(res, 200, true, 'Product fetched (with limited relations due to inconsistent data)', data);
         }
     } catch (error) {
         next(error);
     }
 };
 
+productHandlers.getOne = async (req, res, next) => {
+    try {
+        try {
+            const data = await adminService.getById('Product', req.params.id);
+            if (!data) return sendError(res, 404, 'Product not found');
+            return sendResponse(res, 200, true, 'Product fetched', data);
+        } catch (err) {
+            if (!isDatabaseReadError(err)) throw err;
+
+            const data = await adminService.getById('Product', req.params.id, productReadFallbackOptions);
+            if (!data) return sendError(res, 404, 'Product not found');
+            return sendResponse(res, 200, true, 'Product fetched (with limited relations due to inconsistent data)', data);
+        }
+    } catch (error) {
+        next(error);
+    }
+};
 export const syncProductRanges = async (req, res, next) => {
     try {
         const { rangeIds } = req.body;

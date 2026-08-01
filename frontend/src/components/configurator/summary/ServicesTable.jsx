@@ -24,7 +24,7 @@ export default function ServicesTable() {
 
     if (isCalculating && services.length === 0) {
         return (
-            <Card className="p-8 border-none shadow-premium-sm rounded-[2.5rem] bg-white">
+            <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6 sm:rounded-[1.5rem]">
                 <div className="flex items-center gap-3 text-primary-600">
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <p className="text-sm font-bold">{t('configurator.summary.services.calculating', { defaultValue: 'Calculating services from the backend...' })}</p>
@@ -34,7 +34,7 @@ export default function ServicesTable() {
     }
 
     return (
-        <Card className="p-8 border-none shadow-premium-sm rounded-[2.5rem] bg-white">
+        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6 sm:rounded-[1.5rem]">
             <div className="flex items-center justify-between mb-8 gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-primary-50 rounded-xl text-primary-600">

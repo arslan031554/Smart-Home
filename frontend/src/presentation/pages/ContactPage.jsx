@@ -13,7 +13,9 @@ export default function ContactPage() {
         breadcrumb={pages.contact.breadcrumb}
         image={siteImages.heroEnergy}
       />
-      <Contact />
+      <div id="page-content">
+        <Contact />
+      </div>
     </>
   );
 }

@@ -45,6 +45,8 @@ export const colorValidator = [
     body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 120 }).withMessage('Name must be at most 120 characters'),
     body('hex').optional().trim().matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/).withMessage('Hex must be e.g. #FFF or #FFFFFF'),
     body('isVisible').optional().isBoolean().withMessage('isVisible must be a boolean'),
+    body('productRanges').optional().isArray().withMessage('productRanges must be an array'),
+    body('productRanges.*').optional().isUUID().withMessage('Each product range ID must be a valid UUID'),
     validate
 ];
 
@@ -71,6 +73,10 @@ export const productValidator = [
     body('allowedColors').optional().isArray().withMessage('allowedColors must be an array'),
     body('allowedColors.*').optional().isUUID().withMessage('Invalid color ID'),
     body('mappings').optional().isArray().withMessage('mappings must be an array'),
+    body('productType').optional().isIn(['STANDARD', 'RELATED']).withMessage('Invalid product type'),
+    body('dependencies').optional().isArray().withMessage('dependencies must be an array'),
+    body('dependencies.*.mainProductId').optional().isUUID().withMessage('Each main product ID must be a valid UUID'),
+    body('dependencies.*.quantityPerMainProduct').optional().isFloat({ min: 0.000001 }).withMessage('Quantity per main product must be greater than 0'),
     validate
 ];
 
@@ -102,6 +108,10 @@ export const productCreateValidator = [
     body('allowedColors').optional().isArray().withMessage('allowedColors must be an array'),
     body('allowedColors.*').optional().isUUID().withMessage('Invalid color ID'),
     body('mappings').optional().isArray().withMessage('mappings must be an array'),
+    body('productType').optional().isIn(['STANDARD', 'RELATED']).withMessage('Invalid product type'),
+    body('dependencies').optional().isArray().withMessage('dependencies must be an array'),
+    body('dependencies.*.mainProductId').optional().isUUID().withMessage('Each main product ID must be a valid UUID'),
+    body('dependencies.*.quantityPerMainProduct').optional().isFloat({ min: 0.000001 }).withMessage('Quantity per main product must be greater than 0'),
     validate
 ];
 
@@ -128,6 +138,10 @@ export const productUpdateValidator = [
     body('allowedColors').optional().isArray().withMessage('allowedColors must be an array'),
     body('allowedColors.*').optional().isUUID().withMessage('Invalid color ID'),
     body('mappings').optional().isArray().withMessage('mappings must be an array'),
+    body('productType').optional().isIn(['STANDARD', 'RELATED']).withMessage('Invalid product type'),
+    body('dependencies').optional().isArray().withMessage('dependencies must be an array'),
+    body('dependencies.*.mainProductId').optional().isUUID().withMessage('Each main product ID must be a valid UUID'),
+    body('dependencies.*.quantityPerMainProduct').optional().isFloat({ min: 0.000001 }).withMessage('Quantity per main product must be greater than 0'),
     validate
 ];
 

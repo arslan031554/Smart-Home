@@ -2,8 +2,10 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Card } from '../../common/UIComponents';
 import { FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function OfferConditions() {
+    const { t } = useTranslation();
     const conditions = useSelector(state => state.admin.conditions) || [];
 
     if (conditions.length === 0) return null;
@@ -14,7 +16,7 @@ export default function OfferConditions() {
                 <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
                     <FileText className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Offer Conditions</h3>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">{t('offers.detail.offerConditionsTitle')}</h3>
             </div>
 
             <div className="space-y-4">

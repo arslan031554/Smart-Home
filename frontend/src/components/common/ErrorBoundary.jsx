@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Home, RefreshCcw } from 'lucide-react';
 import { Button } from './UIComponents';
+import i18n from '../../i18n';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -26,9 +27,9 @@ class ErrorBoundary extends React.Component {
                         </div>
                         
                         <div className="space-y-4">
-                            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">System Interruption</h1>
+                            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{i18n.t('errors.systemTitle', { defaultValue: 'System Interruption' })}</h1>
                             <p className="text-sm font-medium text-slate-500 leading-relaxed">
-                                A critical error occurred while processing the application logic. Our engineers have been notified.
+                                {i18n.t('errors.systemBody', { defaultValue: 'A critical error occurred while processing the application logic. Our engineers have been notified.' })}
                             </p>
                             {import.meta.env.DEV && (
                                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left overflow-auto max-h-40">
@@ -46,7 +47,7 @@ class ErrorBoundary extends React.Component {
                                 onClick={() => window.location.reload()}
                             >
                                 <RefreshCcw className="w-4 h-4 mr-2" /> 
-                                Attempt Recovery
+                                {i18n.t('errors.recover', { defaultValue: 'Attempt Recovery' })}
                             </Button>
                             <Button 
                                 variant="ghost" 
@@ -54,12 +55,12 @@ class ErrorBoundary extends React.Component {
                                 onClick={() => window.location.href = '/'}
                             >
                                 <Home className="w-4 h-4 mr-2" /> 
-                                Return Home
+                                {i18n.t('errors.returnHome', { defaultValue: 'Return Home' })}
                             </Button>
                         </div>
 
                         <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                            Error Log Ref: ERR_{Math.random().toString(36).substr(2, 9).toUpperCase()}
+                            {i18n.t('errors.logReference', { reference: `ERR_${Math.random().toString(36).substr(2, 9).toUpperCase()}`, defaultValue: 'Error Log Ref: {{reference}}' })}
                         </p>
                     </div>
                 </div>
@@ -84,9 +85,9 @@ export function RootErrorPage() {
                 </div>
                 
                 <div className="space-y-3">
-                    <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Access Error</h1>
+                    <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{i18n.t('errors.accessTitle', { defaultValue: 'Access Error' })}</h1>
                     <p className="text-sm font-medium text-slate-500 leading-relaxed">
-                        The requested path could not be resolved or encountered a routing failure.
+                        {i18n.t('errors.accessBody', { defaultValue: 'The requested path could not be resolved or encountered a routing failure.' })}
                     </p>
                 </div>
 
@@ -96,7 +97,7 @@ export function RootErrorPage() {
                     onClick={() => window.location.href = '/'}
                 >
                     <Home className="w-4 h-4 mr-2" /> 
-                    Back to Secure Area
+                    {i18n.t('errors.secureArea', { defaultValue: 'Back to Secure Area' })}
                 </Button>
             </div>
         </div>

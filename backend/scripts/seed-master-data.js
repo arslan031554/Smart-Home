@@ -32,6 +32,7 @@ async function seed() {
         User,
         BuildingType,
         RoomType,
+        BuildingTypeRoomType,
         SmartFunction,
         ProductRange,
         Color,
@@ -46,14 +47,40 @@ async function seed() {
     console.log('Database connected.');
 
     for (const row of buildingTypes) {
-        await BuildingType.findOrCreate({ where: { name: row.name }, defaults: row });
+        const { aliases, ...defaults } = row;
+        await BuildingType.findOrCreate({ where: { name: row.name }, defaults });
     }
-    console.log(`Building types: ${buildingTypes.length}`);
+    console.log('Building types: ' + buildingTypes.length);
 
     for (const row of roomTypes) {
-        await RoomType.findOrCreate({ where: { name: row.name }, defaults: row });
+        const { buildingTypes: _buildingTypes, ...defaults } = row;
+        await RoomType.findOrCreate({ where: { name: row.name }, defaults });
     }
-    console.log(`Room types: ${roomTypes.length}`);
+    console.log('Room types: ' + roomTypes.length);
+
+    let buildingRoomLinks = 0;
+    for (const row of roomTypes) {
+        const roomType = await RoomType.findOne({ where: { name: row.name } });
+        if (!roomType || !Array.isArray(row.buildingTypes)) continue;
+
+        for (const buildingTypeName of row.buildingTypes) {
+            const buildingType = await BuildingType.findOne({ where: { name: buildingTypeName } });
+            if (!buildingType) continue;
+
+            const [_link, created] = await BuildingTypeRoomType.findOrCreate({
+                where: {
+                    buildingTypeId: buildingType.id,
+                    roomTypeId: roomType.id,
+                },
+                defaults: {
+                    buildingTypeId: buildingType.id,
+                    roomTypeId: roomType.id,
+                },
+            });
+            if (created) buildingRoomLinks += 1;
+        }
+    }
+    console.log('Building/room links added: ' + buildingRoomLinks);
 
     for (const row of smartFunctions) {
         const [smartFunction, created] = await SmartFunction.findOrCreate({ where: { code: row.code }, defaults: row });
@@ -121,7 +148,7 @@ async function seed() {
     const userHash = await bcrypt.hash('User@12345', 10);
     const testUsers = [
         {
-            email: 'admin@test.com',
+            email: 'greenadmin@yopmail.com',
             passwordHash: adminHash,
             role: 'admin',
             isActive: true,

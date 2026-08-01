@@ -1,6 +1,7 @@
-﻿import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 import { normalizeApiError } from '../../utils/normalizeApiError';
+import { clearStoredConfiguratorSnapshot } from '../../utils/configuratorDraftStorage';
 
 // Async Thunks
 export const login = createAsyncThunk('auth/login', async (credentials, { rejectWithValue }) => {
@@ -92,9 +93,11 @@ export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValu
     try {
         await api.post('/auth/logout');
         localStorage.removeItem('token');
+        clearStoredConfiguratorSnapshot();
         return true;
     } catch (error) {
         localStorage.removeItem('token');
+        clearStoredConfiguratorSnapshot();
         return rejectWithValue(normalizeApiError(error));
     }
 });

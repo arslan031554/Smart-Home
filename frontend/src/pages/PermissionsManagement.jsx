@@ -99,7 +99,7 @@ export default function PermissionsManagement() {
     if (loading && !employees.length) {
         return (
             <AnimatedPageWrapper className="flex min-h-[400px] flex-col items-center justify-center gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-primary-300" />
+                <Loader2 className="h-9 w-9 animate-spin text-primary-300" />
                 <p className="text-sm font-medium uppercase tracking-[0.2em] text-textSecondary">
                     {t('adminPages.permissions.loading', { defaultValue: 'Loading permission assignments...' })}
                 </p>
@@ -151,7 +151,7 @@ export default function PermissionsManagement() {
                             ].map((item) => (
                                 <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
@@ -164,7 +164,7 @@ export default function PermissionsManagement() {
                         </div>
                     </div>
 
-                    <Button size="lg" onClick={handleSave} className="gap-2">
+                    <Button size="md" onClick={handleSave} className="gap-2">
                         {isSaving ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Save className="h-4.5 w-4.5" />}
                         {isSaving ? t('common.saving', { defaultValue: 'Saving...' }) : t('adminPages.permissions.save', { defaultValue: 'Save Permissions' })}
                     </Button>
@@ -178,7 +178,7 @@ export default function PermissionsManagement() {
                     <Card className="rounded-[2rem] p-6">
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                     <UserCheck className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -214,7 +214,7 @@ export default function PermissionsManagement() {
 
                     <div className="hero-frame rounded-[2rem] p-6">
                         <div className="space-y-4">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                 <Lock className="h-5 w-5" />
                             </div>
                             <div>
@@ -259,7 +259,7 @@ export default function PermissionsManagement() {
                         {ADMIN_PERMISSION_GROUPS.map((group) => (
                             <div key={group.name} className="rounded-[1.6rem] border border-white/8 bg-white/5 p-5">
                                 <div className="mb-4 flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                         <Fingerprint className="h-4.5 w-4.5" />
                                     </div>
                                     <h4 className="text-sm font-medium text-textPrimary">{groupLabels[group.name] || group.name}</h4>
@@ -304,3 +304,4 @@ export default function PermissionsManagement() {
         </AnimatedPageWrapper>
     );
 }
+

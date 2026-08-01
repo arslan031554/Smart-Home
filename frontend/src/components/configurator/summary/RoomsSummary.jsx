@@ -3,19 +3,21 @@ import { useSelector } from 'react-redux';
 import { Card } from '../../common/UIComponents';
 import { Layout, Box, Layers } from 'lucide-react';
 import { normalizeRoomCount } from '../../../utils/configuratorNormalization';
+import { useTranslation } from 'react-i18next';
 
 export default function RoomsSummary({ levels }) {
+    const { t } = useTranslation();
     const roomTypes = useSelector((state) => state.admin.roomTypes) || [];
 
     if (!levels || levels.length === 0) return null;
 
     return (
-        <Card className="p-6 border-none shadow-premium-sm">
+        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6">
             <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
                     <Layout className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Spaces & Room Inventory</h3>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">{t('configurator.summary.roomsInventory')}</h3>
             </div>
 
             <div className="space-y-6">
@@ -44,14 +46,14 @@ export default function RoomsSummary({ levels }) {
                                             </div>
                                             {roomCount > 1 && (
                                                 <span className="text-[11px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-lg border border-primary-100">
-                                                    × {roomCount}
+                                                    Ã— {roomCount}
                                                 </span>
                                             )}
                                         </div>
                                     );
                                 })
                             ) : (
-                                <p className="text-xs text-slate-400 font-medium italic">No rooms defined on this level.</p>
+                                <p className="text-xs text-slate-400 font-medium italic">{t('configurator.summary.noRoomsOnLevel')}</p>
                             )}
                         </div>
                     </div>

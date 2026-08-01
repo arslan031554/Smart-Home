@@ -9,7 +9,7 @@ function PortfolioCard({ project, index }) {
   return (
     <RevealCard
       as="article"
-      className="group overflow-hidden rounded-lg bg-white shadow-xl shadow-emerald/10"
+      className="group overflow-hidden rounded-[1.5rem] bg-white shadow-xl shadow-emerald/10"
       index={index}
       delayStep={0.05}
       layout
@@ -21,7 +21,7 @@ function PortfolioCard({ project, index }) {
           {project.category}
         </div>
         <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4">
-          <h3 className="text-2xl font-black uppercase text-white">{project.title}</h3>
+          <h3 className="text-2xl font-semibold text-white">{project.title}</h3>
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-orange text-white transition group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:bg-white group-hover:text-ink">
             <ArrowUpRight size={22} />
           </span>

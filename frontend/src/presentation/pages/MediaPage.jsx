@@ -13,7 +13,9 @@ export default function MediaPage() {
         breadcrumb={pages.media.breadcrumb}
         image={siteImages.heroControl}
       />
-      <Media />
+      <div id="page-content">
+        <Media />
+      </div>
     </>
   );
 }

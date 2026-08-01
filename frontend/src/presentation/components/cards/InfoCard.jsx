@@ -5,7 +5,7 @@ import RevealCard from './RevealCard';
 function InfoCard({
   as = 'div',
   children,
-  className = 'group h-full rounded-lg border border-emerald/10 bg-white p-6 shadow-xl shadow-emerald/10 transition hover:-translate-y-1 hover:border-emerald/35',
+  className = 'group h-full rounded-[1.5rem] border border-emerald/10 bg-white p-6 shadow-xl shadow-emerald/10 transition hover:-translate-y-1 hover:border-emerald/35',
   delayStep = 0.08,
   href,
   icon,

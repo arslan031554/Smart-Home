@@ -11,6 +11,8 @@ export function serializeProductForApi(row, options = {}) {
     const productRanges = Array.isArray(po.productRanges) ? po.productRanges : [];
     const colors = Array.isArray(po.colors) ? po.colors : [];
     const rawMappings = Array.isArray(po.mappings) ? po.mappings : [];
+    const rawRequiredBy = Array.isArray(po.requiredByProducts) ? po.requiredByProducts : [];
+    const rawRequiredRelated = Array.isArray(po.requiredRelatedProducts) ? po.requiredRelatedProducts : [];
 
     const mappings = rawMappings
         .map((m) => {
@@ -40,6 +42,38 @@ export function serializeProductForApi(row, options = {}) {
         ? Number(po.unitPriceEurExVat)
         : null;
 
+    const dependencies = rawRequiredBy
+        .map((dependency) => ({
+            id: dependency?.id ?? null,
+            mainProductId: dependency?.mainProductId ?? null,
+            relatedProductId: dependency?.relatedProductId ?? po.id ?? null,
+            quantityPerMainProduct: dependency?.quantityPerMainProduct != null ? Number(dependency.quantityPerMainProduct) : 1,
+            mainProduct: dependency?.mainProduct ? {
+                id: dependency.mainProduct.id,
+                code: dependency.mainProduct.code,
+                name: dependency.mainProduct.name,
+                productType: dependency.mainProduct.productType,
+                isActive: dependency.mainProduct.isActive
+            } : null
+        }))
+        .filter((dependency) => dependency.mainProductId);
+
+    const relatedProductDependencies = rawRequiredRelated
+        .map((dependency) => ({
+            id: dependency?.id ?? null,
+            mainProductId: dependency?.mainProductId ?? po.id ?? null,
+            relatedProductId: dependency?.relatedProductId ?? null,
+            quantityPerMainProduct: dependency?.quantityPerMainProduct != null ? Number(dependency.quantityPerMainProduct) : 1,
+            relatedProduct: dependency?.relatedProduct ? {
+                id: dependency.relatedProduct.id,
+                code: dependency.relatedProduct.code,
+                name: dependency.relatedProduct.name,
+                productType: dependency.relatedProduct.productType,
+                isActive: dependency.relatedProduct.isActive
+            } : null
+        }))
+        .filter((dependency) => dependency.relatedProductId);
+
     return {
         id: po.id ?? null,
         code: po.code ?? null,
@@ -47,11 +81,16 @@ export function serializeProductForApi(row, options = {}) {
         description: po.description ?? null,
         translations: po.translations ?? {},
         imageUrl: po.imageUrl ?? null,
+        unitPriceEurExVat: price,
         price,
         status: po.isActive === true ? 'Active' : (po.isActive === false ? 'Inactive' : null),
         isActive: po.isActive ?? null,
+        productType: po.productType || 'STANDARD',
         allowedRanges,
         allowedColors,
-        mappings
+        mappings,
+        dependencies,
+        mainProducts: dependencies,
+        relatedProductDependencies
     };
 }

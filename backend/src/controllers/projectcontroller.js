@@ -1,9 +1,7 @@
 import * as projectService from '../services/projectservice.js';
 import { sendResponse, sendError } from '../utils/apiResponse.js';
 
-const resolveProjectScopeUserId = (user) => (
-    user?.role === 'admin' ? null : user?.id
-);
+const resolveProjectScopeUserId = (user) => user?.id;
 
 export const createProject = async (req, res, next) => {
     try {

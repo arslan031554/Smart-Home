@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createPortal } from 'react-dom';
-import { attachGuestDraftToAccount, fetchCalculation, fetchCurrentConfiguratorDraft, fetchPublicConfiguratorDraft, hydrateConfigurator, setStep, syncConfiguratorDraft, syncGuestConfiguratorDraft } from '@/features/configurator/configuratorSlice';
+import { attachGuestDraftToAccount, clearConfiguratorCalculation, fetchCalculation, fetchCurrentConfiguratorDraft, fetchPublicConfiguratorDraft, hydrateConfigurator, resetConfigurator, setStep, syncConfiguratorDraft, syncGuestConfiguratorDraft } from '@/features/configurator/configuratorSlice';
+import { clearGeneratedOffer } from '@/features/offers/offersSlice';
 import { fetchPublicMasterData } from '@/features/admin/adminSlice';
 import {
     ChevronRight, ChevronLeft, Check, Layout, Star, Settings,
-    FileText, Zap, Save, ShieldCheck, Activity, Monitor, Palette,
+    FileText, Zap, Save, ShieldCheck, Activity, Monitor, Palette, RotateCcw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,6 +62,16 @@ function hasMeaningfulConfiguratorProgress(configuratorState = {}) {
     );
 }
 
+function hasCalculationPrerequisites(configuratorState = {}) {
+    const levels = Array.isArray(configuratorState.levels) ? configuratorState.levels : [];
+    const hasAnyFunctions = levels.some((level) =>
+        (level.rooms || []).some((room) =>
+            Array.isArray(room.functions) && room.functions.some((fn) => Number(fn?.quantity || 0) > 0)
+        )
+    );
+
+    return Boolean(configuratorState.range && hasAnyFunctions);
+}
 const REQUIRED_MASTER_DATA_KEYS = ['building-types', 'room-types', 'smart-functions', 'product-ranges', 'colors', 'services'];
 const OPTIONAL_CONTENT_KEYS = ['offer-conditions', 'disclaimers'];
 
@@ -77,6 +88,7 @@ export default function ConfiguratorPage() {
     const [isSavingDraft, setIsSavingDraft] = useState(false);
     const [hasBootstrappedDraft, setHasBootstrappedDraft] = useState(false);
     const hasResolvedInitialDraftRef = useRef(false);
+    const processedFreshStartRef = useRef(false);
     const stepContentRef = useRef(null);
     const masterDataStatus = adminState.masterDataStatus || {};
     const masterDataError = adminState.error;
@@ -84,7 +96,23 @@ export default function ConfiguratorPage() {
     const isReady = REQUIRED_MASTER_DATA_KEYS.every((k) => masterDataStatus[k] === 'succeeded' || (k === 'building-types' && (adminState.buildingTypes || []).length));
     const isLoading = REQUIRED_MASTER_DATA_KEYS.some((k) => masterDataStatus[k] === 'loading');
     const isFailed = REQUIRED_MASTER_DATA_KEYS.some((k) => masterDataStatus[k] === 'failed');
+    const hasCalculationInputs = hasCalculationPrerequisites(configuratorState);
 
+
+    useEffect(() => {
+        if (location.state?.freshConfigurator !== true || processedFreshStartRef.current) return;
+        processedFreshStartRef.current = true;
+        hasResolvedInitialDraftRef.current = true;
+        clearStoredConfiguratorSnapshot({ keepGuestSession: true });
+        dispatch(resetConfigurator());
+        setHasBootstrappedDraft(true);
+        navigate(location.pathname, { replace: true, state: {} });
+    }, [dispatch, location.pathname, location.state?.freshConfigurator, navigate]);
+
+    useEffect(() => {
+        if (hasCalculationInputs || !configuratorState.calculation) return;
+        dispatch(clearConfiguratorCalculation());
+    }, [configuratorState.calculation, dispatch, hasCalculationInputs]);
     useEffect(() => {
         const returnStep = location.state?.returnStep;
         if (returnStep != null && typeof returnStep === 'number') {
@@ -323,6 +351,13 @@ export default function ConfiguratorPage() {
         }
     };
 
+    const handleStartNewConfigurator = () => {
+        clearStoredConfiguratorSnapshot({ keepGuestSession: true });
+        dispatch(resetConfigurator());
+        dispatch(clearGeneratedOffer());
+        navigate('/configurator', { replace: true, state: { freshConfigurator: true } });
+    };
+
     const handleSaveDraft = async () => {
         if (!hasMeaningfulConfiguratorProgress(configuratorState)) return;
         setIsSavingDraft(true);
@@ -345,7 +380,7 @@ export default function ConfiguratorPage() {
     };
 
     const calculation = configuratorState.calculation;
-    const hasBackendTotal = calculation != null && typeof calculation.grandTotal === 'number';
+    const hasBackendTotal = hasCalculationInputs && calculation != null && typeof calculation.grandTotal === 'number';
     const totalPrice = hasBackendTotal ? calculation.grandTotal : null;
     const noCompatibleProducts = Boolean(calculation?.noCompatibleProducts);
     const calcError = configuratorState.calcError;
@@ -442,8 +477,8 @@ export default function ConfiguratorPage() {
         <div className="fixed inset-x-0 bottom-0 z-[999] border-t border-primary-500/15 bg-white/95 px-4 pt-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-16px_42px_rgba(3,18,13,0.12)] backdrop-blur-2xl [transform:translateZ(0)] transition-none sm:px-6 lg:px-10">
             <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary-500/30 bg-primary-500/12 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-700">
-                        <div className="h-2 w-2 rounded-full bg-primary-500" />
+                    <div className="inline-flex w-fit items-center gap-2 rounded-md border border-primary-500/30 bg-primary-500/12 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-700">
+                        <div className="h-2 w-2 rounded-md bg-primary-500" />
                         {t('configurator.realtimeValuation')}
                     </div>
                     <div>
@@ -463,22 +498,31 @@ export default function ConfiguratorPage() {
                 <div className="flex w-full items-center gap-3 sm:w-auto">
                     <Button
                         variant="secondary"
-                        size="lg"
-                        className="flex-1 gap-2 sm:flex-none"
+                        size="md"
+                        className="flex-1 gap-2 sm:flex-none rounded-md"
+                        onClick={handleStartNewConfigurator}
+                    >
+                        <RotateCcw className="h-5 w-5" />
+                        {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="md"
+                        className="flex-1 gap-2 sm:flex-none rounded-md"
                         onClick={handleBack}
                         disabled={currentStep === 1 || currentStep >= 8}
                     >
-                        <ChevronLeft className="h-4.5 w-4.5" />
+                        <ChevronLeft className="h-5 w-5" />
                         {t('configurator.goBack')}
                     </Button>
                     <Button
-                        size="lg"
-                        className="flex-1 gap-2 sm:flex-none"
+                        size="md"
+                        className="flex-1 gap-2 sm:flex-none rounded-md"
                         onClick={handleNext}
                         disabled={currentStep >= 8}
                     >
                         {primaryActionLabel}
-                        <ChevronRight className="h-4.5 w-4.5" />
+                        <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
             </div>
@@ -487,9 +531,9 @@ export default function ConfiguratorPage() {
 
     return (
         <>
-            <AnimatedPageWrapper className="configurator-theme min-h-screen overflow-x-hidden pb-40 text-textPrimary">
-                <section className="w-full px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
-                <div className="mx-auto max-w-7xl space-y-8">
+            <AnimatedPageWrapper className="configurator-theme min-h-screen overflow-x-hidden pb-32 text-textPrimary">
+                <section className="w-full px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+                <div className="mx-auto max-w-7xl space-y-5 sm:space-y-6 lg:space-y-8">
                 {!isReady && (isLoading || isFailed) ? (
                     <Card className="rounded-[1.5rem] p-8 sm:p-10">
                         <div className="space-y-4 text-center">
@@ -516,7 +560,7 @@ export default function ConfiguratorPage() {
                     </Card>
                 ) : null}
 
-                <div className="hero-frame relative overflow-hidden rounded-[1.75rem] px-5 py-6 sm:rounded-[2.25rem] sm:px-8 sm:py-8 lg:px-10">
+                <div className="hero-frame relative overflow-hidden rounded-[1.25rem] border border-primary-100/70 bg-white/85 px-4 py-5 shadow-soft sm:rounded-[1.5rem] sm:px-6 sm:py-6 lg:px-8">
                     <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
                     <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
                         <div className="space-y-4">
@@ -562,7 +606,7 @@ export default function ConfiguratorPage() {
                     </div>
                 </div>
 
-                <Card className="rounded-[1.75rem] p-4 sm:p-5 lg:p-6">
+                <Card className="rounded-[1.25rem] p-3 sm:p-4 lg:p-5">
                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary-700">
@@ -577,9 +621,9 @@ export default function ConfiguratorPage() {
                                 <span>{Math.round(progressPct)}%</span>
                                 <span>{currentVisibleIndex + 1}/{visibleSteps.length}</span>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-primary-500/10">
+                            <div className="h-2 w-full overflow-hidden rounded-md bg-primary-500/10">
                                 <div
-                                    className="h-full rounded-full bg-gradient-brand transition-all duration-1000 ease-out"
+                                    className="h-full rounded-md bg-gradient-brand transition-all duration-1000 ease-out"
                                     style={{ width: `${progressPct}%` }}
                                 />
                             </div>
@@ -597,7 +641,7 @@ export default function ConfiguratorPage() {
                     </div>
                 </Card>
 
-                <div ref={stepContentRef} className="relative min-h-[500px]">
+                <div ref={stepContentRef} className="relative min-h-[500px] rounded-[1.25rem] border border-primary-100/70 bg-[#f7f8f2] p-2 sm:p-3 lg:p-4">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={currentStep}
@@ -622,3 +666,4 @@ export default function ConfiguratorPage() {
         </>
     );
 }
+

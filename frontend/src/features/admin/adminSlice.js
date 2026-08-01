@@ -20,8 +20,9 @@ export const addProduct = createAsyncThunk('admin/addProduct', async (data, { di
     return dispatch(addMasterDataItem({ key: 'products', data })).unwrap();
 });
 
-export const updateProduct = createAsyncThunk('admin/updateProduct', async ({ id, ...data }, { dispatch }) => {
-    return dispatch(updateMasterDataItem({ key: 'products', id, data })).unwrap();
+export const updateProduct = createAsyncThunk('admin/updateProduct', async ({ id, data, ...rest }, { dispatch }) => {
+    const payload = data instanceof FormData ? data : (data || rest);
+    return dispatch(updateMasterDataItem({ key: 'products', id, data: payload })).unwrap();
 });
 
 export const deleteProduct = createAsyncThunk('admin/deleteProduct', async (id, { dispatch }) => {

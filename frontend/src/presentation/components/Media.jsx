@@ -34,7 +34,7 @@ export default function Media() {
           {youtubeVideos.map((video, index) => (
             <RevealCard
               as="article"
-              className="group overflow-hidden rounded-lg bg-ink shadow-2xl shadow-emerald/15"
+              className="group overflow-hidden rounded-[1.5rem] bg-ink shadow-2xl shadow-emerald/15"
               index={index}
               key={video.videoId}
             >
@@ -66,7 +66,7 @@ export default function Media() {
                       <ExternalLink size={13} />
                     </a>
                   </div>
-                  <h3 className="text-xl font-black uppercase">{video.title}</h3>
+                  <h3 className="text-xl font-semibold">{video.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-white/62">{video.subtitle}</p>
                 </div>
               </div>
@@ -80,7 +80,7 @@ export default function Media() {
             return (
               <RevealCard
                 as="article"
-                className={`group relative min-h-72 cursor-pointer overflow-hidden rounded-lg bg-ink ${
+                className={`group relative min-h-72 cursor-pointer overflow-hidden rounded-[1.5rem] bg-ink ${
                   index === 0 ? 'lg:col-span-2' : ''
                 }`}
                 index={index}
@@ -104,7 +104,7 @@ export default function Media() {
                   </div>
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-[0.28em] text-orange">{media.video}</span>
-                    <h3 className="mt-2 text-xl font-black uppercase text-white">{item.title}</h3>
+                    <h3 className="mt-2 text-xl font-semibold text-white">{item.title}</h3>
                     <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-white/60">
                       <Youtube size={13} className="text-orange" />
                       {media.channel}

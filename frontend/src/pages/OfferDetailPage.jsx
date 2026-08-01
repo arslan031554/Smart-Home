@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
     ArrowLeft,
@@ -186,12 +186,14 @@ export default function OfferDetailPage() {
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
     const { t, i18n } = useTranslation();
     const { currentOffer: offer, loading } = useSelector((state) => state.offers);
     const { user } = useSelector((state) => state.auth);
     const adminState = useSelector((state) => state.admin);
     const [exporting, setExporting] = useState(null);
     const [accepting, setAccepting] = useState(false);
+    const [sendingReminder, setSendingReminder] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -261,7 +263,7 @@ export default function OfferDetailPage() {
     const roomTypeMap = new Map(roomTypes.map((item) => [item.id, item]));
     const products = Array.isArray(offer.products) ? offer.products : [];
     const services = Array.isArray(offer.services) ? offer.services : [];
-    const hardwareItems = products.map((product) => ({
+    const allHardwareItems = products.map((product) => ({
         name: product.productName,
         code: product.productCode,
         description: product.productDescription,
@@ -271,7 +273,10 @@ export default function OfferDetailPage() {
         imageUrl: product.imageUrl || null,
         rangeName: product.rangeName || null,
         colorName: product.colorName || null,
+        lineType: product.lineType === 'RELATED' ? 'RELATED' : 'STANDARD',
     }));
+    const hardwareItems = allHardwareItems.filter((item) => item.lineType !== 'RELATED');
+    const relatedHardwareItems = allHardwareItems.filter((item) => item.lineType === 'RELATED');
     const roomsCount = snapshotLevels.reduce((acc, level) => acc + (Array.isArray(level?.rooms) ? level.rooms.length : 0), 0);
     const functionsCount = snapshotLevels.reduce((acc, level) => acc + (Array.isArray(level?.rooms) ? level.rooms.reduce((roomAcc, room) => {
         const selections = Array.isArray(room?.functionSelections) ? room.functionSelections : (Array.isArray(room?.functions) ? room.functions : []);
@@ -304,8 +309,8 @@ export default function OfferDetailPage() {
     const selectedColorId = snapshot.selectedColorId ?? snapshot.colorId ?? null;
     const selectedRange = productRanges.find((item) => item.id === selectedRangeId) || null;
     const selectedColor = colors.find((item) => item.id === selectedColorId) || null;
-    const rangeLabel = selectedRange?.name || hardwareItems.find((item) => item.rangeName)?.rangeName || t('offers.detail.notSelected', { defaultValue: 'Not selected' });
-    const colorLabel = selectedColor?.name || hardwareItems.find((item) => item.colorName)?.colorName || t('offers.detail.notSelected', { defaultValue: 'Not selected' });
+    const rangeLabel = selectedRange?.name || allHardwareItems.find((item) => item.rangeName)?.rangeName || t('offers.detail.notSelected', { defaultValue: 'Not selected' });
+    const colorLabel = selectedColor?.name || allHardwareItems.find((item) => item.colorName)?.colorName || t('offers.detail.notSelected', { defaultValue: 'Not selected' });
     const buildingDescription = snapshotProjectInfo.buildingTypeDescription || offer.project?.buildingType?.description || '';
     const projectDescription = snapshotProjectInfo.description || offer.project?.description || '';
     const customerComments = offer.customerComments || snapshot.customerComments || '';
@@ -313,6 +318,13 @@ export default function OfferDetailPage() {
     const companyName = snapshotProjectInfo.companyName || '';
     const levelSummaries = buildLevelSummaries(snapshotLevels, roomTypeMap, smartFunctionMap);
     const usedFunctions = aggregateUsedFunctions(snapshotLevels, smartFunctionMap);
+    const normalizedStatus = String(offer.status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const isAdminUser = hasAdminAccess(user);
+    const isDashboardOfferRoute = location.pathname.startsWith('/dashboard/offers/');
+    const isAdminOfferRoute = location.pathname.startsWith('/admin/offers/');
+    const canAcceptOffer = isDashboardOfferRoute && normalizedStatus === 'offer_generated';
+    const canUseEmailShortcut = isAdminOfferRoute && isAdminUser && Boolean(customerEmail);
+    const canSendReminderEmail = isAdminOfferRoute && isAdminUser && normalizedStatus === 'offer_generated' && Boolean(customerEmail);
 
     const handleExport = async (format) => {
         setExporting(format);
@@ -342,6 +354,17 @@ export default function OfferDetailPage() {
         window.location.href = `mailto:${customerEmail}?subject=${subject}`;
     };
 
+    const handleSendReminderEmail = async () => {
+        if (sendingReminder || !canSendReminderEmail) return;
+        setSendingReminder(true);
+        try {
+            await api.post(`/offers/${id}/followup/send-reminder`);
+            await dispatch(fetchOfferById(id));
+        } finally {
+            setSendingReminder(false);
+        }
+    };
+
     const handleEditOffer = async () => {
         const result = await dispatch(reopenOfferById(id));
         if (reopenOfferById.fulfilled.match(result)) {
@@ -366,7 +389,7 @@ export default function OfferDetailPage() {
     };
 
     const handleAcceptOffer = async () => {
-        if (accepting || offer.status === 'ordered' || offer.status === 'cancelled') return;
+        if (accepting || !canAcceptOffer) return;
         setAccepting(true);
         try {
             await dispatch(updateOfferStatus({ id, status: 'ordered' })).unwrap();
@@ -487,33 +510,41 @@ export default function OfferDetailPage() {
 
                         <div className="flex flex-wrap items-center gap-3 xl:justify-end">
                             <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/5 p-1.5">
-                                <Button variant="ghost" className="h-10 w-10 rounded-full p-0" title={t('offers.detail.print')} onClick={handlePrint}>
+                                <Button variant="ghost" className="h-9 w-9 rounded-full p-0" title={t('offers.detail.print')} onClick={handlePrint}>
                                     <Printer className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" className="h-10 w-10 rounded-full p-0" title={t('offers.detail.email')} onClick={handleEmail} disabled={!customerEmail}>
-                                    <Mail className="h-4 w-4" />
-                                </Button>
+                                {canUseEmailShortcut ? (
+                                    <Button variant="ghost" className="h-9 w-9 rounded-full p-0" title={t('offers.detail.email')} onClick={handleEmail}>
+                                        <Mail className="h-4 w-4" />
+                                    </Button>
+                                ) : null}
                             </div>
-                            <Button variant="secondary" size="lg" className="gap-2" onClick={handleEditOffer}>
+                            <Button variant="secondary" size="md" className="gap-2" onClick={handleEditOffer}>
                                 <Edit3 className="h-4.5 w-4.5" />
                                 {t('offers.detail.edit')}
                             </Button>
-                            <Button variant="outline" size="lg" className="gap-2" onClick={handleDuplicateOffer}>
+                            <Button variant="outline" size="md" className="gap-2" onClick={handleDuplicateOffer}>
                                 <Copy className="h-4.5 w-4.5" />
                                 {t('offers.detail.duplicate')}
                             </Button>
-                            <Button variant="secondary" size="lg" className="gap-2 border-red-500/20 text-red-300 hover:bg-red-500/10 hover:text-red-200" onClick={handleDeleteOffer}>
+                            <Button variant="secondary" size="md" className="gap-2 border-red-500/20 text-red-300 hover:bg-red-500/10 hover:text-red-200" onClick={handleDeleteOffer}>
                                 <Trash2 className="h-4.5 w-4.5" />
                                 {t('offers.detail.delete')}
                             </Button>
-                            <Button size="lg" className="gap-2" onClick={() => handleExport('pdf')} disabled={!!exporting}>
+                            <Button size="md" className="gap-2" onClick={() => handleExport('pdf')} disabled={!!exporting}>
                                 {exporting === 'pdf' ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Download className="h-4.5 w-4.5" />}
                                 {t('offers.detail.exportPdf')}
                             </Button>
-                            {hasAdminAccess(user) ? (
-                                <Button variant="outline" size="lg" className="gap-2" onClick={() => handleExport('excel')} disabled={!!exporting}>
+                            {isAdminUser ? (
+                                <Button variant="outline" size="md" className="gap-2" onClick={() => handleExport('excel')} disabled={!!exporting}>
                                     {exporting === 'excel' ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Download className="h-4.5 w-4.5" />}
                                     {t('offers.detail.exportExcel', { defaultValue: 'Export Excel' })}
+                                </Button>
+                            ) : null}
+                            {canSendReminderEmail ? (
+                                <Button variant="outline" size="md" className="gap-2" onClick={handleSendReminderEmail} disabled={sendingReminder}>
+                                    {sendingReminder ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : <Bell className="h-4.5 w-4.5" />}
+                                    {t('offers.detail.sendReminderEmail', { defaultValue: 'Send Reminder Email' })}
                                 </Button>
                             ) : null}
                         </div>
@@ -533,8 +564,8 @@ export default function OfferDetailPage() {
                             },
                             {
                                 icon: Box,
-                                label: t('offers.detail.lineItems', { count: hardwareItems.length }),
-                                value: hardwareItems.length,
+                                label: t('offers.detail.lineItems', { count: allHardwareItems.length }),
+                                value: allHardwareItems.length,
                             },
                             {
                                 icon: Wrench,
@@ -544,7 +575,7 @@ export default function OfferDetailPage() {
                         ].map((item) => (
                             <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                         <item.icon className="h-5 w-5" />
                                     </div>
                                     <div>
@@ -572,7 +603,7 @@ export default function OfferDetailPage() {
                                 {projectFacts.map((fact) => (
                                     <div key={fact.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 p-5">
                                         <div className="flex items-start gap-4">
-                                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                                 <fact.icon className="h-5 w-5" />
                                             </div>
                                             <div className="min-w-0">
@@ -631,7 +662,7 @@ export default function OfferDetailPage() {
                                                     <div key={room.id} className="rounded-[1.6rem] border border-white/8 bg-white/5 p-5">
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-primary-300">
+                                                                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-primary-300">
                                                                     <Home className="h-5 w-5" />
                                                                 </div>
                                                                 <div>
@@ -674,141 +705,52 @@ export default function OfferDetailPage() {
                                     </div>
                                 )) : (
                                     <Card className="rounded-[1.5rem] p-6 text-sm text-textSecondary">
-                                        {t('offers.detail.noProjectConfiguration', { defaultValue: 'No project structure was stored with this offer.' })}
+                                        {t('offers.detail.noLevels', { defaultValue: 'No levels are stored in this offer.' })}
                                     </Card>
                                 )}
                             </div>
                         </Card>
-                    </section>
-
-                    <section className="space-y-4">
-                        <SectionTitle
-                            title={t('offers.detail.functionsChapter', { defaultValue: 'FUNCTIONS' })}
-                            badge={t('offers.detail.functionsChapterBadge', { defaultValue: 'Chapter 2 / 4' })}
-                            className="mb-0"
-                        />
-
+                    </section>                    <section className="space-y-4">
+                        <SectionTitle title={t('offers.detail.functionsChapter', { defaultValue: 'FUNCTIONS' })} badge={t('offers.detail.functionsChapterBadge', { defaultValue: 'Chapter 2 / 4' })} className="mb-0" />
                         {usedFunctions.length ? (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 {usedFunctions.map((item) => (
-                                    <Card key={item.id} className="rounded-[1.8rem] p-6">
-                                        <div className="space-y-4">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="flex items-start gap-4">
-                                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                                        <FunctionIcon iconName={item.icon} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-lg font-medium leading-tight text-textPrimary">{item.name}</p>
-                                                        {item.description ? (
-                                                            <p className="mt-2 text-sm leading-relaxed text-textSecondary">{item.description}</p>
-                                                        ) : (
-                                                            <p className="mt-2 text-sm text-textSecondary">
-                                                                {t('offers.detail.functionDescriptionFallback', { defaultValue: 'Configured smart-home function used in this project.' })}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                                        {t('offers.detail.quantity', { defaultValue: 'Quantity' })}
-                                                    </p>
-                                                    <p className="mt-1 text-2xl font-semibold leading-none text-primary-300">x {item.quantity}</p>
+                                    <Card key={item.id || item.name} className="rounded-[1.5rem] p-5">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <FunctionIcon iconName={item.icon} className="h-5 w-5 text-primary-300" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-textPrimary">{item.name}</p>
+                                                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{item.rooms?.length || 0} rooms</p>
                                                 </div>
                                             </div>
-
-                                            <div className="rounded-[1.2rem] border border-white/8 bg-white/5 px-4 py-3">
-                                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                                    {t('offers.detail.functionCoverage', { defaultValue: 'Used In' })}
-                                                </p>
-                                                <p className="mt-2 text-sm text-textPrimary">
-                                                    {item.rooms.map((room) => `${room.levelName} / ${room.roomName}`).join(', ')}
-                                                </p>
-                                            </div>
+                                            <Badge variant="primary">x {item.totalQty}</Badge>
                                         </div>
                                     </Card>
                                 ))}
                             </div>
                         ) : (
-                            <Card className="rounded-[2rem] p-8 text-center">
-                                <p className="text-sm text-textSecondary">
-                                    {t('offers.detail.noFunctions', { defaultValue: 'No smart functions with quantity greater than zero were stored in this offer.' })}
-                                </p>
-                            </Card>
+                            <Card className="rounded-[2rem] p-8 text-center"><p className="text-sm text-textSecondary">{t('offers.detail.noFunctions', { defaultValue: 'No smart functions with quantity greater than zero were stored in this offer.' })}</p></Card>
                         )}
                     </section>
 
-                    <section className="space-y-4">
-                        <SectionTitle
-                            title={t('offers.detail.productsChapter', { defaultValue: 'PRODUCTS' })}
-                            badge={t('offers.detail.productsChapterBadge', { defaultValue: 'Chapter 3 / 4' })}
-                            className="mb-0"
-                        />
 
+                    <section className="space-y-4">
+                        <SectionTitle title={t('offers.detail.productsChapter', { defaultValue: 'PRODUCTS' })} badge={t('offers.detail.productsChapterBadge', { defaultValue: 'Chapter 3 / 4' })} className="mb-0" />
                         <PremiumTableWrapper>
-                            <thead>
-                                <tr className="border-b border-white/8 bg-white/5">
-                                    <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.photo', { defaultValue: 'Photo' })}
-                                    </th>
-                                    <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.componentSpec')}
-                                    </th>
-                                    <th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.quantity')}
-                                    </th>
-                                    <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.unitNet')}
-                                    </th>
-                                    <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.totalNet')}
-                                    </th>
-                                </tr>
-                            </thead>
+                            <thead><tr className="border-b border-white/8 bg-white/5"><th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.photo', { defaultValue: 'Photo' })}</th><th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.componentSpec')}</th><th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.quantity')}</th><th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.unitNet')}</th><th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.totalNet')}</th></tr></thead>
                             <tbody className="divide-y divide-white/8">
-                                {hardwareItems.length ? hardwareItems.map((item, idx) => (
-                                    <tr key={`${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5">
-                                        <td className="px-6 py-5">
-                                            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/8 bg-white/5">
-                                                {item.imageUrl ? (
-                                                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <ImageOff className="h-5 w-5 text-textSecondary" />
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-5">
-                                            <p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>
-                                            {item.description ? (
-                                                <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p>
-                                            ) : null}
-                                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.code}</span>
-                                                {item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}
-                                                {item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-5 text-center">
-                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">
-                                                {item.qty}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td>
-                                        <td className="px-6 py-5 text-right">
-                                            <p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-10 text-center text-sm text-textSecondary">
-                                            {t('offers.detail.noHardware', { defaultValue: 'No hardware line items were generated for this offer yet.' })}
-                                        </td>
-                                    </tr>
-                                )}
+                                {hardwareItems.map((item, idx) => (
+                                    <tr key={`${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5"><td className="px-6 py-5"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/8 bg-white/5">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /> : <ImageOff className="h-5 w-5 text-textSecondary" />}</div></td><td className="px-6 py-5"><p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>{item.description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.code}</span>{item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}{item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}</div></td><td className="px-6 py-5 text-center"><span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">{item.qty}</span></td><td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td><td className="px-6 py-5 text-right"><p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p></td></tr>
+                                ))}
+                                {relatedHardwareItems.length ? <tr><td colSpan="5" className="px-6 py-4"><div className="rounded-md border border-primary-500/12 bg-primary-500/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-300">{t('offers.detail.relatedProducts', { defaultValue: 'Related Products' })}</div></td></tr> : null}
+                                {relatedHardwareItems.map((item, idx) => (
+                                    <tr key={`related-${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5"><td className="px-6 py-5"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/8 bg-white/5">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /> : <ImageOff className="h-5 w-5 text-textSecondary" />}</div></td><td className="px-6 py-5"><p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>{item.description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary-300">{item.code}</span><Badge variant="primary">{t('offers.detail.autoCalculated', { defaultValue: 'Auto calculated' })}</Badge>{item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}{item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}</div></td><td className="px-6 py-5 text-center"><span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">{item.qty}</span></td><td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td><td className="px-6 py-5 text-right"><p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p></td></tr>
+                                ))}
+                                {allHardwareItems.length === 0 ? <tr><td colSpan="5" className="px-6 py-10 text-center text-sm text-textSecondary">{t('offers.detail.noHardware', { defaultValue: 'No hardware line items were generated for this offer yet.' })}</td></tr> : null}
                             </tbody>
                         </PremiumTableWrapper>
                     </section>
-
                     <section className="space-y-4">
                         <SectionTitle
                             title={t('offers.detail.servicesChapter', { defaultValue: 'SERVICES' })}
@@ -851,7 +793,7 @@ export default function OfferDetailPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 text-center">
-                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">
+                                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">
                                                 {service.calcQty ?? 1}
                                             </span>
                                         </td>
@@ -913,17 +855,18 @@ export default function OfferDetailPage() {
                                 <p className="mt-3 font-heading text-5xl font-semibold leading-none text-textPrimary">{formatCurrency(grandTotal)}</p>
                                 <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.exclVat')}</p>
                             </div>
-
-                            <Button
-                                size="lg"
-                                className="w-full gap-2"
-                                onClick={handleAcceptOffer}
-                                disabled={accepting || offer.status === 'ordered' || offer.status === 'cancelled'}
-                            >
-                                {accepting ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : null}
-                                {t('offers.detail.accept')}
-                                <ArrowRight className="h-4.5 w-4.5" />
-                            </Button>
+                            {canAcceptOffer ? (
+                                <Button
+                                    size="md"
+                                    className="w-full gap-2"
+                                    onClick={handleAcceptOffer}
+                                    disabled={accepting}
+                                >
+                                    {accepting ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : null}
+                                    {t('offers.detail.accept')}
+                                    <ArrowRight className="h-4.5 w-4.5" />
+                                </Button>
+                            ) : null}
 
                             <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
                                 {t('offers.detail.validFor')}
@@ -933,7 +876,7 @@ export default function OfferDetailPage() {
 
                     <Card className="rounded-[2rem] p-6">
                         <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                 <FileText className="h-5 w-5" />
                             </div>
                             <div>
@@ -960,7 +903,7 @@ export default function OfferDetailPage() {
 
                     <Card className="rounded-[2rem] border border-amber-500/20 bg-amber-500/10 p-6">
                         <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-300">
                                 <Shield className="h-5 w-5" />
                             </div>
                             <div>
@@ -984,7 +927,7 @@ export default function OfferDetailPage() {
 
                     <Card className="rounded-[2rem] p-6">
                         <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                 <MessageSquareText className="h-5 w-5" />
                             </div>
                             <div>
@@ -1004,7 +947,7 @@ export default function OfferDetailPage() {
 
                     <Card className="rounded-[2rem] p-6">
                         <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                 <Bell className="h-5 w-5" />
                             </div>
                             <div>
@@ -1024,12 +967,12 @@ export default function OfferDetailPage() {
                                         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.channel')}</span>
                                         <div className="flex gap-2">
                                             {follow.channels?.email ? (
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.emailChannel')}>
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.emailChannel')}>
                                                     <Mail className="h-3.5 w-3.5" />
                                                 </div>
                                             ) : null}
                                             {follow.channels?.sms ? (
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.smsChannel')}>
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.smsChannel')}>
                                                     <MessageSquare className="h-3.5 w-3.5" />
                                                 </div>
                                             ) : null}
@@ -1047,3 +990,4 @@ export default function OfferDetailPage() {
         </AnimatedPageWrapper>
     );
 }
+

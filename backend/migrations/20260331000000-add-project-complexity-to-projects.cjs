@@ -1,8 +1,19 @@
-﻿'use strict';
+'use strict';
+
+async function describeTableOrNull(queryInterface, tableName) {
+    try {
+        return await queryInterface.describeTable(tableName);
+    } catch (_) {
+        return null;
+    }
+}
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const table = await describeTableOrNull(queryInterface, 'Projects');
+    if (!table || table.projectComplexity) return;
+
     await queryInterface.addColumn('Projects', 'projectComplexity', {
       type: Sequelize.STRING,
       allowNull: true,
@@ -10,6 +21,9 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.removeColumn('Projects', 'projectComplexity');
+    const table = await describeTableOrNull(queryInterface, 'Projects');
+    if (table?.projectComplexity) {
+      await queryInterface.removeColumn('Projects', 'projectComplexity');
+    }
   }
 };

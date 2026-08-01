@@ -1,7 +1,7 @@
 import Project from '../../models/Project.js';
 import Offer from '../../models/Offer.js';
 import OfferFollowup from '../../models/OfferFollowup.js';
-import BuildingType from '../../models/BuildingType.js';
+import { getMyProjects } from './projectservice.js';
 import { Op } from 'sequelize';
 import { normalizeOfferStatus } from '../constants/offerStatus.js';
 
@@ -16,12 +16,7 @@ export const getDashboard = async (userId, userSummary) => {
     if (!userId) throw new Error('User ID required');
 
     const [projects, offers] = await Promise.all([
-        Project.findAll({
-            where: { userId },
-            order: [['updatedAt', 'DESC']],
-            include: [{ model: BuildingType, as: 'buildingType', attributes: ['id', 'name'] }],
-            attributes: ['id', 'name', 'buildingTypeId', 'updatedAt', 'createdAt']
-        }),
+        getMyProjects(userId),
         Offer.findAll({
             include: [{ model: Project, as: 'project', where: { userId }, attributes: ['id', 'name'], required: true }],
             order: [['updatedAt', 'DESC']],
@@ -34,7 +29,14 @@ export const getDashboard = async (userId, userSummary) => {
         return {
             id: po.id,
             title: po.name,
+            name: po.name,
             buildingTypeName: po.buildingType?.name || null,
+            status: po.status || 'draft',
+            builtUpArea: po.builtUpArea ?? null,
+            levelsCount: po.levelsCount ?? null,
+            multiplicationIndex: po.multiplicationIndex ?? null,
+            projectComplexity: po.projectComplexity || null,
+            description: po.description || null,
             updatedAt: po.updatedAt,
             createdAt: po.createdAt
         };
@@ -96,3 +98,4 @@ export const getDashboard = async (userId, userSummary) => {
         reminders
     };
 };
+

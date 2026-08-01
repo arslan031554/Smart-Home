@@ -15,9 +15,11 @@ export default function ServicesPage() {
         breadcrumb={pages.services.breadcrumb}
         image={siteImages.heroHome}
       />
-      <Services />
-      <Process />
-      <CTA />
+      <div id="page-content">
+        <Services />
+        <Process />
+        <CTA />
+      </div>
     </>
   );
 }

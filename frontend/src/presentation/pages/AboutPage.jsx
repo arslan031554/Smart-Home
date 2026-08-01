@@ -1,7 +1,6 @@
 import About from '../components/About';
 import CTA from '../components/CTA';
 import PageHero from '../components/PageHero';
-import Stats from '../components/Stats';
 import { usePresentationContent } from '../data/usePresentationContent';
 
 export default function AboutPage() {
@@ -15,9 +14,10 @@ export default function AboutPage() {
         breadcrumb={pages.about.breadcrumb}
         image={siteImages.about}
       />
-      <About />
-      <Stats />
-      <CTA />
+      <div id="page-content" className="pt-12 sm:pt-20">
+        <About />
+        <CTA />
+      </div>
     </>
   );
 }

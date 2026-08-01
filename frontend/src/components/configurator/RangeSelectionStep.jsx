@@ -6,6 +6,7 @@ import { Card, SectionTitle, Badge, Alert } from '../common/UIComponents';
 import rangeImage12 from '../../assets/12.JPG';
 import rangeImage13 from '../../assets/13.jfif';
 import rangeImage14 from '../../assets/14.jfif';
+import { useTranslation } from 'react-i18next';
 
 const RANGE_ASSET_IMAGES = [rangeImage12, rangeImage13, rangeImage14];
 
@@ -39,34 +40,35 @@ function getRangeFallbackImage(seedValue, index, randomOffset = 0) {
 }
 
 export default function RangeSelectionStep() {
+    const { t } = useTranslation();
     const dispatch = useDispatch();
     const { range } = useSelector((state) => state.configurator);
     const RANGES = useSelector((state) => state.admin.publicProductRanges) || [];
 
     if (!Array.isArray(RANGES) || RANGES.length === 0) {
         return (
-            <div className="space-y-12 animate-fade-in pb-20 max-w-7xl mx-auto">
+            <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto sm:space-y-8 sm:pb-20">
                 <SectionTitle
-                    title="Choose Product Range"
-                    subtitle="Loading available product ranges..."
-                    badge="Step 04: Product Range"
+                    title={t('configurator.range.title', { defaultValue: 'Choose Product Range' })}
+                    subtitle={t('configurator.range.loading', { defaultValue: 'Loading available product ranges...' })}
+                    badge={t('configurator.range.badge', { defaultValue: 'Step 04: Product Range' })}
                 />
                 <Alert variant="info" className="p-6 rounded-2xl">
-                    Product ranges are loading. If this persists, please refresh the page.
+                    {t('configurator.range.loadingHelp', { defaultValue: 'Product ranges are loading. If this persists, please refresh the page.' })}
                 </Alert>
             </div>
         );
     }
 
     return (
-        <div className="space-y-12 animate-fade-in pb-20 max-w-7xl mx-auto">
+        <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto sm:space-y-8 sm:pb-20">
             <SectionTitle
-                title="Choose Product Range"
-                subtitle="Select the product range for your entire project. This choice affects which products are eligible in the automatic calculation."
-                badge="Step 04: Product Range"
+                title={t('configurator.range.title', { defaultValue: 'Choose Product Range' })}
+                subtitle={t('configurator.range.subtitle', { defaultValue: 'Select the product range for your entire project. This choice affects which products are eligible in the automatic calculation.' })}
+                badge={t('configurator.range.badge', { defaultValue: 'Step 04: Product Range' })}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {RANGES.filter(r => r?.isVisible !== false).map((r, index) => {
                     const isActive = range === r.id;
                     const fallbackImage = getRangeFallbackImage(
@@ -80,7 +82,7 @@ export default function RangeSelectionStep() {
                     return (
                         <Card
                             key={r.id}
-                            className={`group relative overflow-hidden transition-all duration-500 cursor-pointer border-2 rounded-[2.5rem] ${isActive
+                            className={`group relative overflow-hidden transition-all duration-500 cursor-pointer border rounded-[1.25rem] sm:rounded-[1.5rem] ${isActive
                                 ? 'border-primary-600 ring-8 ring-primary-600/5 shadow-premium'
                                 : 'border-slate-100 hover:border-primary-200 shadow-sm hover:shadow-md bg-white'
                                 }`}
@@ -117,13 +119,17 @@ export default function RangeSelectionStep() {
                                 </div>
                             </div>
 
-                            <div className="p-8 space-y-6">
+                            <div className="space-y-4 p-5 sm:p-6 sm:space-y-5">
                                 <p className="text-sm font-medium text-slate-500 leading-relaxed line-clamp-3">
                                     {r.description || ''}
                                 </p>
 
                                 <div className="flex flex-wrap gap-2">
-                                    {(r.features || ['Premium Finish', 'Reliable Module', 'Smart Integration']).map((feature) => (
+                                    {(r.features || [
+                                        t('configurator.range.features.premium', { defaultValue: 'Premium Finish' }),
+                                        t('configurator.range.features.reliable', { defaultValue: 'Reliable Module' }),
+                                        t('configurator.range.features.smart', { defaultValue: 'Smart Integration' }),
+                                    ]).map((feature) => (
                                         <div key={feature} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl text-[10px] font-bold text-slate-500 border border-slate-100">
                                             <Sparkles className="w-3 h-3 text-primary-400" />
                                             {feature}
@@ -146,7 +152,7 @@ export default function RangeSelectionStep() {
 
             <Alert
                 variant="info"
-                className="p-8 border border-emerald-700/35 bg-gradient-to-r from-[#052e16] via-[#064e3b] to-[#052e16] text-white rounded-[2rem] shadow-xl relative overflow-hidden group mt-12 [&>svg]:text-white"
+                className="mt-8 rounded-[1.25rem] border border-emerald-700/35 bg-gradient-to-r from-[#052e16] via-[#064e3b] to-[#052e16] p-6 text-white shadow-xl relative overflow-hidden group sm:p-8 sm:rounded-[1.5rem] [&>svg]:text-white"
             >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full -mr-32 -mt-32 blur-[80px] opacity-40" />
                 <div className="flex items-start gap-6 relative z-10">
@@ -154,9 +160,9 @@ export default function RangeSelectionStep() {
                         <Box className="w-7 h-7" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-lg font-bold leading-none text-white">Project-level range</h4>
+                        <h4 className="text-lg font-bold leading-none text-white">{t('configurator.range.projectLevelTitle', { defaultValue: 'Project-level range' })}</h4>
                         <p className="text-sm font-medium text-white leading-relaxed max-w-3xl">
-                            The selected range applies to your whole project and is used by the system to calculate compatible products from your chosen smart functions.
+                            {t('configurator.range.projectLevelHelp', { defaultValue: 'The selected range applies to your whole project and is used by the system to calculate compatible products from your chosen smart functions.' })}
                         </p>
                     </div>
                 </div>

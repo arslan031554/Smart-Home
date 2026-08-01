@@ -4,6 +4,42 @@ import i18n from '../../i18n';
 import { buildNormalizedOfferPayload } from '../../utils/configuratorNormalization';
 import { normalizeOfferStatus } from '../../constants/offerStatuses';
 
+function sanitizeOfferId(value) {
+    if (!value || typeof value !== 'string') return null;
+    const normalized = value.trim();
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)
+        ? normalized
+        : null;
+}
+
+function sanitizeOfferIds(values) {
+    if (!Array.isArray(values)) return [];
+    return values.reduce((acc, value) => {
+        const normalized = sanitizeOfferId(value);
+        if (normalized) acc.push(normalized);
+        return acc;
+    }, []);
+}
+
+function sanitizeOfferLevels(levels) {
+    if (!Array.isArray(levels)) return [];
+    return levels.map((level) => ({
+        ...level,
+        id: sanitizeOfferId(level?.id) || undefined,
+        rooms: (Array.isArray(level?.rooms) ? level.rooms : []).map((room) => ({
+            ...room,
+            id: sanitizeOfferId(room?.id) || undefined,
+            type: sanitizeOfferId(room?.type) || null,
+            roomTypeId: sanitizeOfferId(room?.roomTypeId || room?.type) || null,
+            functions: (Array.isArray(room?.functions) ? room.functions : []).map((selection) => ({
+                ...selection,
+                id: sanitizeOfferId(selection?.id) || undefined,
+                smartFunctionId: sanitizeOfferId(selection?.smartFunctionId || selection?.id) || null,
+            })).filter((selection) => selection.smartFunctionId),
+        })),
+    }));
+}
+
 function buildOfferListItem(offer) {
     if (!offer || typeof offer !== 'object') return offer;
 
@@ -73,17 +109,20 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             services: offerData.serviceIds || offerData.services || [],
             customerComments: offerData.customerComments || null,
         });
+        const offerId = sanitizeOfferId(offerData.offerId || offerData.id || null);
         const payload = {
-            projectId: offerData.projectId || normalized.projectId || null,
+            projectId: sanitizeOfferId(offerData.projectId || normalized.projectId || null),
             projectInfo: normalized.projectInfo,
-            levels: normalized.levels,
-            rangeId: normalized.rangeId,
-            colorId: normalized.colorId,
-            selectedServiceIds: normalized.selectedServiceIds,
+            levels: sanitizeOfferLevels(normalized.levels),
+            rangeId: sanitizeOfferId(normalized.rangeId),
+            colorId: sanitizeOfferId(normalized.colorId),
+            selectedServiceIds: sanitizeOfferIds(normalized.selectedServiceIds),
             customerComments: normalized.customerComments,
             language,
         };
-        const response = await api.post('/offers/from-config', payload);
+        const response = offerId
+            ? await api.put(`/offers/${offerId}/from-config`, payload)
+            : await api.post('/offers/from-config', payload);
         try {
             await api.post('/configurator-drafts/current/complete', { offerId: response.data.data?.id || null });
         } catch {
@@ -93,6 +132,8 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to generate offer');
     }
+}, {
+    condition: (_, { getState }) => !getState().offers?.isGenerating,
 });
 
 export const updateOfferStatus = createAsyncThunk('offers/updateStatus', async ({ id, status }, { rejectWithValue }) => {
@@ -252,3 +293,4 @@ export const {
 } = offersSlice.actions;
 
 export default offersSlice.reducer;
+

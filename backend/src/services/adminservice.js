@@ -6,12 +6,14 @@ import { serializeSmartFunctionForApi } from '../serializers/smartfunctionserial
 import { serializeServiceForApi } from '../serializers/serviceserializer.js';
 import { normalizeTranslations } from '../utils/localization.js';
 import bcrypt from 'bcryptjs';
+import fs from 'fs/promises';
+import path from 'path';
 import { Op, fn, col } from 'sequelize';
 import { normalizeOfferStatus } from '../constants/offerStatus.js';
 import { getDefaultPermissionsForEmployeeRole, normalizePermissions } from '../constants/adminpermissions.js';
 
-const { RoomType, BuildingType, ProductRange, Color, ProductFunctionMapping, SmartFunction, Service, User, Offer } = models;
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { RoomType, BuildingType, ProductRange, Color, Product, ProductFunctionMapping, ProductDependency, ProductRangeColor, SmartFunction, Service, User, Offer, Project } = models;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Include options for models that have relations needed in list/detail */
 function getDefaultIncludes(modelName) {
@@ -25,8 +27,16 @@ function getDefaultIncludes(modelName) {
         return [
             { model: ProductRange, as: 'productRanges', attributes: ['id', 'name'], through: { attributes: [] } },
             { model: Color, as: 'colors', attributes: ['id', 'name'], through: { attributes: [] } },
-            { model: ProductFunctionMapping, as: 'mappings', include: [{ model: SmartFunction, as: 'smartFunction', attributes: ['id', 'name', 'code'] }] }
+            { model: ProductFunctionMapping, as: 'mappings', include: [{ model: SmartFunction, as: 'smartFunction', attributes: ['id', 'name', 'code'] }] },
+            { model: ProductDependency, as: 'requiredByProducts', include: [{ model: Product, as: 'mainProduct', attributes: ['id', 'name', 'code', 'productType', 'isActive'] }] },
+            { model: ProductDependency, as: 'requiredRelatedProducts', include: [{ model: Product, as: 'relatedProduct', attributes: ['id', 'name', 'code', 'productType', 'isActive'] }] }
         ];
+    }
+    if (modelName === 'Color') {
+        return [{ model: ProductRange, as: 'productRanges', attributes: ['id', 'name'], through: { attributes: [] } }];
+    }
+    if (modelName === 'ProductRange') {
+        return [{ model: Color, as: 'colors', attributes: ['id', 'name', 'hex', 'isVisible', 'isActive'], through: { attributes: [] } }];
     }
     if (modelName === 'Service') {
         return [{ model: SmartFunction, as: 'smartFunctions', attributes: ['id', 'name'], through: { attributes: [] } }];
@@ -39,14 +49,19 @@ function getDefaultIncludes(modelName) {
  */
 export const getAll = async (modelName, options = {}) => {
     const includes = getDefaultIncludes(modelName);
+    const baseOptions = modelName === 'SmartFunction' && !options.includeArchived
+        ? { ...options, where: { ...(options.where || {}), isActive: true } }
+        : { ...options };
+    delete baseOptions.includeArchived;
     const opts = includes.length
-        ? { ...options, include: options.include || includes }
-        : options;
+        ? { ...baseOptions, include: baseOptions.include || includes }
+        : baseOptions;
     const rows = await models[modelName].findAll(opts);
     if (modelName === 'Product') return rows.map((row) => serializeProductForApi(row));
     if (modelName === 'RoomType') return rows.map((row) => serializeRoomTypeForApi(row));
     if (modelName === 'SmartFunction') return rows.map((row) => serializeSmartFunctionForApi(row));
     if (modelName === 'Service') return rows.map((row) => serializeServiceForApi(row));
+    if (modelName === 'Color') return rows.map((row) => serializeColorWithRanges(row));
     return rows;
 };
 
@@ -60,6 +75,7 @@ export const getById = async (modelName, id, options = {}) => {
     if (modelName === 'RoomType' && row) return serializeRoomTypeForApi(row);
     if (modelName === 'SmartFunction' && row) return serializeSmartFunctionForApi(row);
     if (modelName === 'Service' && row) return serializeServiceForApi(row);
+    if (modelName === 'Color' && row) return serializeColorWithRanges(row);
     return row;
 };
 
@@ -136,9 +152,20 @@ const normalizePayload = (modelName, data) => {
     if (modelName === 'Product') {
         if (d.image !== undefined) { d.imageUrl = d.image; delete d.image; }
         if (d.status !== undefined) { d.isActive = d.status === 'Active'; delete d.status; }
+        if (d.productType !== undefined) { d.productType = String(d.productType).toUpperCase() === 'RELATED' ? 'RELATED' : 'STANDARD'; }
         delete d.allowedRanges;
         delete d.allowedColors;
+        delete d.rangeIds;
+        delete d.colorIds;
         delete d.mappings;
+        delete d.dependencies;
+        delete d.mainProducts;
+        delete d.imageFile;
+        delete d.__uploadedFile;
+    }
+    if (modelName === 'Color') {
+        delete d.productRanges;
+        delete d.rangeIds;
     }
     if (modelName === 'SmartFunction') {
         delete d.roomTypes;
@@ -189,6 +216,77 @@ async function assertIdsExist({ model, ids, fieldName, transaction }) {
     }
 }
 
+function parseMaybeJsonArray(raw, fieldName) {
+    if (Array.isArray(raw) || raw === null || raw === undefined) return raw;
+    if (typeof raw !== 'string') return raw;
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (!Array.isArray(parsed)) throw new Error(`${fieldName} must be an array`);
+        return parsed;
+    } catch (_) {
+        return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+}
+
+function normalizeUniqueUuidArrayFlexible(raw, fieldName) {
+    return normalizeUniqueUuidArray(parseMaybeJsonArray(raw, fieldName), fieldName);
+}
+
+function normalizeProductDependencies(raw) {
+    const parsed = parseMaybeJsonArray(raw, 'dependencies');
+    if (parsed === null || parsed === undefined) return null;
+    if (!Array.isArray(parsed)) throw throwValidation('Validation failed', { dependencies: 'dependencies must be an array' });
+
+    const rows = [];
+    const seen = new Set();
+    parsed.forEach((item, index) => {
+        const mainProductId = typeof item === 'object' && item !== null
+            ? (item.mainProductId || item.productId || item.id)
+            : item;
+        const rawQty = typeof item === 'object' && item !== null
+            ? item.quantityPerMainProduct
+            : 1;
+        const id = String(mainProductId || '').trim();
+        if (!id) return;
+        if (!UUID_REGEX.test(id)) throw throwValidation('Validation failed', { dependencies: `Invalid main product ID at index ${index}` });
+        const quantityPerMainProduct = rawQty === undefined || rawQty === null || rawQty === '' ? 1 : Number(rawQty);
+        if (!Number.isFinite(quantityPerMainProduct) || quantityPerMainProduct <= 0) {
+            throw throwValidation('Validation failed', { dependencies: `Quantity per main product must be greater than 0 at index ${index}` });
+        }
+        if (seen.has(id)) return;
+        seen.add(id);
+        rows.push({ mainProductId: id, quantityPerMainProduct });
+    });
+    return rows;
+}
+
+function isLocalUploadPath(value) {
+    const s = String(value || '').trim();
+    return s.startsWith('/uploads/products/');
+}
+
+function localUploadAbsolutePath(value) {
+    if (!isLocalUploadPath(value)) return null;
+    const filename = path.basename(String(value));
+    if (!filename || filename.includes('..')) return null;
+    return path.resolve(process.cwd(), 'uploads', 'products', filename);
+}
+
+async function deleteLocalUpload(value) {
+    const absolutePath = localUploadAbsolutePath(value);
+    if (!absolutePath) return;
+    try {
+        await fs.unlink(absolutePath);
+    } catch (error) {
+        if (error?.code !== 'ENOENT') console.warn('[uploads] failed to remove product image', error?.message || error);
+    }
+}
+
+function uploadedProductImagePath(file) {
+    return file?.filename ? `/uploads/products/${file.filename}` : null;
+}
 function normalizeAndDedupeProductMappings(rawMappings) {
     const mappings = Array.isArray(rawMappings) ? rawMappings : [];
     const normalized = [];
@@ -270,6 +368,9 @@ export const create = async (modelName, data) => {
     if (modelName === 'Product') {
         return await createProductFull(data);
     }
+    if (modelName === 'Color') {
+        return await createColorFull(data);
+    }
     const roomTypeIds = modelName === 'SmartFunction' ? (data.roomTypes || []) : null;
     const buildingTypeIds = modelName === 'RoomType' ? (data.buildingTypes || []) : null;
     const serviceFunctionIds = modelName === 'Service' ? (data.smartFunctions || []) : null;
@@ -299,6 +400,9 @@ export const create = async (modelName, data) => {
 export const update = async (modelName, id, data) => {
     if (modelName === 'Product') {
         return await updateProductFull(id, data);
+    }
+    if (modelName === 'Color') {
+        return await updateColorFull(id, data);
     }
     const roomTypeIds = modelName === 'SmartFunction' ? (data.roomTypes || []) : null;
     const buildingTypeIds = modelName === 'RoomType' ? (data.buildingTypes || []) : null;
@@ -330,21 +434,180 @@ export const update = async (modelName, id, data) => {
     return record;
 };
 
+async function safeRemoveSmartFunction(id) {
+    const t = await sequelize.transaction();
+    try {
+        const record = await SmartFunction.findByPk(id, { transaction: t });
+        if (!record) throw new Error('SmartFunction not found');
+        const counts = {
+            productMappings: await models.ProductFunctionMapping.count({ where: { smartFunctionId: id }, transaction: t }),
+            roomMappings: await models.SmartFunctionRoomType.count({ where: { smartFunctionId: id }, transaction: t }),
+            serviceMappings: await models.ServiceSmartFunction.count({ where: { smartFunctionId: id }, transaction: t }),
+            savedSelections: await models.RoomFunctionSelection.count({ where: { smartFunctionId: id }, transaction: t })
+        };
+        if (counts.savedSelections > 0) {
+            await record.update({ isActive: false }, { transaction: t });
+            await t.commit();
+            return { id, archived: true, dependencyCounts: counts };
+        }
+        await models.ProductFunctionMapping.destroy({ where: { smartFunctionId: id }, transaction: t });
+        await models.SmartFunctionRoomType.destroy({ where: { smartFunctionId: id }, transaction: t });
+        await models.ServiceSmartFunction.destroy({ where: { smartFunctionId: id }, transaction: t });
+        await record.destroy({ transaction: t });
+        await t.commit();
+        return { id, deleted: true, dependencyCounts: counts };
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+}
+
+async function safeRemoveRoomType(id) {
+    const t = await sequelize.transaction();
+    try {
+        const record = await RoomType.findByPk(id, { transaction: t });
+        if (!record) throw new Error('RoomType not found');
+        const counts = {
+            buildingTypeMappings: await models.BuildingTypeRoomType.count({ where: { roomTypeId: id }, transaction: t }),
+            smartFunctionMappings: await models.SmartFunctionRoomType.count({ where: { roomTypeId: id }, transaction: t }),
+            savedRooms: await models.ProjectRoom.count({ where: { roomTypeId: id }, transaction: t })
+        };
+        if (counts.savedRooms > 0) {
+            await record.update({ isActive: false }, { transaction: t });
+            await t.commit();
+            return { id, archived: true, dependencyCounts: counts };
+        }
+        await models.BuildingTypeRoomType.destroy({ where: { roomTypeId: id }, transaction: t });
+        await models.SmartFunctionRoomType.destroy({ where: { roomTypeId: id }, transaction: t });
+        await record.destroy({ transaction: t });
+        await t.commit();
+        return { id, deleted: true, dependencyCounts: counts };
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+}
+
 export const remove = async (modelName, id) => {
+    if (modelName === 'SmartFunction') return safeRemoveSmartFunction(id);
+    if (modelName === 'RoomType') return safeRemoveRoomType(id);
     const record = await models[modelName].findByPk(id);
     if (!record) throw new Error(`${modelName} not found`);
     return await record.destroy();
 };
 
-async function createProductFull(data) {
-    const rangeIdsRaw = Array.isArray(data.rangeIds) ? data.rangeIds : (data.allowedRanges ?? []);
-    const colorIdsRaw = Array.isArray(data.colorIds) ? data.colorIds : (data.allowedColors ?? []);
-    const rangeIds = normalizeUniqueUuidArray(rangeIdsRaw, 'allowedRanges') || [];
-    const colorIds = normalizeUniqueUuidArray(colorIdsRaw, 'allowedColors') || [];
-    const mappings = normalizeAndDedupeProductMappings(data.mappings);
+function serializeColorWithRanges(row) {
+    const plain = row?.toJSON ? row.toJSON() : row;
+    if (!plain) return plain;
+    const productRanges = Array.isArray(plain.productRanges) ? plain.productRanges : [];
+    return {
+        ...plain,
+        productRanges: productRanges.map((range) => (typeof range === 'object' && range?.id ? range.id : range)).filter(Boolean),
+        productRangeDetails: productRanges
+            .map((range) => (typeof range === 'object' && range?.id ? { id: range.id, name: range.name } : null))
+            .filter(Boolean)
+    };
+}
+
+async function fetchColorForResponse(colorId, transaction) {
+    const row = await models.Color.findByPk(colorId, {
+        include: getDefaultIncludes('Color'),
+        transaction
+    });
+    if (!row) throw new Error('Color not found');
+    return serializeColorWithRanges(row);
+}
+
+async function createColorFull(data) {
+    const rangeIdsRaw = data.rangeIds !== undefined ? data.rangeIds : data.productRanges;
+    const rangeIds = normalizeUniqueUuidArrayFlexible(rangeIdsRaw, 'productRanges') || [];
     const t = await sequelize.transaction();
     try {
-        const core = normalizePayload('Product', data);
+        const color = await models.Color.create(normalizePayload('Color', data), { transaction: t });
+        await assertIdsExist({ model: ProductRange, ids: rangeIds, fieldName: 'productRanges', transaction: t });
+        await color.setProductRanges(rangeIds, { transaction: t });
+        const response = await fetchColorForResponse(color.id, t);
+        await t.commit();
+        return response;
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+}
+
+async function updateColorFull(id, data) {
+    const rangeIdsRaw = data.rangeIds !== undefined ? data.rangeIds : data.productRanges;
+    const rangeIds = normalizeUniqueUuidArrayFlexible(rangeIdsRaw, 'productRanges');
+    const t = await sequelize.transaction();
+    try {
+        const color = await models.Color.findByPk(id, { transaction: t });
+        if (!color) throw new Error('Color not found');
+        await color.update(normalizePayload('Color', data), { transaction: t });
+        if (rangeIds !== null) {
+            await assertIdsExist({ model: ProductRange, ids: rangeIds, fieldName: 'productRanges', transaction: t });
+            await color.setProductRanges(rangeIds, { transaction: t });
+        }
+        const response = await fetchColorForResponse(id, t);
+        await t.commit();
+        return response;
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+}
+async function assertAndSyncProductDependencies(product, dependencies, transaction) {
+    if (!Array.isArray(dependencies)) return;
+
+    const mainProductIds = dependencies.map((item) => item.mainProductId);
+    await assertIdsExist({ model: Product, ids: mainProductIds, fieldName: 'dependencies', transaction });
+
+    if (mainProductIds.includes(product.id)) {
+        throw throwValidation('Validation failed', { dependencies: 'A product cannot depend on itself' });
+    }
+
+    if (mainProductIds.length > 0) {
+        const mainProducts = await Product.findAll({
+            where: { id: mainProductIds },
+            attributes: ['id', 'productType', 'isActive'],
+            transaction
+        });
+        const invalid = mainProducts.filter((item) => item.productType === 'RELATED' || item.isActive === false).map((item) => item.id);
+        if (invalid.length) {
+            throw throwValidation('Validation failed', { dependencies: 'Related products can only depend on active standard products' });
+        }
+
+        const circular = await ProductDependency.count({
+            where: { mainProductId: product.id, relatedProductId: { [Op.in]: mainProductIds } },
+            transaction
+        });
+        if (circular > 0) {
+            throw throwValidation('Validation failed', { dependencies: 'Circular product dependencies are not allowed' });
+        }
+    }
+
+    await ProductDependency.destroy({ where: { relatedProductId: product.id }, transaction });
+    if (dependencies.length > 0) {
+        await ProductDependency.bulkCreate(dependencies.map((item) => ({
+            mainProductId: item.mainProductId,
+            relatedProductId: product.id,
+            quantityPerMainProduct: item.quantityPerMainProduct
+        })), { transaction });
+    }
+}
+
+async function createProductFull(data) {
+    const rangeIdsRaw = data.rangeIds !== undefined ? data.rangeIds : (data.allowedRanges ?? []);
+    const colorIdsRaw = data.colorIds !== undefined ? data.colorIds : (data.allowedColors ?? []);
+    const rangeIds = normalizeUniqueUuidArrayFlexible(rangeIdsRaw, 'allowedRanges') || [];
+    const colorIds = normalizeUniqueUuidArrayFlexible(colorIdsRaw, 'allowedColors') || [];
+    const dependencies = normalizeProductDependencies(data.dependencies !== undefined ? data.dependencies : data.mainProducts) || [];
+    const productType = String(data.productType || 'STANDARD').toUpperCase() === 'RELATED' ? 'RELATED' : 'STANDARD';
+    const mappings = productType === 'RELATED' ? [] : normalizeAndDedupeProductMappings(parseMaybeJsonArray(data.mappings, 'mappings'));
+    const uploadedImage = uploadedProductImagePath(data.__uploadedFile);
+    const t = await sequelize.transaction();
+    try {
+        const core = normalizePayload('Product', { ...data, productType });
+        if (uploadedImage) core.imageUrl = uploadedImage;
         normalizeProductPriceForWrite(core, { requirePrice: true });
         const product = await models.Product.create(core, { transaction: t });
 
@@ -356,6 +619,9 @@ async function createProductFull(data) {
 
         await product.setProductRanges(rangeIds, { transaction: t });
         await product.setColors(colorIds, { transaction: t });
+        if (productType === 'RELATED') {
+            await assertAndSyncProductDependencies(product, dependencies, t);
+        }
         for (const m of mappings) {
             await ProductFunctionMapping.create({
                 productId: product.id,
@@ -372,22 +638,16 @@ async function createProductFull(data) {
         return responseProduct;
     } catch (err) {
         await t.rollback();
+        if (uploadedImage) await deleteLocalUpload(uploadedImage);
         try {
             const payload = {
                 code: data?.code,
                 name: data?.name,
-                allowedRangesCount: Array.isArray(data?.allowedRanges) ? data.allowedRanges.length : null,
-                allowedColorsCount: Array.isArray(data?.allowedColors) ? data.allowedColors.length : null,
-                mappingsCount: Array.isArray(data?.mappings) ? data.mappings.length : null,
-                mappings: Array.isArray(data?.mappings)
-                    ? data.mappings.slice(0, 5).map((m) => ({
-                        functionId: m?.functionId ?? m?.smartFunctionId ?? null,
-                        channelType: m?.channelType ?? null,
-                        capacity: m?.capacity ?? null,
-                        priority: m?.priority ?? null,
-                        calculationScope: m?.calculationScope ?? null,
-                    }))
-                    : null
+                productType,
+                allowedRangesCount: Array.isArray(rangeIds) ? rangeIds.length : null,
+                allowedColorsCount: Array.isArray(colorIds) ? colorIds.length : null,
+                mappingsCount: Array.isArray(mappings) ? mappings.length : null,
+                dependenciesCount: Array.isArray(dependencies) ? dependencies.length : null
             };
             console.error('[admin/products] createProductFull failed', {
                 errName: err?.name,
@@ -405,16 +665,28 @@ async function createProductFull(data) {
 }
 
 async function updateProductFull(id, data) {
-    const rangeIdsRaw = Array.isArray(data.rangeIds) ? data.rangeIds : data.allowedRanges;
-    const colorIdsRaw = Array.isArray(data.colorIds) ? data.colorIds : data.allowedColors;
-    const rangeIds = normalizeUniqueUuidArray(rangeIdsRaw, 'allowedRanges');
-    const colorIds = normalizeUniqueUuidArray(colorIdsRaw, 'allowedColors');
-    const mappings = data.mappings !== undefined ? normalizeAndDedupeProductMappings(data.mappings) : null;
+    const rangeIdsRaw = data.rangeIds !== undefined ? data.rangeIds : data.allowedRanges;
+    const colorIdsRaw = data.colorIds !== undefined ? data.colorIds : data.allowedColors;
+    const rangeIds = normalizeUniqueUuidArrayFlexible(rangeIdsRaw, 'allowedRanges');
+    const colorIds = normalizeUniqueUuidArrayFlexible(colorIdsRaw, 'allowedColors');
+    const dependencies = normalizeProductDependencies(data.dependencies !== undefined ? data.dependencies : data.mainProducts);
+    const requestedProductType = data.productType !== undefined
+        ? (String(data.productType).toUpperCase() === 'RELATED' ? 'RELATED' : 'STANDARD')
+        : null;
+    const rawMappings = data.mappings !== undefined ? parseMaybeJsonArray(data.mappings, 'mappings') : null;
+    const uploadedImage = uploadedProductImagePath(data.__uploadedFile);
+    let oldImageUrl = null;
     const t = await sequelize.transaction();
     try {
         const product = await models.Product.findByPk(id, { transaction: t });
         if (!product) throw new Error('Product not found');
-        const core = normalizePayload('Product', data);
+        oldImageUrl = product.imageUrl;
+        const productType = requestedProductType || product.productType || 'STANDARD';
+        const mappings = rawMappings !== null
+            ? (productType === 'RELATED' ? [] : normalizeAndDedupeProductMappings(rawMappings))
+            : null;
+        const core = normalizePayload('Product', { ...data, ...(requestedProductType ? { productType } : {}) });
+        if (uploadedImage) core.imageUrl = uploadedImage;
         normalizeProductPriceForWrite(core, { requirePrice: false });
         await product.update(core, { transaction: t });
 
@@ -427,7 +699,15 @@ async function updateProductFull(id, data) {
             await product.setColors(colorIds, { transaction: t });
         }
 
-        if (mappings !== null) {
+        if (productType === 'RELATED') {
+            await ProductFunctionMapping.destroy({ where: { productId: id }, transaction: t });
+            await ProductDependency.destroy({ where: { mainProductId: id }, transaction: t });
+            await assertAndSyncProductDependencies(product, dependencies || [], t);
+        } else if (requestedProductType === 'STANDARD') {
+            await ProductDependency.destroy({ where: { relatedProductId: id }, transaction: t });
+        }
+
+        if (mappings !== null && productType !== 'RELATED') {
             const smartFunctionIds = mappings.map(m => m.smartFunctionId);
             await assertIdsExist({ model: SmartFunction, ids: smartFunctionIds, fieldName: 'mappings', transaction: t });
 
@@ -446,13 +726,14 @@ async function updateProductFull(id, data) {
         }
         const responseProduct = await fetchProductForResponse(id, t);
         await t.commit();
+        if (uploadedImage && oldImageUrl && oldImageUrl !== uploadedImage) await deleteLocalUpload(oldImageUrl);
         return responseProduct;
     } catch (err) {
         await t.rollback();
+        if (uploadedImage) await deleteLocalUpload(uploadedImage);
         throw err;
     }
 }
-
 export const syncRelations = async (modelName, id, otherModelIds, relationField) => {
     const record = await models[modelName].findByPk(id);
     if (!record) throw new Error(`${modelName} not found`);
@@ -482,6 +763,40 @@ function serializeEmployee(user) {
     };
 }
 
+function serializeAdminProject(project) {
+    if (!project) return null;
+    const plain = project.toJSON ? project.toJSON() : project;
+    return {
+        id: plain.id,
+        name: plain.name,
+        description: plain.description || '',
+        status: plain.status || 'active',
+        levelsCount: plain.levelsCount,
+        builtUpArea: plain.builtUpArea,
+        updatedAt: plain.updatedAt,
+        createdAt: plain.createdAt,
+        buildingType: plain.buildingType?.name || '',
+        customer: plain.user ? {
+            id: plain.user.id,
+            fullName: plain.user.fullName || '',
+            email: plain.user.email || '',
+        } : null,
+        offersCount: Array.isArray(plain.offers) ? plain.offers.length : 0,
+    };
+}
+
+export async function getProjects() {
+    const projects = await Project.findAll({
+        include: [
+            { model: User, as: 'user', attributes: ['id', 'email', 'fullName'] },
+            { model: BuildingType, as: 'buildingType', attributes: ['id', 'name'] },
+            { model: Offer, as: 'offers', attributes: ['id'] },
+        ],
+        order: [['updatedAt', 'DESC']],
+    });
+
+    return projects.map(serializeAdminProject);
+}
 function serializeAdminUser(user) {
     if (!user) return null;
     const plain = user.toJSON ? user.toJSON() : user;

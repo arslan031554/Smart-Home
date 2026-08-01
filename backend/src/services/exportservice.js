@@ -140,6 +140,9 @@ function t(lang, key) {
             function: 'Function',
             quantity: 'Quantity',
             itemizedProducts: 'ITEMIZED PRODUCTS',
+            relatedProducts: 'Related Products',
+            standardProduct: 'Standard Product',
+            relatedProduct: 'Related Product',
             code: 'Code',
             name: 'Name',
             range: 'Range',
@@ -199,6 +202,9 @@ function t(lang, key) {
             function: 'Functie',
             quantity: 'Cantitate',
             itemizedProducts: 'LISTA PRODUSE',
+            relatedProducts: 'Produse conexe',
+            standardProduct: 'Produs standard',
+            relatedProduct: 'Produs conex',
             code: 'Cod',
             name: 'Denumire',
             range: 'Gama',
@@ -399,6 +405,7 @@ export const generateExcel = async (offerId, actor = null) => {
     const productsSheet = workbook.addWorksheet('Products');
     productsSheet.columns = [
         { header: t(lang, 'code'), key: 'code', width: 18 },
+        { header: 'Type', key: 'lineType', width: 18 },
         { header: t(lang, 'name'), key: 'name', width: 28 },
         { header: t(lang, 'description'), key: 'description', width: 38 },
         { header: t(lang, 'range'), key: 'range', width: 20 },
@@ -413,6 +420,7 @@ export const generateExcel = async (offerId, actor = null) => {
     if (products.length) {
         products.forEach((p) => productsSheet.addRow({
             code: p.productCode ?? '',
+            lineType: p.lineType === 'RELATED' ? t(lang, 'relatedProduct') : t(lang, 'standardProduct'),
             name: p.productName ?? '',
             description: p.productDescription ?? '',
             range: p.rangeName ?? 'N/A',
@@ -426,7 +434,7 @@ export const generateExcel = async (offerId, actor = null) => {
     } else {
         productsSheet.addRow({ name: t(lang, 'noProducts') });
     }
-    ['H', 'I', 'J'].forEach((col) => { productsSheet.getColumn(col).numFmt = currencyFmt; });
+    ['I', 'J', 'K'].forEach((col) => { productsSheet.getColumn(col).numFmt = currencyFmt; });
 
     const servicesSheet = workbook.addWorksheet('Services');
     servicesSheet.columns = [
@@ -656,7 +664,16 @@ export const generatePdf = async (offerId, actor = null) => {
     if (products.length === 0) {
         drawEmptyValue(t(lang, 'noProducts'));
     } else {
-        for (const product of products) {
+        const orderedProducts = products.slice().sort((a, b) => (a.lineType === 'RELATED' ? 1 : 0) - (b.lineType === 'RELATED' ? 1 : 0));
+        let relatedDividerDrawn = false;
+        for (const product of orderedProducts) {
+            if (product.lineType === 'RELATED' && !relatedDividerDrawn) {
+                ensureSpace(24);
+                page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 18, color: rgb(0.9, 0.97, 0.94) });
+                page.drawText(t(lang, 'relatedProducts'), { x: margin + 6, y, size: 9, font: fontBold, color: accentColor });
+                y -= 24;
+                relatedDividerDrawn = true;
+            }
             const productName = product.productName || 'Product';
             const productDescription = product.productDescription || '';
             const productCode = product.productCode || '';

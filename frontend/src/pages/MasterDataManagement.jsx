@@ -86,7 +86,6 @@ const LOCALIZED_FIELDS_BY_STORE_KEY = {
 function getLocalizedFieldConfig(storeKey) {
     return LOCALIZED_FIELDS_BY_STORE_KEY[storeKey] || [];
 }
-
 function buildLocalizedFormState(localizedFields = [], translations = {}) {
     return localizedFields.reduce((acc, field) => {
         LOCALIZED_LANGUAGES.forEach(({ key }) => {
@@ -113,6 +112,7 @@ const RELATION_DETAIL_KEYS = {
     buildingTypes: 'buildingTypeDetails',
     roomTypes: 'roomTypeDetails',
     smartFunctions: 'smartFunctionDetails',
+    productRanges: 'productRangeDetails',
 };
 
 function getRelationshipLabels(item, fieldName) {
@@ -151,6 +151,13 @@ export default function MasterDataManagement({
     const { loading } = fullAdminState;
 
     const config = ENTITY_CONFIG[storeKey];
+    const localizedTitle = t(`adminPages.masterData.entities.${storeKey}.title`, { defaultValue: title });
+    const localizedEntity = t(`adminPages.masterData.entities.${storeKey}.single`, { defaultValue: entityName });
+    const fieldLabel = (field) => t(`adminPages.masterData.fields.${field.name}`, { defaultValue: field.label });
+    const optionLabel = (field, option) => t(
+        `adminPages.masterData.options.${field.name}.${typeof option === 'object' ? option.id : option}`,
+        { defaultValue: typeof option === 'object' ? option.name : option },
+    );
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -245,8 +252,19 @@ export default function MasterDataManagement({
         setIsFormOpen(true);
     };
 
+    const withMirroredLocalizedValues = (payload) => {
+        const next = { ...payload };
+        localizedFieldConfig.forEach((field) => {
+            const value = next[field.base] ?? '';
+            LOCALIZED_LANGUAGES.forEach(({ key }) => {
+                next[`${field.base}${key.charAt(0).toUpperCase()}${key.slice(1)}`] = value;
+            });
+        });
+        return next;
+    };
+
     const pickPayload = (data) => {
-        if (!resolvedFields) return data;
+        if (!resolvedFields) return withMirroredLocalizedValues(data);
         const allowed = new Set(resolvedFields.map(f => f.name));
         localizedFieldConfig.forEach((field) => {
             LOCALIZED_LANGUAGES.forEach(({ key }) => {
@@ -257,7 +275,7 @@ export default function MasterDataManagement({
         for (const k of Object.keys(data || {})) {
             if (allowed.has(k)) payload[k] = data[k];
         }
-        return payload;
+        return withMirroredLocalizedValues(payload);
     };
 
     const validate = (data) => {
@@ -365,8 +383,8 @@ export default function MasterDataManagement({
                 <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="space-y-6">
                         <SectionTitle
-                            title={title}
-                            subtitle={t('adminPages.masterData.subtitle', { entity: entityName })}
+                            title={localizedTitle}
+                            subtitle={t('adminPages.masterData.subtitle', { entity: localizedEntity })}
                             badge={t('adminPages.masterData.badge')}
                             className="mb-0"
                         />
@@ -378,7 +396,7 @@ export default function MasterDataManagement({
                             ].map((item) => (
                                 <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
@@ -391,9 +409,9 @@ export default function MasterDataManagement({
                         </div>
                     </div>
 
-                    <Button size="lg" onClick={() => handleOpenForm()} className="gap-2">
+                    <Button size="md" onClick={() => handleOpenForm()} className="gap-2">
                         <Plus className="h-4.5 w-4.5" />
-                        {t('adminPages.masterData.newEntity', { entity: entityName })}
+                        {t('adminPages.masterData.newEntity', { entity: localizedEntity })}
                     </Button>
                 </div>
             </div>
@@ -405,10 +423,10 @@ export default function MasterDataManagement({
                         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
                     <input
                         type="text"
-                        placeholder={t('adminPages.masterData.searchPlaceholder', { entity: entityName.toLowerCase() })}
+                        placeholder={t('adminPages.masterData.searchPlaceholder', { entity: localizedEntity.toLowerCase() })}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                     />
                     </div>
                     <Badge variant="neutral">
@@ -435,10 +453,10 @@ export default function MasterDataManagement({
                                     {Icon ? <Icon className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => handleOpenForm(item)} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
+                                    <button onClick={() => handleOpenForm(item)} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
                                         <Edit className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                    <button onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -468,7 +486,7 @@ export default function MasterDataManagement({
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p className="text-xs font-medium text-textSecondary italic">None</p>
+                                            <p className="text-xs font-medium text-textSecondary italic">{t('common.none', { defaultValue: 'None' })}</p>
                                         )}
                                     </div>
                                 )}
@@ -478,7 +496,7 @@ export default function MasterDataManagement({
                                             if (field.type === 'toggle') {
                                                 return item[field.name] ? (
                                                     <Badge key={field.name} variant="success" className="text-[9px] uppercase font-bold px-2.5 py-1">
-                                                        {field.label} Enabled
+                                                        {t('adminPages.masterData.fieldEnabled', { field: fieldLabel(field), defaultValue: '{{field}} Enabled' })}
                                                     </Badge>
                                                 ) : null;
                                             }
@@ -487,20 +505,20 @@ export default function MasterDataManagement({
                                                 if (storeKey === 'smartFunctions' && field.name === 'roomTypes') return null;
                                                 return vals.length > 0 ? (
                                                     <Badge key={field.name} variant="neutral" className="text-[9px] uppercase font-bold px-2.5 py-1">
-                                                        {field.label}: {vals.length}
+                                                        {fieldLabel(field)}: {vals.length}
                                                     </Badge>
                                                 ) : null;
                                             }
                                             if (field.type === 'image') {
                                                 return item[field.name] ? (
                                                     <Badge key={field.name} variant="neutral" className="text-[9px] uppercase font-bold px-2.5 py-1">
-                                                        {field.label}: Added
+                                                        {t('adminPages.masterData.fieldAdded', { field: fieldLabel(field), defaultValue: '{{field}}: Added' })}
                                                     </Badge>
                                                 ) : null;
                                             }
                                             return (
                                                 <Badge key={field.name} variant="neutral" className="text-[9px] uppercase font-bold px-2.5 py-1">
-                                                    {field.label}: {item[field.name]}
+                                                    {fieldLabel(field)}: {item[field.name]}
                                                 </Badge>
                                             )
                                         })}
@@ -513,7 +531,7 @@ export default function MasterDataManagement({
             ) : (
                 <EmptyState
                     title={t('adminPages.masterData.noRecordsTitle')}
-                    description={t('adminPages.masterData.noRecordsDesc', { entity: entityName.toLowerCase() })}
+                    description={t('adminPages.masterData.noRecordsDesc', { entity: localizedEntity.toLowerCase() })}
                     icon={Box}
                     action={<Button variant="outline" size="sm" onClick={() => setSearchTerm('')}>{t('adminPages.masterData.clearFilters')}</Button>}
                 />
@@ -523,14 +541,14 @@ export default function MasterDataManagement({
             <Modal
                 isOpen={isFormOpen}
                 onClose={() => setIsFormOpen(false)}
-                title={editingId ? t('adminPages.masterData.modal.updateTitle', { entity: entityName }) : t('adminPages.masterData.modal.defineTitle', { entity: entityName })}
+                title={editingId ? t('adminPages.masterData.modal.updateTitle', { entity: localizedEntity }) : t('adminPages.masterData.modal.defineTitle', { entity: localizedEntity })}
                 maxWidth="max-w-3xl"
                 footer={
                     <div className="flex justify-between items-center w-full">
                         <p className="rounded-full border border-white/8 bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary italic leading-none">{t('adminPages.masterData.modal.syncActive')}</p>
                         <div className="flex gap-3">
                             <Button variant="ghost" onClick={() => setIsFormOpen(false)}>{t('adminPages.masterData.modal.cancel')}</Button>
-                            <Button size="lg" className="px-10" onClick={handleSubmit}>
+                            <Button size="md" className="px-10" onClick={handleSubmit}>
                                 <Save className="w-5 h-5 mr-3" /> {t('adminPages.masterData.modal.save')}
                             </Button>
                         </div>
@@ -548,7 +566,7 @@ export default function MasterDataManagement({
                             <Input
                                 label={t('adminPages.masterData.modal.displayName')}
                                 icon={Info}
-                                placeholder={`e.g. Premium ${entityName}`}
+                                placeholder={t('adminPages.masterData.entityExample', { entity: localizedEntity, defaultValue: 'e.g. Premium {{entity}}' })}
                                 value={formData.name}
                                 onChange={(e) => {
                                     const v = e.target.value;
@@ -578,7 +596,7 @@ export default function MasterDataManagement({
                                     return (
                                         <div key={field.name} className="flex items-center justify-between rounded-xl border border-white/8 bg-white/5 p-4">
                                             <div className="space-y-0.5">
-                                                <span className="text-xs font-semibold text-textPrimary">{field.label}</span>
+                                                <span className="text-xs font-semibold text-textPrimary">{fieldLabel(field)}</span>
                                                 {formErrors[field.name] ? <p className="text-[11px] font-bold text-red-600">{formErrors[field.name]}</p> : null}
                                             </div>
                                             <button
@@ -595,7 +613,7 @@ export default function MasterDataManagement({
                                     return (
                                         <div key={field.name} className="md:col-span-2 space-y-2">
                                             <label className="ml-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                                {field.label}{field.required ? ' *' : ''}
+                                                {fieldLabel(field)}{field.required ? ' *' : ''}
                                             </label>
                                             <textarea
                                                 rows={8}
@@ -620,7 +638,7 @@ export default function MasterDataManagement({
                                 return (
                                     <div key={field.name} className={field.fullWidth ? "md:col-span-2" : ""}>
                                         <Input
-                                            label={`${field.label}${field.required ? ' *' : ''}`}
+                                            label={`${fieldLabel(field)}${field.required ? ' *' : ''}`}
                                             icon={IconField}
                                             type={field.type || 'text'}
                                             value={formData[field.name] ?? ''}
@@ -637,57 +655,13 @@ export default function MasterDataManagement({
                             })}
                         </div>
                     )}
-                    {localizedFieldConfig.length > 0 && (
-                        <div className="md:col-span-2 space-y-6 pt-6 border-t border-white/8">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">Romanian + English</p>
-                                <p className="text-xs font-medium text-textSecondary">Store customer-facing business content for both supported languages.</p>
-                            </div>
-                            <div className="space-y-6">
-                                {localizedFieldConfig.map((field) => (
-                                    <div key={field.base} className="space-y-3">
-                                        <label className="ml-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{field.label}</label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {LOCALIZED_LANGUAGES.map(({ key, label }) => {
-                                                const formKey = `${field.base}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-                                                if (field.type === 'textarea') {
-                                                    return (
-                                                        <div key={formKey} className="space-y-2">
-                                                            <p className="ml-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{label}</p>
-                                                            <textarea
-                                                                rows={field.base === 'text' ? 5 : 3}
-                                                                value={formData[formKey] ?? ''}
-                                                                onChange={(e) => setFormData({ ...formData, [formKey]: e.target.value })}
-                                                                className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-5 py-4 text-sm font-medium leading-relaxed text-textPrimary transition-all placeholder:text-textSecondary focus:border-primary-500/45 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-                                                                placeholder={`${field.label} (${label})`}
-                                                            />
-                                                        </div>
-                                                    );
-                                                }
-                                                return (
-                                                    <Input
-                                                        key={formKey}
-                                                        label={`${field.label} (${label})`}
-                                                        icon={Info}
-                                                        value={formData[formKey] ?? ''}
-                                                        onChange={(e) => setFormData({ ...formData, [formKey]: e.target.value })}
-                                                        placeholder={`${field.label} (${label})`}
-                                                    />
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                     {extraFields.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/8">
                             {extraFields.map(field => {
                                 if (field.type === 'toggle') {
                                     return (
                                         <div key={field.name} className="flex items-center justify-between rounded-xl border border-white/8 bg-white/5 p-4">
-                                            <span className="text-xs font-semibold text-textPrimary">{field.label}</span>
+                                            <span className="text-xs font-semibold text-textPrimary">{fieldLabel(field)}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, [field.name]: !formData[field.name] })}
@@ -702,7 +676,7 @@ export default function MasterDataManagement({
                                     const options = field.sourceKey ? fullAdminState[field.sourceKey] : field.options;
                                     return (
                                         <div key={field.name} className="space-y-2">
-                                            <label className="ml-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{field.label}</label>
+                                            <label className="ml-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{fieldLabel(field)}</label>
                                             <SelectMenu
                                                 value={formData[field.name] || ''}
                                                 onChange={(v) => {
@@ -711,10 +685,10 @@ export default function MasterDataManagement({
                                                 }}
                                                 options={(options || []).map((opt) => ({
                                                     value: typeof opt === 'object' ? opt.id : opt,
-                                                    label: typeof opt === 'object' ? opt.name : opt,
+                                                    label: optionLabel(field, opt),
                                                 }))}
-                                                placeholder={`Select ${field.label}...`}
-                                                ariaLabel={field.label}
+                                                placeholder={t('adminPages.masterData.selectField', { field: fieldLabel(field), defaultValue: 'Select {{field}}...' })}
+                                                ariaLabel={fieldLabel(field)}
                                                 size="field"
                                                 fullWidth
                                                 error={Boolean(formErrors[field.name])}
@@ -726,7 +700,7 @@ export default function MasterDataManagement({
                                 if (field.type === 'multiselect') {
                                     return (
                                         <div key={field.name} className="md:col-span-2 space-y-2">
-                                            <label className="ml-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{field.label}</label>
+                                            <label className="ml-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{fieldLabel(field)}</label>
                                             <div className="flex flex-wrap gap-2 rounded-xl border border-white/8 bg-white/5 p-4">
                                                 {((field.sourceKey ? fullAdminState[field.sourceKey] : field.options) || []).map(opt => {
                                                     const isSel = (formData[field.name] || []).includes(opt.id);
@@ -751,7 +725,7 @@ export default function MasterDataManagement({
                                 if (field.type === 'richtext') {
                                     return (
                                         <div key={field.name} className="md:col-span-2 space-y-2">
-                                            <label className="ml-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{field.label}</label>
+                                            <label className="ml-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{fieldLabel(field)}</label>
                                             <textarea
                                                 rows={6}
                                                 value={formData[field.name] ?? ''}
@@ -771,7 +745,7 @@ export default function MasterDataManagement({
                                     const imageValue = String(formData[field.name] || '').trim();
                                     return (
                                         <div key={field.name} className="md:col-span-2 space-y-3">
-                                            <label className="ml-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{field.label}</label>
+                                            <label className="ml-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{fieldLabel(field)}</label>
 
                                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                                 <label className={clsx(
@@ -810,25 +784,11 @@ export default function MasterDataManagement({
                                                 ) : null}
                                             </div>
 
-                                            <Input
-                                                label="Image URL"
-                                                icon={Info}
-                                                type="text"
-                                                value={formData[field.name] ?? ''}
-                                                onChange={(e) => {
-                                                    const v = e.target.value;
-                                                    setFormData({ ...formData, [field.name]: v });
-                                                    if (formErrors[field.name]) setFormErrors((p) => ({ ...p, [field.name]: null }));
-                                                }}
-                                                error={formErrors[field.name]}
-                                                placeholder={field.placeholder || 'https://...'}
-                                            />
-
                                             {imageValue ? (
                                                 <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-2">
                                                     <img
                                                         src={imageValue}
-                                                        alt={`${field.label} preview`}
+                                                        alt={t('adminPages.masterData.fieldPreview', { field: fieldLabel(field), defaultValue: '{{field}} preview' })}
                                                         className="h-44 w-full rounded-xl object-cover"
                                                     />
                                                 </div>
@@ -844,7 +804,7 @@ export default function MasterDataManagement({
                                 return (
                                     <Input
                                         key={field.name}
-                                        label={field.label}
+                                        label={fieldLabel(field)}
                                         icon={IconField}
                                         type={field.type === 'image' ? 'text' : (field.type || 'text')}
                                         value={formData[field.name]}
@@ -909,6 +869,8 @@ export default function MasterDataManagement({
         </AnimatedPageWrapper>
     );
 }
+
+
 
 
 

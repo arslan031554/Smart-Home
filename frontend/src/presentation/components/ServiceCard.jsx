@@ -9,7 +9,7 @@ function ServiceCard({ learnMoreLabel, service, index }) {
   return (
     <RevealCard
       as="article"
-      className="group relative min-h-[360px] overflow-hidden rounded-lg border border-emerald/10 bg-white p-6 shadow-xl shadow-emerald/10 transition hover:-translate-y-2 hover:border-emerald/35 hover:shadow-2xl hover:shadow-emerald/15"
+      className="group relative min-h-[380px] overflow-hidden rounded-[1.5rem] border border-emerald/10 bg-white p-7 shadow-xl shadow-emerald/10 transition hover:-translate-y-2 hover:border-emerald/35 hover:shadow-2xl hover:shadow-emerald/15"
       index={index}
       delayStep={0.07}
       scale={0.98}
@@ -25,7 +25,7 @@ function ServiceCard({ learnMoreLabel, service, index }) {
       <div className="relative mb-8 mt-14 flex h-16 w-16 items-center justify-center rounded-full bg-emerald text-white shadow-glow transition duration-300 group-hover:scale-110 group-hover:bg-orange">
         <Icon size={28} strokeWidth={1.8} />
       </div>
-      <h3 className="relative min-h-16 text-xl font-black uppercase leading-snug text-graphite">{service.title}</h3>
+      <h3 className="relative min-h-16 text-xl font-semibold leading-snug text-graphite">{service.title}</h3>
       <p className="relative mt-3 line-clamp-4 text-sm leading-7 text-slate-600">{service.text}</p>
       <div className="relative mt-5 flex flex-wrap gap-2">
         {service.chips.slice(0, 2).map((chip) => (
@@ -36,7 +36,7 @@ function ServiceCard({ learnMoreLabel, service, index }) {
       </div>
       <a
         href={`/servicii/${service.slug}`}
-        className="relative mt-6 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.14em] text-orange transition hover:gap-3 hover:text-emerald"
+        className="relative mt-6 inline-flex items-center gap-2 text-sm font-semibold text-orange transition hover:gap-3 hover:text-emerald"
       >
         {learnMoreLabel}
         <ArrowRight size={16} />

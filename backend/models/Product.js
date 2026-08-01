@@ -44,6 +44,11 @@ Product.init({
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    productType: {
+        type: DataTypes.ENUM('STANDARD', 'RELATED'),
+        allowNull: false,
+        defaultValue: 'STANDARD'
     }
 }, {
     sequelize,
@@ -72,6 +77,20 @@ Product.associate = (models) => {
         as: 'smartFunctions'
     });
     Product.hasMany(models.ProductFunctionMapping, { foreignKey: 'productId', as: 'mappings' });
+    Product.hasMany(models.ProductDependency, { foreignKey: 'mainProductId', as: 'requiredRelatedProducts' });
+    Product.hasMany(models.ProductDependency, { foreignKey: 'relatedProductId', as: 'requiredByProducts' });
+    Product.belongsToMany(models.Product, {
+        through: models.ProductDependency,
+        foreignKey: 'mainProductId',
+        otherKey: 'relatedProductId',
+        as: 'relatedProducts'
+    });
+    Product.belongsToMany(models.Product, {
+        through: models.ProductDependency,
+        foreignKey: 'relatedProductId',
+        otherKey: 'mainProductId',
+        as: 'mainProducts'
+    });
 };
 
 export default Product;

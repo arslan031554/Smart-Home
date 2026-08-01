@@ -38,7 +38,7 @@ export default function AuthLayout() {
                                 <img
                                     src="/images/green-electric-logo.png"
                                     alt={t('app.brandName')}
-                                    className="h-14 w-auto max-w-[230px] rounded-md bg-white p-2 object-contain shadow-lg shadow-emerald/10 transition-transform duration-300 group-hover:-translate-y-0.5"
+                                    className="h-14 w-auto max-w-[230px] object-contain shadow-lg shadow-emerald/10 transition-transform duration-300 group-hover:-translate-y-0.5"
                                 />
                             </Link>
                             <LanguageSwitcher />

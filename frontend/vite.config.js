@@ -15,9 +15,18 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 550,
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('/src/presentation/')) {
+            return 'presentation'
+          }
+
+          if (id.includes('/src/pages/') || id.includes('/src/components/configurator/')) {
+            return 'app-pages'
+          }
+
           if (!id.includes('node_modules')) return
 
           if (

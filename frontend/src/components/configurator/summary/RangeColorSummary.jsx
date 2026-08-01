@@ -2,8 +2,10 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Card } from '../../common/UIComponents';
 import { Palette, Box, Check, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function RangeColorSummary({ range: rangeId, color: colorId }) {
+    const { t } = useTranslation();
     const productRanges = useSelector((state) => {
         const adminRanges = state.admin.productRanges || [];
         return adminRanges.length > 0 ? adminRanges : (state.admin.publicProductRanges || []);
@@ -17,12 +19,12 @@ export default function RangeColorSummary({ range: rangeId, color: colorId }) {
     const color = colors.find(c => c.id === colorId);
 
     return (
-        <Card className="p-8 border-none shadow-premium-sm rounded-[2rem] bg-white">
+        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6">
             <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 bg-primary-50 rounded-xl text-primary-600">
                     <Star className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Aesthetic & Material Specification</h3>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">{t('configurator.summary.aestheticSpecification')}</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -33,8 +35,8 @@ export default function RangeColorSummary({ range: rangeId, color: colorId }) {
                             <Box className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none mb-2">Product Line</p>
-                            <p className="text-base font-black text-slate-900 tracking-tight">{range?.name || 'Standard Range'}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none mb-2">{t('configurator.summary.productLine')}</p>
+                            <p className="text-base font-black text-slate-900 tracking-tight">{range?.name || t('configurator.summary.standardRange')}</p>
                             <p className="text-[10px] text-slate-500 mt-1 font-medium">{range?.code || 'COMMERCIAL_SERIES'}</p>
                         </div>
                     </div>
@@ -56,9 +58,9 @@ export default function RangeColorSummary({ range: rangeId, color: colorId }) {
                             </div>
                         )}
                         <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none mb-2">Aesthetic Finish</p>
-                            <p className="text-base font-black text-slate-900 tracking-tight">{color?.name || 'Refined White'}</p>
-                            <p className="text-[10px] text-slate-500 mt-1 font-medium italic">Architectural Grade</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none mb-2">{t('configurator.summary.aestheticFinish')}</p>
+                            <p className="text-base font-black text-slate-900 tracking-tight">{color?.name || t('configurator.summary.refinedWhite')}</p>
+                            <p className="text-[10px] text-slate-500 mt-1 font-medium italic">{t('configurator.summary.architecturalGrade')}</p>
                         </div>
                     </div>
                 </div>

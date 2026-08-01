@@ -52,7 +52,7 @@ export default function RegisterPage() {
     const handleGuestStart = () => {
         dispatch(startGuestSession());
         dispatch(resetConfigurator());
-        navigate('/configurator');
+        navigate('/configurator', { state: { freshConfigurator: true } });
     };
 
     const handleSubmit = async (e) => {
@@ -305,7 +305,7 @@ export default function RegisterPage() {
                             </div>
                         ) : (
                             <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-textSecondary">
-                                Missing <span className="font-mono font-semibold text-textPrimary">VITE_RECAPTCHA_SITE_KEY</span>. Signup is disabled until configured.
+                                {t('auth.recaptchaMissingPrefix', { defaultValue: 'Missing' })} <span className="font-mono font-semibold text-textPrimary">VITE_RECAPTCHA_SITE_KEY</span>. {t('auth.recaptchaMissingSuffix', { defaultValue: 'Signup is disabled until configured.' })}
                             </div>
                         )}
 
@@ -335,7 +335,6 @@ export default function RegisterPage() {
         </div>
     );
 }
-
 function SectionBlock({ title, subtitle }) {
     return (
         <div>
@@ -344,3 +343,4 @@ function SectionBlock({ title, subtitle }) {
         </div>
     );
 }
+

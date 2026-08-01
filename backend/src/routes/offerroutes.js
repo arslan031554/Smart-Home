@@ -29,6 +29,7 @@ router.delete('/:id', requireOfferPermissionForBackoffice('delete_offers'), offe
 router.put('/:id/status', requireOfferPermissionForBackoffice('edit_offers'), offerController.updateStatus);
 router.post('/:id/duplicate', requireOfferPermissionForBackoffice('edit_offers'), offerController.duplicateOffer);
 router.patch('/:id/followup', requireOfferPermissionForBackoffice('edit_offers'), offerController.updateFollowup);
+router.post('/:id/followup/send-reminder', requireOfferPermissionForBackoffice('edit_offers'), offerController.sendReminderEmail);
 
 router.get('/:id/export/excel', requireOfferPermissionForBackoffice('view_offers'), offerController.exportExcel);
 router.get('/:id/export/pdf', requireOfferPermissionForBackoffice('view_offers'), offerController.exportPdf);

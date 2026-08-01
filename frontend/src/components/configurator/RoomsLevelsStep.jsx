@@ -42,7 +42,7 @@ const RoomCard = React.memo(({ room, idx, levelId, roomType, onRemove, onUpdate 
     };
 
     return (
-        <div className="rounded-[1.7rem] border border-[#E5E7EB] bg-white p-5 shadow-soft transition-all duration-300 hover:border-primary-300 hover:bg-white/50">
+        <div className="rounded-[1.15rem] border border-[#E5E7EB] bg-white p-4 shadow-soft transition-all duration-300 hover:border-primary-300 hover:bg-white/50 sm:p-5">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-sm font-semibold text-primary-700">
@@ -201,7 +201,7 @@ export default function RoomsLevelsStep() {
     };
 
     return (
-        <div className="mx-auto max-w-6xl space-y-10 animate-fade-in pb-20">
+        <div className="mx-auto max-w-6xl space-y-6 animate-fade-in pb-16 sm:space-y-8 sm:pb-20">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <SectionTitle
                     title={t('configurator.roomsLevels.title')}
@@ -245,7 +245,7 @@ export default function RoomsLevelsStep() {
                     const totalLogicalRooms = level.rooms.reduce((acc, room) => acc + normalizeRoomCount(room.roomCount ?? room.count), 0);
 
                     return (
-                        <Card key={level.id} className="overflow-hidden rounded-[2rem]">
+                        <Card key={level.id} className="overflow-hidden rounded-[1.25rem] sm:rounded-[1.4rem]">
                             <div
                                 className={clsx(
                                     'flex cursor-pointer items-center justify-between gap-4 px-5 py-5 transition-all duration-300 sm:px-6',
@@ -319,7 +319,7 @@ export default function RoomsLevelsStep() {
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center justify-center space-y-5 py-16 text-center">
-                                            <div className="flex h-20 w-20 items-center justify-center rounded-[2rem] border border-[#D1D5DB] bg-[#F7F8F5] text-primary-700">
+                                            <div className="flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-[#D1D5DB] bg-[#F7F8F5] text-primary-700 sm:h-20 sm:w-20">
                                                 <Home className="h-9 w-9" />
                                             </div>
                                             <div className="space-y-2">

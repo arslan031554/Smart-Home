@@ -3,7 +3,16 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import enCommon from './locales/en/common.json';
+import enUi from './locales/en/ui.json';
 import roCommon from './locales/ro/common.json';
+import roAdminExtra from './locales/ro/admin-extra.json';
+import roCarouselExtra from './locales/ro/carousel-extra.json';
+import roConfiguratorExtra from './locales/ro/configurator-extra.json';
+import roFlowExtra from './locales/ro/flow-extra.json';
+import roMasterDataExtra from './locales/ro/master-data-extra.json';
+import roPresentationExtra from './locales/ro/presentation-extra.json';
+import roSupplement from './locales/ro/supplement.json';
+import roUi from './locales/ro/ui.json';
 
 const DEFAULT_LANG = 'en';
 
@@ -13,8 +22,8 @@ i18n
   .init({
     debug: false,
     resources: {
-      en: { common: enCommon },
-      ro: { common: roCommon },
+      en: { common: { ...enCommon, ...enUi } },
+      ro: { common: { ...roCommon, ...roSupplement, ...roUi, ...roConfiguratorExtra, ...roFlowExtra, ...roAdminExtra, ...roPresentationExtra, ...roMasterDataExtra, ...roCarouselExtra } },
     },
     fallbackLng: DEFAULT_LANG,
     supportedLngs: ['en', 'ro'],

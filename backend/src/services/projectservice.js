@@ -1,4 +1,4 @@
-﻿import Project from '../../models/Project.js';
+import Project from '../../models/Project.js';
 import ProjectLevel from '../../models/ProjectLevel.js';
 import ProjectRoom from '../../models/ProjectRoom.js';
 import RoomFunctionSelection from '../../models/RoomFunctionSelection.js';
@@ -7,11 +7,18 @@ import SmartFunction from '../../models/SmartFunction.js';
 import BuildingType from '../../models/BuildingType.js';
 import { Op } from 'sequelize';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const normalizeNullableString = (value) => {
     if (value === undefined) return undefined;
     if (value === null) return null;
     const normalized = String(value).trim();
     return normalized ? normalized : null;
+};
+
+const normalizeNullableUuid = (value) => {
+    const normalized = normalizeNullableString(value);
+    return normalized && UUID_REGEX.test(normalized) ? normalized : null;
 };
 
 const normalizePositiveFloat = (value, fallback = 1) => {
@@ -31,12 +38,12 @@ const normalizeWorkspaceLevels = (levels = []) => (
             levelOrder,
             rooms: Array.isArray(level?.rooms)
                 ? level.rooms.map((room) => ({
-                    roomTypeId: normalizeNullableString(room?.roomTypeId ?? room?.type),
+                    roomTypeId: normalizeNullableUuid(room?.roomTypeId ?? room?.type),
                     name: normalizeNullableString(room?.name) || 'Room',
                     roomCount: normalizePositiveInt(room?.roomCount ?? room?.count, 1),
                     functionSelections: Array.isArray(room?.functionSelections || room?.functions)
                         ? (room.functionSelections || room.functions).map((selection) => ({
-                            smartFunctionId: normalizeNullableString(selection?.smartFunctionId ?? selection?.id),
+                            smartFunctionId: normalizeNullableUuid(selection?.smartFunctionId ?? selection?.id),
                             quantity: normalizePositiveInt(selection?.quantity, 1),
                         })).filter((selection) => selection.smartFunctionId)
                         : [],
@@ -51,7 +58,7 @@ const normalizeProjectPayload = (projectData = {}) => {
 
     if (projectData.name !== undefined) payload.name = normalizeNullableString(projectData.name);
     if (projectData.buildingTypeId !== undefined || projectData.buildingType !== undefined) {
-        payload.buildingTypeId = normalizeNullableString(projectData.buildingTypeId ?? projectData.buildingType);
+        payload.buildingTypeId = normalizeNullableUuid(projectData.buildingTypeId ?? projectData.buildingType);
     }
     if (projectData.builtUpArea !== undefined || projectData.area !== undefined) {
         payload.builtUpArea = normalizePositiveFloat(projectData.builtUpArea ?? projectData.area, 0);
@@ -69,10 +76,10 @@ const normalizeProjectPayload = (projectData = {}) => {
         payload.description = normalizeNullableString(projectData.description);
     }
     if (projectData.selectedRangeId !== undefined) {
-        payload.selectedRangeId = normalizeNullableString(projectData.selectedRangeId);
+        payload.selectedRangeId = normalizeNullableUuid(projectData.selectedRangeId);
     }
     if (projectData.selectedColorId !== undefined) {
-        payload.selectedColorId = normalizeNullableString(projectData.selectedColorId);
+        payload.selectedColorId = normalizeNullableUuid(projectData.selectedColorId);
     }
 
     return payload;
@@ -82,6 +89,16 @@ const createNotFoundError = (entityName) => {
     const error = new Error(`${entityName} not found`);
     error.statusCode = 404;
     return error;
+};
+
+export const dedupeProjectsById = (projects = []) => {
+    const seen = new Set();
+    return projects.filter((project) => {
+        const id = project?.id;
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
 };
 
 async function ensureProjectOwnership(projectId, userId, transaction = undefined) {
@@ -114,6 +131,26 @@ export const createProject = async (userId, projectData) => {
     return await Project.create({ ...normalizeProjectPayload(projectData), userId });
 };
 
+export const findRecentMatchingProject = async (userId, projectData = {}, recentMs = 120000) => {
+    const normalized = normalizeProjectPayload(projectData);
+    const createdAfter = new Date(Date.now() - recentMs);
+
+    return await Project.findOne({
+        where: {
+            userId,
+            name: normalized.name,
+            buildingTypeId: normalized.buildingTypeId ?? null,
+            builtUpArea: normalized.builtUpArea ?? 0,
+            levelsCount: normalized.levelsCount ?? 1,
+            multiplicationIndex: normalized.multiplicationIndex ?? 1,
+            projectComplexity: normalized.projectComplexity ?? null,
+            selectedRangeId: normalized.selectedRangeId ?? null,
+            selectedColorId: normalized.selectedColorId ?? null,
+            createdAt: { [Op.gte]: createdAfter },
+        },
+        order: [['createdAt', 'DESC']],
+    });
+};
 export const syncProjectWorkspace = async (projectId, workspaceData = {}, userId = null, transaction = undefined) => {
     await ensureProjectOwnership(projectId, userId, transaction);
 
@@ -197,11 +234,13 @@ export const syncProjectWorkspace = async (projectId, workspaceData = {}, userId
 };
 
 export const getMyProjects = async (userId = null) => {
-    return await Project.findAll({
+    const projects = await Project.findAll({
         where: userId ? { userId } : undefined,
         include: [{ model: BuildingType, as: 'buildingType', attributes: ['id', 'name', 'description'] }],
-        order: [['createdAt', 'DESC']]
+        order: [['updatedAt', 'DESC']]
     });
+
+    return dedupeProjectsById(projects);
 };
 
 export const getProjectDetails = async (userId = null, projectId) => {
@@ -321,3 +360,6 @@ export const deleteFunctionSelection = async (selectionId, userId = null) => {
     if (!selection) throw createNotFoundError('Selection');
     return await selection.destroy();
 };
+
+
+

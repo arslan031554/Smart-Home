@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Card, Button } from '../../common/UIComponents';
 import { FileText, Layers, ShieldCheck, Loader2 } from 'lucide-react';
 import api from '../../../utils/api';
+import { useTranslation } from 'react-i18next';
 
 export default function DocumentsSection({ offerId }) {
+    const { t } = useTranslation();
     const [downloading, setDownloading] = useState(null);
 
     const downloadExport = async (format) => {
@@ -28,14 +30,14 @@ export default function DocumentsSection({ offerId }) {
     };
 
     const documents = [
-        { id: 'pdf', name: 'Formal PDF Proposal', icon: FileText, type: 'Client-Facing Documentation', status: 'Ready', color: 'text-rose-500', bg: 'bg-rose-50', format: 'pdf' },
-        { id: 'excel', name: 'Hardware Manifest', icon: Layers, type: 'Technical Inventory (XLSX)', status: 'Ready', color: 'text-emerald-500', bg: 'bg-emerald-50', format: 'excel' }
+        { id: 'pdf', name: t('offerSuccess.documents.pdf', { defaultValue: 'Formal PDF Proposal' }), icon: FileText, type: t('offerSuccess.documents.pdfType', { defaultValue: 'Client-Facing Documentation' }), status: t('offerSuccess.documents.ready', { defaultValue: 'Ready' }), color: 'text-rose-500', bg: 'bg-rose-50', format: 'pdf' },
+        { id: 'excel', name: t('offerSuccess.documents.excel', { defaultValue: 'Hardware Manifest' }), icon: Layers, type: t('offerSuccess.documents.excelType', { defaultValue: 'Technical Inventory (XLSX)' }), status: t('offerSuccess.documents.ready', { defaultValue: 'Ready' }), color: 'text-emerald-500', bg: 'bg-emerald-50', format: 'excel' }
     ];
 
     return (
         <div className="space-y-6">
             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-3 ml-2">
-                <FileText className="w-5 h-5 text-primary-500" /> Generated Documentation
+                <FileText className="w-5 h-5 text-primary-500" /> {t('offerSuccess.documents.title', { defaultValue: 'Generated Documentation' })}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {documents.map((doc) => (
@@ -54,7 +56,7 @@ export default function DocumentsSection({ offerId }) {
                         </div>
 
                         <div className="relative z-10 flex items-center justify-between pt-6 border-t border-slate-50">
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">Backend export</span>
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">{t('offerSuccess.documents.backendExport', { defaultValue: 'Backend export' })}</span>
                             <div className="flex items-center gap-2">
                                 {offerId && (
                                     <Button
@@ -64,7 +66,7 @@ export default function DocumentsSection({ offerId }) {
                                         disabled={downloading === doc.format}
                                         onClick={() => downloadExport(doc.format)}
                                     >
-                                        {downloading === doc.format ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Download'}
+                                        {downloading === doc.format ? <Loader2 className="w-4 h-4 animate-spin" /> : t('offerSuccess.documents.download', { defaultValue: 'Download' })}
                                     </Button>
                                 )}
                                 <div className={`flex items-center gap-2 px-4 py-1.5 ${doc.bg} rounded-xl border border-white shadow-sm`}>

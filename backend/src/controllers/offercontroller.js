@@ -7,15 +7,16 @@ import * as configuratorDraftService from "../services/configuratordraftservice.
 import * as notificationService from "../services/notificationservice.js";
 import { sendResponse, sendError } from "../utils/apiResponse.js";
 import RoomType from "../../models/RoomType.js";
+import BuildingType from "../../models/BuildingType.js";
+import ProductRange from "../../models/ProductRange.js";
+import Color from "../../models/Color.js";
+import SmartFunction from "../../models/SmartFunction.js";
+import Service from "../../models/Service.js";
 import { isValidOfferStatus, normalizeOfferStatus } from "../constants/offerStatus.js";
+import { normalizeUuid, normalizeUuidArray, resolveExistingUuidArray, resolveExistingUuidOrNull, isValidOptionalUuid } from "../utils/idNormalization.js";
 
 const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-function isValidUuid(v) {
-  return (
-    v != null && typeof v === "string" && UUID_REGEX.test(String(v).trim())
-  );
-}
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function normalizeRoomCount(value) {
   const parsed = parseInt(value, 10);
@@ -31,50 +32,54 @@ function normalizeFunctionSelections(selections) {
   const source = Array.isArray(selections) ? selections : [];
   return source
     .map((selection) => ({
-      smartFunctionId: selection?.smartFunctionId || selection?.id,
+      smartFunctionId: normalizeUuid(selection?.smartFunctionId || selection?.id),
       quantity: normalizeRoomCount(selection?.quantity),
     }))
-    .filter((selection) => isValidUuid(selection.smartFunctionId));
+    .filter((selection) => selection.smartFunctionId);
 }
 
 function normalizeLevelsPayload(levels) {
   const source = Array.isArray(levels) ? levels : [];
-  return source.map((level) => ({
-    ...level,
-    id: level.id,
-    tempId: level.tempId,
-    rooms: (Array.isArray(level.rooms) ? level.rooms : []).map((room) => ({
-      ...room,
-      id: room.id,
-      tempId: room.tempId,
-      roomCount: normalizeRoomCount(room.roomCount ?? room.count),
-      functionSelections: normalizeFunctionSelections(
-        room.functionSelections || room.functions || []
-      ),
-    })),
-  }));
+  return source.map((level) => {
+    const isTempLevelId = level.id !== undefined && !isValidOptionalUuid(level.id);
+    return {
+      ...level,
+      id: isTempLevelId ? undefined : level.id,
+      tempId: isTempLevelId ? level.id : level.tempId,
+      rooms: (Array.isArray(level.rooms) ? level.rooms : []).map((room) => {
+        const isTempRoomId = room.id !== undefined && !isValidOptionalUuid(room.id);
+        return {
+          ...room,
+          id: isTempRoomId ? undefined : room.id,
+          tempId: isTempRoomId ? room.id : room.tempId,
+          roomCount: normalizeRoomCount(room.roomCount ?? room.count),
+          functionSelections: normalizeFunctionSelections(
+            room.functionSelections || room.functions || []
+          ),
+        };
+      }),
+    };
+  });
 }
 
 function buildCalculationPayload(body) {
     return {
         levels: normalizeLevelsPayload(body?.levels),
-    selectedRangeId: isValidUuid(body?.selectedRangeId || body?.rangeId || body?.range)
-      ? body.selectedRangeId || body.rangeId || body.range
-      : null,
-    selectedColorId: isValidUuid(body?.selectedColorId || body?.colorId || body?.color)
-      ? body.selectedColorId || body.colorId || body.color
-      : null,
+    selectedRangeId: normalizeUuid(body?.selectedRangeId || body?.rangeId || body?.range),
+    selectedColorId: normalizeUuid(body?.selectedColorId || body?.colorId || body?.color),
     multiplicationIndex:
       body?.multiplicationIndex ??
       body?.projectInfo?.projectMultiplicationIndex ??
       1.0,
-    selectedServiceIds: Array.isArray(body?.selectedServiceIds)
-      ? body.selectedServiceIds
-      : Array.isArray(body?.serviceIds)
-      ? body.serviceIds
-      : Array.isArray(body?.services)
-      ? body.services
-      : [],
+    selectedServiceIds: normalizeUuidArray(
+      Array.isArray(body?.selectedServiceIds)
+        ? body.selectedServiceIds
+        : Array.isArray(body?.serviceIds)
+        ? body.serviceIds
+        : Array.isArray(body?.services)
+        ? body.services
+        : []
+    ),
     language: body?.language === 'ro' || body?.language === 'en' ? body.language : 'en',
   };
 }
@@ -156,10 +161,7 @@ export const createOfferFromConfig = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const body = req.body || {};
-    const requestedProjectId =
-      body.projectId && isValidUuid(String(body.projectId).trim())
-        ? String(body.projectId).trim()
-        : null;
+    const requestedProjectId = normalizeUuid(body.projectId);
     const projectInfo = body.projectInfo || {};
     const levels = normalizeLevelsPayload(body.levels);
     const rangeId = body.rangeId ?? body.selectedRangeId ?? null;
@@ -181,12 +183,22 @@ export const createOfferFromConfig = async (req, res, next) => {
     const rawBuildingTypeId =
       (projectInfo.buildingType && String(projectInfo.buildingType).trim()) ||
       null;
-    const buildingTypeId =
-      rawBuildingTypeId && isValidUuid(rawBuildingTypeId)
-        ? rawBuildingTypeId
-        : null;
-    const selectedRangeId = rangeId && isValidUuid(rangeId) ? rangeId : null;
-    const selectedColorId = colorId && isValidUuid(colorId) ? colorId : null;
+    const buildingTypeId = normalizeUuid(rawBuildingTypeId);
+    const selectedRangeId = normalizeUuid(rangeId);
+    const selectedColorId = normalizeUuid(colorId);
+    const validBuildingTypeId = buildingTypeId
+      ? await resolveExistingUuidOrNull({ model: BuildingType, value: buildingTypeId })
+      : null;
+    const validSelectedRangeId = selectedRangeId
+      ? await resolveExistingUuidOrNull({ model: ProductRange, value: selectedRangeId })
+      : null;
+    const validSelectedColorId = selectedColorId
+      ? await resolveExistingUuidOrNull({ model: Color, value: selectedColorId })
+      : null;
+    const validServiceIds = await resolveExistingUuidArray({
+      model: Service,
+      values: body.selectedServiceIds || body.serviceIds || body.services,
+    });
 
     const numArea =
       projectInfo.area != null && projectInfo.area !== ""
@@ -195,7 +207,33 @@ export const createOfferFromConfig = async (req, res, next) => {
     const builtUpArea =
       numArea != null && !Number.isNaN(numArea) ? numArea : null;
 
+    const projectCreatePayload = {
+      name: projectName,
+      buildingTypeId: validBuildingTypeId,
+      levelsCount: levels.length,
+      multiplicationIndex: Number(multiplicationIndex) || 1,
+      builtUpArea,
+      projectComplexity: projectInfo.projectComplexity
+        ? String(projectInfo.projectComplexity)
+        : null,
+      description: projectInfo.description
+        ? String(projectInfo.description)
+        : null,
+      selectedRangeId: validSelectedRangeId,
+      selectedColorId: validSelectedColorId,
+    };
+
     let projectId = requestedProjectId;
+    if (projectId) {
+      const existingProject = await projectService.getProjectDetails(userId, projectId);
+      if (!existingProject) projectId = null;
+    }
+
+    if (!projectId) {
+      const recentProject = await projectService.findRecentMatchingProject(userId, projectCreatePayload);
+      if (recentProject) projectId = recentProject.id;
+    }
+
     if (projectId) {
       let defaultRoomTypeId = null;
       const normalizedLevels = levels.map((level) => ({
@@ -204,8 +242,7 @@ export const createOfferFromConfig = async (req, res, next) => {
           const rawRoomTypeId = roomData.type || roomData.roomTypeId;
           return {
             ...roomData,
-            roomTypeId:
-              rawRoomTypeId && isValidUuid(rawRoomTypeId) ? rawRoomTypeId : null,
+            roomTypeId: normalizeUuid(rawRoomTypeId),
           };
         }),
       }));
@@ -231,7 +268,7 @@ export const createOfferFromConfig = async (req, res, next) => {
           projectInfo: {
             ...projectInfo,
             name: projectName,
-            buildingType: buildingTypeId,
+            buildingType: validBuildingTypeId,
             levelsCount: levels.length,
             builtUpArea,
             area: builtUpArea,
@@ -244,28 +281,14 @@ export const createOfferFromConfig = async (req, res, next) => {
               : null,
           },
           levels: normalizedLevels,
-          rangeId: selectedRangeId,
-          colorId: selectedColorId,
+          rangeId: validSelectedRangeId,
+          colorId: validSelectedColorId,
         },
         userId
       );
     } else {
       let defaultRoomTypeId = null;
-      const project = await projectService.createProject(userId, {
-        name: projectName,
-        buildingTypeId,
-        levelsCount: levels.length,
-        multiplicationIndex: Number(multiplicationIndex) || 1,
-        builtUpArea,
-        projectComplexity: projectInfo.projectComplexity
-          ? String(projectInfo.projectComplexity)
-          : null,
-        description: projectInfo.description
-          ? String(projectInfo.description)
-          : null,
-        selectedRangeId,
-        selectedColorId,
-      });
+      const project = await projectService.createProject(userId, projectCreatePayload);
       projectId = project.id;
 
       for (let i = 0; i < levels.length; i++) {
@@ -281,8 +304,7 @@ export const createOfferFromConfig = async (req, res, next) => {
         const rooms = levelData.rooms || [];
         for (const roomData of rooms) {
           const rawRoomTypeId = roomData.type || roomData.roomTypeId;
-          let roomTypeId =
-            rawRoomTypeId && isValidUuid(rawRoomTypeId) ? rawRoomTypeId : null;
+          let roomTypeId = await resolveExistingUuidOrNull({ model: RoomType, value: rawRoomTypeId });
           if (!roomTypeId) {
             if (!defaultRoomTypeId) {
               const first = await RoomType.findOne({
@@ -306,11 +328,12 @@ export const createOfferFromConfig = async (req, res, next) => {
           const funcs = roomData.functions || roomData.functionSelections || [];
           for (const f of funcs) {
             const rawFuncId = f.smartFunctionId || f.id;
-            if (!rawFuncId || !isValidUuid(rawFuncId)) continue;
+            const normalizedFuncId = await resolveExistingUuidOrNull({ model: SmartFunction, value: rawFuncId });
+            if (!normalizedFuncId) continue;
             await projectService.addFunctionSelection(
               room.id,
               {
-                smartFunctionId: rawFuncId,
+                smartFunctionId: normalizedFuncId,
                 quantity: Math.max(1, parseInt(f.quantity, 10) || 1),
               },
               userId
@@ -323,11 +346,11 @@ export const createOfferFromConfig = async (req, res, next) => {
     const offerData = normalizeOfferPayload({
       projectId,
       levels,
-      rangeId,
-      colorId,
+      rangeId: validSelectedRangeId,
+      colorId: validSelectedColorId,
       projectInfo: body.projectInfo,
-      selectedServiceIds: body.selectedServiceIds || body.serviceIds,
-      services: body.selectedServiceIds || body.serviceIds || body.services,
+      selectedServiceIds: validServiceIds,
+      services: validServiceIds,
       customerComments: body.customerComments,
     });
     offerData.status = 'offer_generated';
@@ -412,7 +435,7 @@ export const getOfferDetails = async (req, res, next) => {
 export const listOffers = async (req, res, next) => {
   try {
     const { projectId } = req.query;
-    const userId = req.user.role === "admin" ? null : req.user.id;
+    const userId = req.user.id;
     const offers = await offerService.listOffers(projectId || null, userId);
     sendResponse(res, 200, true, "Offers fetched", offers);
   } catch (error) {
@@ -480,6 +503,14 @@ export const updateFollowup = async (req, res, next) => {
   }
 };
 
+export const sendReminderEmail = async (req, res, next) => {
+  try {
+    const followup = await followupService.sendOfferReminderEmailNow(req.params.id, req.user);
+    sendResponse(res, 200, true, "Reminder email sent", followup);
+  } catch (error) {
+    next(error);
+  }
+};
 export const duplicateOffer = async (req, res, next) => {
   try {
     const offer = await offerService.duplicateOffer(req.params.id, req.user);
@@ -523,11 +554,4 @@ export const exportPdf = async (req, res, next) => {
     next(error);
   }
 };
-
-
-
-
-
-
-
 

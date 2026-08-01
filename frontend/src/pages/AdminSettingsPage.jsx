@@ -17,38 +17,40 @@ import {
     Alert,
     Badge,
 } from '@/components/common/UIComponents';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminSettingsPage() {
+    const { t } = useTranslation();
     const [isSaving, setIsSaving] = useState(false);
 
     const settingsGroups = [
         {
             id: 'engine',
-            title: 'Calculation Engine',
+            title: t('adminSettings.groups.engine', { defaultValue: 'Calculation Engine' }),
             icon: Zap,
             settings: [
-                { name: 'Global Price Multiplier', value: '1.00', type: 'number', description: 'Base multiplier for all hardware components.' },
-                { name: 'VAT Rate (%)', value: '19', type: 'number', description: 'Standard VAT percentage for proposal calculations.' },
-                { name: 'Currency Code', value: 'EUR', type: 'text', description: 'Primary currency for all financial transactions.' },
+                { name: t('adminSettings.fields.multiplier', { defaultValue: 'Global Price Multiplier' }), value: '1.00', type: 'number', description: t('adminSettings.fields.multiplierHelp', { defaultValue: 'Base multiplier for all hardware components.' }) },
+                { name: t('adminSettings.fields.vat', { defaultValue: 'VAT Rate (%)' }), value: '19', type: 'number', description: t('adminSettings.fields.vatHelp', { defaultValue: 'Standard VAT percentage for proposal calculations.' }) },
+                { name: t('adminSettings.fields.currency', { defaultValue: 'Currency Code' }), value: 'EUR', type: 'text', description: t('adminSettings.fields.currencyHelp', { defaultValue: 'Primary currency for all financial transactions.' }) },
             ],
         },
         {
             id: 'platform',
-            title: 'Platform Branding',
+            title: t('adminSettings.groups.branding', { defaultValue: 'Platform Branding' }),
             icon: Globe,
             settings: [
-                { name: 'Organisation Name', value: 'Home Solution Configurator', type: 'text', description: 'Main title used in headers and documents.' },
-                { name: 'Support Email', value: 'support@hsc.com', type: 'email', description: 'Reply-to address for customer notifications.' },
-                { name: 'Offer Expiry (Days)', value: '30', type: 'number', description: 'Default validity period for generated PDF offers.' },
+                { name: t('adminSettings.fields.organisation', { defaultValue: 'Organisation Name' }), value: 'Home Solution Configurator', type: 'text', description: t('adminSettings.fields.organisationHelp', { defaultValue: 'Main title used in headers and documents.' }) },
+                { name: t('adminSettings.fields.supportEmail', { defaultValue: 'Support Email' }), value: 'support@hsc.com', type: 'email', description: t('adminSettings.fields.supportEmailHelp', { defaultValue: 'Reply-to address for customer notifications.' }) },
+                { name: t('adminSettings.fields.expiry', { defaultValue: 'Offer Expiry (Days)' }), value: '30', type: 'number', description: t('adminSettings.fields.expiryHelp', { defaultValue: 'Default validity period for generated PDF offers.' }) },
             ],
         },
         {
             id: 'security',
-            title: 'System & Security',
+            title: t('adminSettings.groups.security', { defaultValue: 'System & Security' }),
             icon: Shield,
             settings: [
-                { name: 'Session Timeout (min)', value: '120', type: 'number', description: 'Automatic log-out period for inactive sessions.' },
-                { name: 'Maintenance Mode', value: false, type: 'toggle', description: 'Restrict non-admin access during system updates.' },
+                { name: t('adminSettings.fields.timeout', { defaultValue: 'Session Timeout (min)' }), value: '120', type: 'number', description: t('adminSettings.fields.timeoutHelp', { defaultValue: 'Automatic log-out period for inactive sessions.' }) },
+                { name: t('adminSettings.fields.maintenance', { defaultValue: 'Maintenance Mode' }), value: false, type: 'toggle', description: t('adminSettings.fields.maintenanceHelp', { defaultValue: 'Restrict non-admin access during system updates.' }) },
             ],
         },
     ];
@@ -69,20 +71,20 @@ export default function AdminSettingsPage() {
                 <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="space-y-6">
                         <SectionTitle
-                            title="Global System Settings"
-                            subtitle="Centralized configuration for the calculation engine, platform identity, and security protocols across the smart-home backoffice."
-                            badge="Infrastructure Console"
+                            title={t('adminSettings.title', { defaultValue: 'Global System Settings' })}
+                            subtitle={t('adminSettings.subtitle', { defaultValue: 'Centralized configuration for the calculation engine, platform identity, and security protocols across the smart-home backoffice.' })}
+                            badge={t('adminSettings.badge', { defaultValue: 'Infrastructure Console' })}
                             className="mb-0"
                         />
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {[
-                                { icon: Database, label: 'System Registry', value: 'Live' },
-                                { icon: Activity, label: 'Update State', value: 'Synced' },
+                                { icon: Database, label: t('adminSettings.registry', { defaultValue: 'System Registry' }), value: t('adminSettings.live', { defaultValue: 'Live' }) },
+                                { icon: Activity, label: t('adminSettings.updateState', { defaultValue: 'Update State' }), value: t('adminSettings.synced', { defaultValue: 'Synced' }) },
                             ].map((item) => (
                                 <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
@@ -95,9 +97,9 @@ export default function AdminSettingsPage() {
                         </div>
                     </div>
 
-                    <Button size="lg" onClick={handleSave} className="gap-2">
+                    <Button size="md" onClick={handleSave} className="gap-2">
                         {isSaving ? <RefreshCw className="h-4.5 w-4.5 animate-spin" /> : <Save className="h-4.5 w-4.5" />}
-                        {isSaving ? 'Synchronising Settings' : 'Synchronise Settings'}
+                        {isSaving ? t('adminSettings.synchronising', { defaultValue: 'Synchronising Settings' }) : t('adminSettings.synchronise', { defaultValue: 'Synchronise Settings' })}
                     </Button>
                 </div>
             </div>
@@ -110,19 +112,19 @@ export default function AdminSettingsPage() {
                                 <Database className="h-5 w-5" />
                             </div>
                             <div>
-                                <h3 className="font-heading text-4xl font-semibold leading-none text-textPrimary">System Registry</h3>
+                                <h3 className="font-heading text-2xl font-semibold leading-tight text-textPrimary sm:text-3xl">{t('adminSettings.registry', { defaultValue: 'System Registry' })}</h3>
                                 <p className="mt-3 text-sm leading-relaxed text-textSecondary">
-                                    Changes made here influence hardware pricing, proposal generation logic, branding outputs, and platform-wide security behavior.
+                                    {t('adminSettings.registryHelp', { defaultValue: 'Changes made here influence hardware pricing, proposal generation logic, branding outputs, and platform-wide security behavior.' })}
                                 </p>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">Engine Status</span>
-                                    <Badge variant="success">Operational</Badge>
+                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminSettings.engineStatus', { defaultValue: 'Engine Status' })}</span>
+                                    <Badge variant="success">{t('adminSettings.operational', { defaultValue: 'Operational' })}</Badge>
                                 </div>
                                 <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">Last Sync</span>
-                                    <span className="text-sm font-medium text-textPrimary">Today, 14:24</span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminSettings.lastSync', { defaultValue: 'Last Sync' })}</span>
+                                    <span className="text-sm font-medium text-textPrimary">{t('adminSettings.todayAt', { time: '14:24', defaultValue: 'Today, {{time}}' })}</span>
                                 </div>
                             </div>
                         </div>
@@ -130,8 +132,8 @@ export default function AdminSettingsPage() {
 
                     <Alert variant="info" icon={Server}>
                         <div className="space-y-1">
-                            <p className="font-medium text-textPrimary">Cloud Synchronisation</p>
-                            <p>Master data backups are automatically generated every 24 hours.</p>
+                            <p className="font-medium text-textPrimary">{t('adminSettings.cloudSync', { defaultValue: 'Cloud Synchronisation' })}</p>
+                            <p>{t('adminSettings.cloudSyncHelp', { defaultValue: 'Master data backups are automatically generated every 24 hours.' })}</p>
                         </div>
                     </Alert>
                 </div>
@@ -141,12 +143,12 @@ export default function AdminSettingsPage() {
                         <Card key={group.id} className="rounded-[2rem] p-0 overflow-hidden">
                             <div className="border-b border-white/8 bg-white/5 px-6 py-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                         <group.icon className="h-5 w-5" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-medium text-textPrimary">{group.title}</h3>
-                                        <p className="text-sm text-textSecondary">Global configuration set</p>
+                                        <p className="text-sm text-textSecondary">{t('adminSettings.groupSubtitle', { defaultValue: 'Global configuration set' })}</p>
                                     </div>
                                 </div>
                             </div>
@@ -161,14 +163,14 @@ export default function AdminSettingsPage() {
                                         <div className="w-full sm:w-56">
                                             {setting.type === 'toggle' ? (
                                                 <button className="relative inline-flex h-7 w-12 items-center rounded-full border border-primary-500/20 bg-primary-500/15 transition-colors focus:outline-none">
-                                                    <span className="sr-only">Toggle setting</span>
+                                                    <span className="sr-only">{t('adminSettings.toggle', { defaultValue: 'Toggle setting' })}</span>
                                                     <span className="translate-x-6 inline-block h-5 w-5 rounded-full bg-textPrimary transition-transform" />
                                                 </button>
                                             ) : (
                                                 <input
                                                     type={setting.type}
                                                     defaultValue={setting.value}
-                                                    className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-4 py-3 text-sm font-medium text-textPrimary shadow-inner transition-all focus:border-primary-500/40 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                                                    className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-3.5 py-2.5 text-sm font-medium text-textPrimary shadow-inner transition-all focus:border-primary-500/40 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                                                 />
                                             )}
                                         </div>

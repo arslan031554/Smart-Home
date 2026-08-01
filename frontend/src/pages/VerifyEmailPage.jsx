@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
 import { Mail, CheckCircle, ArrowRight } from 'lucide-react';
 import { Button, Badge } from '@/components/common/UIComponents';
+import { useTranslation } from 'react-i18next';
 
 export default function VerifyEmailPage() {
+    const { t } = useTranslation();
     const [otp, setOtp] = useState(['', '', '', '', '']);
     const inputs = useRef([]);
     const [isVerified, setIsVerified] = useState(false);
@@ -38,11 +40,11 @@ export default function VerifyEmailPage() {
                     <CheckCircle className="h-10 w-10" />
                 </div>
                 <div className="space-y-3">
-                    <h3 className="font-heading text-4xl font-semibold text-textPrimary">Verified Successfully!</h3>
-                    <p className="mx-auto max-w-md text-sm leading-relaxed text-textSecondary">Your email has been verified. You can now access all features.</p>
+                    <h3 className="font-heading text-4xl font-semibold text-textPrimary">{t('verifyEmail.successTitle', { defaultValue: 'Verified Successfully!' })}</h3>
+                    <p className="mx-auto max-w-md text-sm leading-relaxed text-textSecondary">{t('verifyEmail.successBody', { defaultValue: 'Your email has been verified. You can now access all features.' })}</p>
                 </div>
                 <Button className="w-full gap-2" onClick={() => window.location.href = '/dashboard'}>
-                    Go to Dashboard
+                    {t('verifyEmail.dashboard', { defaultValue: 'Go to Dashboard' })}
                     <ArrowRight className="h-4.5 w-4.5" />
                 </Button>
             </div>
@@ -54,11 +56,11 @@ export default function VerifyEmailPage() {
             <div className="space-y-4 text-center">
                 <Badge variant="info" className="mx-auto gap-2">
                     <Mail className="h-3.5 w-3.5" />
-                    Verify Your Email
+                    {t('verifyEmail.title', { defaultValue: 'Verify Your Email' })}
                 </Badge>
                 <div className="space-y-2">
-                    <h3 className="font-heading text-4xl font-semibold text-textPrimary">Verify Your Email</h3>
-                    <p className="text-sm text-textSecondary">We've sent a code to your email. Enter it below.</p>
+                    <h3 className="font-heading text-4xl font-semibold text-textPrimary">{t('verifyEmail.title', { defaultValue: 'Verify Your Email' })}</h3>
+                    <p className="text-sm text-textSecondary">{t('verifyEmail.body', { defaultValue: "We've sent a code to your email. Enter it below." })}</p>
                 </div>
             </div>
 
@@ -80,11 +82,11 @@ export default function VerifyEmailPage() {
 
                 <div className="space-y-4 text-center">
                     <Button type="submit" className="w-full">
-                        Verify Now
+                        {t('verifyEmail.verifyNow', { defaultValue: 'Verify Now' })}
                     </Button>
                     <div className="text-sm text-textSecondary">
-                        <span>Didn't receive code?</span>
-                        <button type="button" className="ml-2 font-semibold text-primary-300 transition-colors hover:text-primary-200">Resend Code</button>
+                        <span>{t('verifyEmail.noCode', { defaultValue: "Didn't receive code?" })}</span>
+                        <button type="button" className="ml-2 font-semibold text-primary-300 transition-colors hover:text-primary-200">{t('verifyEmail.resend', { defaultValue: 'Resend Code' })}</button>
                     </div>
                 </div>
             </form>

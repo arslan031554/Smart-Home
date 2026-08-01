@@ -1,4 +1,5 @@
 import { motion as Motion } from 'framer-motion';
+import ExpandableText from './ExpandableText';
 import PageHero from './PageHero';
 import CTASection from './CTASection';
 import InfoCard from './cards/InfoCard';
@@ -27,10 +28,10 @@ export default function ServiceDetails({ serviceSlug }) {
               icon={Icon}
               image={service.image}
             />
-            <div className="bg-white py-20">
+            <div id="page-content" className="bg-white py-20 sm:py-28">
               <div className="section-shell container-px grid items-center gap-12 lg:grid-cols-[0.92fr_1fr]">
                 <Motion.div
-                  className="relative min-h-[430px] overflow-hidden rounded-lg bg-ink shadow-2xl shadow-emerald/15"
+                  className="relative min-h-[430px] overflow-hidden rounded-[2rem] bg-ink shadow-2xl shadow-emerald/15"
                   initial={{ opacity: 0, x: -28 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -38,10 +39,10 @@ export default function ServiceDetails({ serviceSlug }) {
                 >
                   <SiteImage src={service.image} alt={service.title} className="absolute inset-0" />
                   <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/35 to-transparent" />
-                  <div className="absolute bottom-7 left-7 right-7 rounded-lg border border-white/20 bg-white/15 p-5 text-white backdrop-blur">
+                  <div className="absolute bottom-7 left-7 right-7 rounded-2xl border border-white/20 bg-white/15 p-5 text-white backdrop-blur">
                     <Icon className="mb-4 text-orange" size={34} />
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-white/70">{serviceDetails.brandLabel}</p>
-                    <h3 className="mt-2 text-2xl font-black uppercase">{service.title}</h3>
+                    <h3 className="mt-2 text-2xl font-semibold">{service.title}</h3>
                   </div>
                 </Motion.div>
 
@@ -56,10 +57,14 @@ export default function ServiceDetails({ serviceSlug }) {
                     title={service.title}
                     copy={service.text}
                   />
-                  <p className="mt-5 text-base leading-8 text-slate-600">{service.detail}</p>
+                  <ExpandableText
+                    text={service.detail}
+                    maxCharacters={240}
+                    className="mt-5 text-base leading-8 text-slate-600"
+                  />
                   <div className="mt-7 grid gap-3 sm:grid-cols-3">
                     {service.chips.map((chip) => (
-                      <div className="rounded-lg bg-fog p-4 text-sm font-black text-emerald" key={chip}>
+                      <div className="rounded-2xl border border-emerald/10 bg-fog p-4 text-sm font-black text-emerald" key={chip}>
                         {chip}
                       </div>
                     ))}
@@ -73,13 +78,13 @@ export default function ServiceDetails({ serviceSlug }) {
                     {serviceHighlights.map((item, highlightIndex) => {
                       return (
                         <InfoCard
-                          className="rounded-lg border border-emerald/10 bg-fog p-6 shadow-lg shadow-emerald/10"
+                          className="rounded-[1.5rem] border border-emerald/10 bg-fog p-6 shadow-lg shadow-emerald/10"
                           icon={item.icon}
                           iconWrapClassName="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange text-white"
                           key={item.title}
                           index={highlightIndex}
                           title={item.title}
-                          titleClassName="text-xl font-black uppercase text-graphite"
+                          titleClassName="text-xl font-semibold text-graphite"
                           text={item.text}
                         />
                       );
@@ -89,7 +94,7 @@ export default function ServiceDetails({ serviceSlug }) {
               )}
 
               <div className="section-shell container-px mt-16">
-                <div className="rounded-lg bg-fog p-6">
+                <div className="rounded-[1.5rem] border border-emerald/10 bg-fog p-6">
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald">{serviceDetails.related}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {services

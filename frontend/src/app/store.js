@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import configuratorReducer from '../features/configurator/configuratorSlice';
 import authReducer from '../features/auth/authSlice';
 import offersReducer from '../features/offers/offersSlice';
@@ -8,6 +8,15 @@ import dashboardReducer from '../features/dashboard/dashboardSlice';
 
 const SCHEMA_VERSION = '1.2.6'; // Increment to force significant slice resets (like admin master data & UI)
 
+const sanitizePersistedConfigurator = (configurator) => {
+    if (!configurator || typeof configurator !== 'object') return configurator;
+    return {
+        ...configurator,
+        calculation: null,
+        isCalculating: false,
+        calcError: null,
+    };
+};
 const loadState = () => {
     try {
         const serializedState = localStorage.getItem('hsc_state');
@@ -50,6 +59,9 @@ const loadState = () => {
             }
         }
         
+        parsed.configurator = sanitizePersistedConfigurator(parsed.configurator);
+
+        
         return parsed;
     } catch (err) {
         console.error("Failed to load state from localStorage:", err);
@@ -62,7 +74,7 @@ const saveState = (state) => {
     try {
         const serializedState = JSON.stringify({
             admin: state.admin,
-            configurator: state.configurator,
+            configurator: sanitizePersistedConfigurator(state.configurator),
             auth: state.auth,
             offers: state.offers,
             ui: state.ui,
@@ -76,15 +88,29 @@ const saveState = (state) => {
 
 const preloadedState = loadState();
 
+const appReducer = combineReducers({
+    configurator: configuratorReducer,
+    auth: authReducer,
+    offers: offersReducer,
+    admin: adminReducer,
+    ui: uiReducer,
+    dashboard: dashboardReducer,
+});
+
+const rootReducer = (state, action) => {
+    if (action.type === 'auth/logout/fulfilled' || action.type === 'auth/logout/rejected') {
+        // Clear user-specific state to isolate state between users
+        localStorage.removeItem('hsc_state');
+        return appReducer({
+            admin: state?.admin,
+            ui: state?.ui
+        }, action);
+    }
+    return appReducer(state, action);
+};
+
 export const store = configureStore({
-    reducer: {
-        configurator: configuratorReducer,
-        auth: authReducer,
-        offers: offersReducer,
-        admin: adminReducer,
-        ui: uiReducer,
-        dashboard: dashboardReducer,
-    },
+    reducer: rootReducer,
     preloadedState,
 });
 
@@ -95,3 +121,4 @@ store.subscribe(() => {
         saveState(store.getState());
     }, 50); // Aggressive 50ms pulse for real-time persistence
 });
+

@@ -1,8 +1,10 @@
 import { motion as Motion } from 'framer-motion';
 import AnimatedSection from './AnimatedSection';
 import { partners } from '../data/siteData';
+import { useTranslation } from 'react-i18next';
 
 export default function Partners() {
+  const { t } = useTranslation();
   return (
     <AnimatedSection className="relative overflow-hidden border-y border-emerald/12 bg-ink/95 py-16">
       <div className="absolute inset-0 bg-tech-grid bg-[length:44px_44px] opacity-[0.06]" />
@@ -10,10 +12,10 @@ export default function Partners() {
         {/* Header */}
         <div className="mb-10 text-center">
           <p className="text-xs font-black uppercase tracking-[0.32em] text-emerald/80">
-            Parteneri & Certificări
+            {t('presentation.partners.kicker', { defaultValue: 'Partners & Certifications' })}
           </p>
           <p className="mt-2 text-sm font-semibold text-white/45">
-            Lucrăm cu cele mai recunoscute branduri în automatizarea clădirilor
+            {t('presentation.partners.copy', { defaultValue: 'We work with the most recognized brands in building automation' })}
           </p>
         </div>
 
@@ -50,9 +52,9 @@ export default function Partners() {
             KNX
           </div>
           <div>
-            <p className="font-black text-white">Certificat KNX — Standardul Mondial în Automatizare</p>
+            <p className="font-black text-white">{t('presentation.knx.title', { defaultValue: 'KNX Certified — The Worldwide Standard for Automation' })}</p>
             <p className="mt-1 text-sm leading-6 text-white/60">
-              Echipa noastră este certificată KNX, garantând implementări conform celor mai stricte standarde internaționale de automatizare a clădirilor.
+              {t('presentation.knx.copy', { defaultValue: 'Our team is KNX certified, ensuring implementations that meet the strictest international building-automation standards.' })}
             </p>
           </div>
         </Motion.div>

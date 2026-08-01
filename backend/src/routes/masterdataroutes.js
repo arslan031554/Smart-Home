@@ -10,6 +10,45 @@ function getLanguage(req) {
     return normalizeBusinessLanguage(req.query.lang || req.headers['accept-language']);
 }
 
+function isMissingRangeColorMappingError(err) {
+    const code = err?.parent?.code || err?.original?.code;
+    const message = String(err?.parent?.message || err?.original?.message || err?.message || '');
+    return code === '42P01' && message.includes('ProductRangeColors');
+}
+
+function serializeColorWithRanges(row, productRanges, language) {
+    const localized = serializeLocalizedEntity(row, { language, fields: ['name', 'description'] });
+    const ranges = Array.isArray(productRanges) ? productRanges : [];
+
+    return {
+        ...localized,
+        productRanges: ranges.map((range) => (typeof range === 'object' && range?.id ? range.id : range)).filter(Boolean),
+        productRangeDetails: ranges
+            .map((range) => (typeof range === 'object' && range?.id ? { id: range.id, name: range.name } : null))
+            .filter(Boolean)
+    };
+}
+
+async function getColorsWithoutRangeMapping({ language, rangeId }) {
+    const ranges = await models.ProductRange.findAll({
+        where: { isActive: true, isVisible: true },
+        attributes: ['id', 'name'],
+        order: [['name', 'ASC']]
+    });
+    const selectedRanges = rangeId ? ranges.filter((range) => range.id === rangeId) : ranges;
+
+    if (rangeId && selectedRanges.length === 0) {
+        return [];
+    }
+
+    const rows = await models.Color.findAll({
+        where: { isActive: true, isVisible: true },
+        attributes: ['id', 'name', 'description', 'translations', 'imageUrl', 'hex', 'isVisible', 'isActive'],
+        order: [['name', 'ASC']]
+    });
+
+    return (rows || []).map((row) => serializeColorWithRanges(row, selectedRanges, language));
+}
 // Public, customer-safe master data read endpoints for configurator.
 // These endpoints are intentionally GET-only.
 
@@ -95,12 +134,33 @@ router.get('/product-ranges', async (req, res, next) => {
 router.get('/colors', async (req, res, next) => {
     try {
         const language = getLanguage(req);
-        const rows = await models.Color.findAll({
-            where: { isActive: true, isVisible: true },
-            attributes: ['id', 'name', 'description', 'translations', 'imageUrl', 'hex', 'isVisible', 'isActive'],
-            order: [['name', 'ASC']]
+        const rangeId = typeof req.query.rangeId === 'string' ? req.query.rangeId.trim() : null;
+        let rows = [];
+
+        try {
+            rows = await models.Color.findAll({
+                where: { isActive: true, isVisible: true },
+                attributes: ['id', 'name', 'description', 'translations', 'imageUrl', 'hex', 'isVisible', 'isActive'],
+                include: [{
+                    model: models.ProductRange,
+                    as: 'productRanges',
+                    attributes: ['id', 'name'],
+                    through: { attributes: [] },
+                    ...(rangeId ? { where: { id: rangeId }, required: true } : {})
+                }],
+                order: [['name', 'ASC']]
+            });
+        } catch (e) {
+            if (!isMissingRangeColorMappingError(e)) throw e;
+
+            const data = await getColorsWithoutRangeMapping({ language, rangeId });
+            return res.status(200).json({ success: true, message: 'Colors fetched', data });
+        }
+
+        const data = (rows || []).map((row) => {
+            const localized = serializeLocalizedEntity(row, { language, fields: ['name', 'description'] });
+            return serializeColorWithRanges(row, localized?.productRanges, language);
         });
-        const data = (rows || []).map((row) => serializeLocalizedEntity(row, { language, fields: ['name', 'description'] }));
         res.status(200).json({ success: true, message: 'Colors fetched', data });
     } catch (e) {
         next(e);

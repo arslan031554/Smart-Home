@@ -20,7 +20,7 @@ import {
 const presentationCopy = {
   ro: {
     companyDescription:
-      'Green Electric City este o companie cu capital integral autohton ce are ca obiect de activitate proiectarea si implementarea solutiilor de eficientizare energetica, solutiilor de cladiri inteligente precum si solutiilor personale de productie energie electrica.',
+      'Green Electric Innovations este o companie cu capital integral autohton ce are ca obiect de activitate proiectarea si implementarea solutiilor de eficientizare energetica, solutiilor de cladiri inteligente precum si solutiilor personale de productie energie electrica.',
     nav: {
       home: 'Acasa',
       pages: 'Pagini',
@@ -30,7 +30,7 @@ const presentationCopy = {
       support: 'Suport Clienti',
     },
     pages: {
-      about: { title: 'Despre noi', eyebrow: 'Green Electric City', breadcrumb: ['Acasa', 'Despre noi'] },
+      about: { title: 'Despre noi', eyebrow: 'Green Electric Innovations', breadcrumb: ['Acasa', 'Despre noi'] },
       services: { title: 'Servicii', eyebrow: 'Solutii complete', breadcrumb: ['Acasa', 'Servicii'] },
       portfolio: { title: 'Portofoliu', eyebrow: 'Proiecte smart home', breadcrumb: ['Acasa', 'Portofoliu'] },
       media: { title: 'Media', eyebrow: 'Video si proiecte', breadcrumb: ['Acasa', 'Media'] },
@@ -78,7 +78,7 @@ const presentationCopy = {
     servicesSection: {
       kicker: 'Servicii',
       title: 'Solutii complete pentru cladiri inteligente',
-      copy: 'Serviciile Green Electric City acopera drumul complet: proiectare, consultanta, implementare, productie de energie, tablouri electrice de automatizari si inovatie aplicata.',
+      copy: 'Serviciile Green Electric Innovations acopera drumul complet: proiectare, consultanta, implementare, productie de energie, tablouri electrice de automatizari si inovatie aplicata.',
       cta: 'Cere o oferta',
       learnMore: 'Afla mai multe',
       features: [
@@ -111,31 +111,10 @@ const presentationCopy = {
         detail:
           'Configuram si integram sistemele intr-o experienta simpla pentru utilizator, cu control local, mobil si centralizat pentru cladiri rezidentiale, comerciale sau speciale.',
         chips: ['Programare KNX', 'Integrare sisteme', 'Control mobil'],
-      },
-      {
-        title: 'Productie energie regenerabila',
-        text: 'Dorind ca lumea si viata din jurul nostru sa fie mai curate am dezvoltat departamentul de implementare solutii de productie energie electrica de mica si medie capacitate.',
-        detail:
-          'Proiectam si integram sisteme fotovoltaice si solutii de eficienta energetica ce pot functiona independent sau impreuna cu automatizarea cladirii.',
-        chips: ['Fotovoltaic', 'Monitorizare', 'Eficienta energetica'],
-      },
-      {
-        title: 'Uzinare si productie tablouri electrice de automatizari',
-        text: 'Departamentul de productie tablouri electrice de automatizare a ridicat nivelul de calitate al proiectelor noastre. Realizam tablouri electrice si de automatizare pentru proiecte proprii sau solicitari externe.',
-        detail:
-          'Executam tablouri electrice organizate, documentate si pregatite pentru mentenanta, cu atentie la siguranta, scalabilitate si calitatea montajului.',
-        chips: ['Tablouri electrice', 'Automatizari', 'Testare'],
-      },
-      {
-        title: 'Cercetare si inovare',
-        text: 'Misiunea noastra este aceea de a putea raspunde provocarilor tehnice si de aceea o parte insemnata a activitatii noastre este reprezentata de alocarea de resurse pentru gasirea a noi solutii optime.',
-        detail:
-          'Ca rezultate a activitatii de cercetare si inovare putem nota dezvoltarea suitei de aplicatii Wireeo cat si a serie de produse dedicate pentru detectia inundatiilor I-STOP. De asemena alte proiecte sunt in curs de dezvoltare.',
-        chips: ['Wireeo', 'I-STOP', 'Proiecte in dezvoltare'],
-      },
+      }
     ],
     about: {
-      kicker: 'Despre Green Electric City',
+      kicker: 'Despre Green Electric Innovations',
       title: 'Cladiri inteligente, eficienta si control',
       extra:
         'Construim solutii de automatizare pentru locuinte, spatii comerciale si cladiri moderne, de la consultanta si proiectare pana la implementare, tablouri electrice si productie de energie regenerabila.',
@@ -188,7 +167,7 @@ const presentationCopy = {
     portfolio: {
       kicker: 'Portofoliu',
       title: 'Proiecte reprezentative',
-      copy: 'Cateva dintre proiectele Green Electric City in care tehnologia, confortul si eficienta energetica lucreaza impreuna.',
+      copy: 'Cateva dintre proiectele Green Electric Innovations in care tehnologia, confortul si eficienta energetica lucreaza impreuna.',
       categories: [
         { key: 'all', label: 'Toate' },
         { key: 'office', label: 'Office' },
@@ -270,12 +249,12 @@ const presentationCopy = {
     media: {
       kicker: 'Media',
       title: 'O suita de lucruri interesante',
-      copy: 'Viata este colorata, dar si casa ta poate fi. Urmareste materiale despre proiecte, solutii si inovatiile Green Electric City.',
+      copy: 'Viata este colorata, dar si casa ta poate fi. Urmareste materiale despre proiecte, solutii si inovatiile Green Electric Innovations.',
       youtubeCta: 'Vezi YouTube',
       open: 'Deschide',
       video: 'Video',
       play: 'Reda',
-      channel: 'Green Electric City',
+      channel: 'Green Electric Innovations',
     },
     mediaItems: [
       { title: 'Iluminat inteligent' },
@@ -285,13 +264,13 @@ const presentationCopy = {
       { title: 'Ce se mai intampla pe la proiectele noastre?' },
     ],
     youtubeVideos: [
-      { title: 'Green Electric City - Cladiri inteligente', subtitle: 'Automatizare, control si confort pentru cladiri moderne' },
-      { title: 'Green Electric City - Solutii smart home', subtitle: 'Tehnologie integrata pentru locuinte si spatii eficiente' },
+      { title: 'Green Electric Innovations - Cladiri inteligente', subtitle: 'Automatizare, control si confort pentru cladiri moderne' },
+      { title: 'Green Electric Innovations - Solutii smart home', subtitle: 'Tehnologie integrata pentru locuinte si spatii eficiente' },
     ],
     contact: {
       kicker: 'Contact',
       title: 'Hai sa discutam despre proiectul tau',
-      copy: 'Trimite cateva detalii, iar echipa Green Electric City iti va raspunde cu solutia potrivita pentru cladirea ta.',
+      copy: 'Trimite cateva detalii, iar echipa Green Electric Innovations iti va raspunde cu solutia potrivita pentru cladirea ta.',
       mapLabel: 'Map placeholder',
       city: 'Bucuresti',
       formTitle: 'Trimite un mesaj',
@@ -320,7 +299,7 @@ const presentationCopy = {
     serviceDetails: {
       eyebrow: 'Servicii Green Electric',
       researchTitle: 'Cercetare si inovare',
-      brandLabel: 'Green Electric City',
+      brandLabel: 'Green Electric Innovations',
       dedicatedPage: 'Pagina dedicata',
       specializedService: 'Serviciu specializat',
       related: 'Servicii conexe',
@@ -346,7 +325,7 @@ const presentationCopy = {
   },
   en: {
     companyDescription:
-      'Green Electric City is a Romanian-owned company focused on designing and implementing energy efficiency systems, intelligent building solutions, and personal electrical energy production systems.',
+      'Green Electric Innovations is a Romanian-owned company focused on designing and implementing energy efficiency systems, intelligent building solutions, and personal electrical energy production systems.',
     nav: {
       home: 'Home',
       pages: 'Pages',
@@ -356,7 +335,7 @@ const presentationCopy = {
       support: 'Customer Support',
     },
     pages: {
-      about: { title: 'About us', eyebrow: 'Green Electric City', breadcrumb: ['Home', 'About us'] },
+      about: { title: 'About us', eyebrow: 'Green Electric Innovations', breadcrumb: ['Home', 'About us'] },
       services: { title: 'Services', eyebrow: 'Complete solutions', breadcrumb: ['Home', 'Services'] },
       portfolio: { title: 'Portfolio', eyebrow: 'Smart home projects', breadcrumb: ['Home', 'Portfolio'] },
       media: { title: 'Media', eyebrow: 'Video and projects', breadcrumb: ['Home', 'Media'] },
@@ -404,7 +383,7 @@ const presentationCopy = {
     servicesSection: {
       kicker: 'Services',
       title: 'Complete solutions for intelligent buildings',
-      copy: 'Green Electric City services cover the full path: design, consulting, implementation, energy production, automation electrical panels, and applied innovation.',
+      copy: 'Green Electric Innovations services cover the full path: design, consulting, implementation, energy production, automation electrical panels, and applied innovation.',
       cta: 'Request an offer',
       learnMore: 'Learn more',
       features: [
@@ -437,31 +416,10 @@ const presentationCopy = {
         detail:
           'We configure and integrate systems into a simple user experience, with local, mobile, and centralized control for residential, commercial, or specialized buildings.',
         chips: ['KNX programming', 'System integration', 'Mobile control'],
-      },
-      {
-        title: 'Renewable energy production',
-        text: 'Because we want the world around us to be cleaner, we developed a department dedicated to small and medium-capacity electrical energy production solutions.',
-        detail:
-          'We design and integrate photovoltaic systems and energy-efficiency solutions that can work independently or together with building automation.',
-        chips: ['Photovoltaic', 'Monitoring', 'Energy efficiency'],
-      },
-      {
-        title: 'Automation electrical panel manufacturing',
-        text: 'Our automation electrical panel production department raised the quality level of our projects. We build electrical and automation panels for our own projects and external requests.',
-        detail:
-          'We deliver organized, documented, maintenance-ready electrical panels with close attention to safety, scalability, and installation quality.',
-        chips: ['Electrical panels', 'Automation', 'Testing'],
-      },
-      {
-        title: 'Research and innovation',
-        text: 'Our mission is to answer technical challenges, so a significant part of our activity is dedicated to finding new optimal solutions.',
-        detail:
-          'Our research and innovation work includes the Wireeo application suite and I-STOP flood detection products, with additional projects currently in development.',
-        chips: ['Wireeo', 'I-STOP', 'Projects in development'],
-      },
+      }
     ],
     about: {
-      kicker: 'About Green Electric City',
+      kicker: 'About Green Electric Innovations',
       title: 'Intelligent buildings, efficiency, and control',
       extra:
         'We build automation solutions for homes, commercial spaces, and modern buildings, from consulting and design to implementation, electrical panels, and renewable energy production.',
@@ -514,7 +472,7 @@ const presentationCopy = {
     portfolio: {
       kicker: 'Portfolio',
       title: 'Representative projects',
-      copy: 'A selection of Green Electric City projects where technology, comfort, and energy efficiency work together.',
+      copy: 'A selection of Green Electric Innovations projects where technology, comfort, and energy efficiency work together.',
       categories: [
         { key: 'all', label: 'All' },
         { key: 'office', label: 'Office' },
@@ -596,12 +554,12 @@ const presentationCopy = {
     media: {
       kicker: 'Media',
       title: 'A suite of interesting things',
-      copy: 'Life is colorful, and your home can be too. Watch materials about Green Electric City projects, solutions, and innovations.',
+      copy: 'Life is colorful, and your home can be too. Watch materials about Green Electric Innovations projects, solutions, and innovations.',
       youtubeCta: 'View YouTube',
       open: 'Open',
       video: 'Video',
       play: 'Play',
-      channel: 'Green Electric City',
+      channel: 'Green Electric Innovations',
     },
     mediaItems: [
       { title: 'Smart lighting' },
@@ -611,13 +569,13 @@ const presentationCopy = {
       { title: 'What is happening in our projects?' },
     ],
     youtubeVideos: [
-      { title: 'Green Electric City - Intelligent buildings', subtitle: 'Automation, control, and comfort for modern buildings' },
-      { title: 'Green Electric City - Smart home solutions', subtitle: 'Integrated technology for efficient homes and spaces' },
+      { title: 'Green Electric Innovations - Intelligent buildings', subtitle: 'Automation, control, and comfort for modern buildings' },
+      { title: 'Green Electric Innovations - Smart home solutions', subtitle: 'Integrated technology for efficient homes and spaces' },
     ],
     contact: {
       kicker: 'Contact',
       title: 'Let us discuss your project',
-      copy: 'Send a few details and the Green Electric City team will respond with the right solution for your building.',
+      copy: 'Send a few details and the Green Electric Innovations team will respond with the right solution for your building.',
       mapLabel: 'Map placeholder',
       city: 'Bucharest',
       formTitle: 'Send a message',
@@ -646,7 +604,7 @@ const presentationCopy = {
     serviceDetails: {
       eyebrow: 'Green Electric Services',
       researchTitle: 'Research and innovation',
-      brandLabel: 'Green Electric City',
+      brandLabel: 'Green Electric Innovations',
       dedicatedPage: 'Dedicated page',
       specializedService: 'Specialized service',
       related: 'Related services',
@@ -656,7 +614,7 @@ const presentationCopy = {
     },
     cta: {
       kicker: 'Invest in the future',
-      title: 'Energy production and efficiency solutions',
+      title: 'Efficient solutions',
       copy: 'Control, comfort, and savings in one integrated solution for homes, offices, and modern buildings.',
       button: 'Request an offer',
     },

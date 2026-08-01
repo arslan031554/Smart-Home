@@ -2,6 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Palette, CheckCircle2, Sparkles } from 'lucide-react';
 import { Card, SectionTitle, Badge, Alert } from '../common/UIComponents';
+import { useTranslation } from 'react-i18next';
 import { setColor } from '../../features/configurator/configuratorSlice';
 
 const COLOR_NAME_TO_HEX = {
@@ -226,49 +227,56 @@ function getColorFallbackImage(color, index) {
 }
 
 export default function ColorSelectionStep() {
+    const { t } = useTranslation();
     const dispatch = useDispatch();
-    const { color: selectedColorId } = useSelector((state) => state.configurator);
+    const { color: selectedColorId, range: selectedRangeId } = useSelector((state) => state.configurator);
     const COLORS = useSelector((state) => state.admin.publicColors) || [];
+    const availableColors = COLORS.filter((color) => {
+        if (color?.isVisible === false || color?.isActive === false) return false;
+        const assignedRanges = Array.isArray(color?.productRanges) ? color.productRanges : [];
+        if (!selectedRangeId) return assignedRanges.length > 0;
+        return assignedRanges.includes(selectedRangeId);
+    });
 
     if (!Array.isArray(COLORS) || COLORS.length === 0) {
         return (
-            <div className="space-y-12 animate-fade-in pb-20 max-w-7xl mx-auto">
+            <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto sm:space-y-8 sm:pb-20">
                 <SectionTitle
-                    title="Choose Color"
-                    subtitle="Loading available colors..."
-                    badge="Step 05: Color"
+                    title={t('configurator.color.title', { defaultValue: 'Choose Color' })}
+                    subtitle={t('configurator.color.loading', { defaultValue: 'Loading available colors...' })}
+                    badge={t('configurator.color.badge', { defaultValue: 'Step 05: Color' })}
                 />
                 <Alert variant="info" className="p-6 rounded-2xl">
-                    Colors are loading. If this persists, please refresh the page.
+                    {t('configurator.color.loadingHelp', { defaultValue: 'Colors are loading. If this persists, please refresh the page.' })}
                 </Alert>
             </div>
         );
     }
 
     return (
-        <div className="space-y-12 animate-fade-in pb-20 max-w-7xl mx-auto">
+        <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto sm:space-y-8 sm:pb-20">
             <SectionTitle
-                title="Choose Color"
-                subtitle="Select the color for your project. It is used as a compatibility filter where applicable."
-                badge="Step 05: Color"
+                title={t('configurator.color.title', { defaultValue: 'Choose Color' })}
+                subtitle={t('configurator.color.subtitle', { defaultValue: 'Select the color for your project. It is used as a compatibility filter where applicable.' })}
+                badge={t('configurator.color.badge', { defaultValue: 'Step 05: Color' })}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {COLORS.filter(c => c?.isVisible !== false).map((color, index) => {
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {availableColors.map((color, index) => {
                     const isActive = selectedColorId === color.id;
                     const inferredHex = inferColorHex(color);
                     const fallbackImage = getColorFallbackImage(color, index);
                     const colorLabel = normalizeHex(color.hex) || inferredHex;
                     const featureChips = [
                         `HEX ${colorLabel}`,
-                        'Finish Profile',
-                        'Color Filter Active',
+                        t('configurator.color.finishProfile', { defaultValue: 'Finish Profile' }),
+                        t('configurator.color.filterActive', { defaultValue: 'Color Filter Active' }),
                     ];
                     
                     return (
                         <Card
                             key={color.id}
-                            className={`group relative overflow-hidden transition-all duration-500 cursor-pointer border-2 rounded-[2.5rem] ${isActive
+                            className={`group relative overflow-hidden transition-all duration-500 cursor-pointer border rounded-[1.25rem] sm:rounded-[1.5rem] ${isActive
                                 ? 'border-primary-600 ring-8 ring-primary-600/5 bg-white'
                                 : 'border-slate-100 hover:border-primary-200 bg-white'
                                 } !shadow-none hover:!shadow-none`}
@@ -305,7 +313,7 @@ export default function ColorSelectionStep() {
                                 </div>
                             </div>
 
-                            <div className="p-8 space-y-6">
+                            <div className="space-y-4 p-5 sm:p-6 sm:space-y-5">
                                 <p className="text-sm font-medium text-slate-500 leading-relaxed line-clamp-3">
                                     {color.description || ''}
                                 </p>
@@ -334,7 +342,7 @@ export default function ColorSelectionStep() {
 
             <Alert
                 variant="info"
-                className="p-8 border border-emerald-700/35 bg-gradient-to-r from-[#052e16] via-[#064e3b] to-[#052e16] text-white rounded-[2rem] shadow-xl relative overflow-hidden group mt-12 [&>svg]:text-white"
+                className="mt-8 rounded-[1.25rem] border border-emerald-700/35 bg-gradient-to-r from-[#052e16] via-[#064e3b] to-[#052e16] p-6 text-white shadow-xl relative overflow-hidden group sm:rounded-[1.5rem] sm:p-8 [&>svg]:text-white"
             >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full -mr-32 -mt-32 blur-[80px] opacity-40" />
                 <div className="relative z-10 flex items-start gap-6">
@@ -342,9 +350,9 @@ export default function ColorSelectionStep() {
                         <Palette className="w-7 h-7" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-lg font-bold leading-none text-white">Project-level color</h4>
+                        <h4 className="text-lg font-bold leading-none text-white">{t('configurator.color.projectLevelTitle', { defaultValue: 'Project-level color' })}</h4>
                         <p className="text-sm font-medium text-white leading-relaxed max-w-3xl">
-                            The selected color applies to your whole project and filters compatible products while keeping a cohesive finish profile across the installation.
+                            {t('configurator.color.projectLevelHelp', { defaultValue: 'The selected color applies to your whole project and filters compatible products while keeping a cohesive finish profile across the installation.' })}
                         </p>
                     </div>
                 </div>

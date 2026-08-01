@@ -1,10 +1,21 @@
 import { motion as Motion } from 'framer-motion';
-import { ArrowRight, CheckCircle, Home, SunMedium } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle, Gauge, Home, Lightbulb } from 'lucide-react';
 import AnimatedSection from './AnimatedSection';
+import ExpandableText from './ExpandableText';
 import InfoCard from './cards/InfoCard';
 import SectionTitle from './SectionTitle';
+import Stats from './Stats';
 import SiteImage from './SiteImage';
 import { usePresentationContent } from '../data/usePresentationContent';
+import { greenElectricDeck } from '../data/deckContent';
+
+const aboutHomeStats = greenElectricDeck.home.stats.map((stat, index) => {
+  const icons = [Gauge, Building2, Lightbulb, CheckCircle];
+  return {
+    ...stat,
+    icon: icons[index],
+  };
+});
 
 export default function About() {
   const { about, aboutFeatures, companyDescription, siteImages } = usePresentationContent();
@@ -19,22 +30,24 @@ export default function About() {
             title={about.title}
             copy={companyDescription}
           />
-          <p className="mt-5 text-base leading-8 text-slate-600">
-            {about.extra}
-          </p>
+          <ExpandableText
+            text={about.extra}
+            maxCharacters={260}
+            className="mt-5 text-base leading-8 text-slate-600"
+          />
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {aboutFeatures.map((feature, index) => {
               return (
                 <InfoCard
-                  className="rounded-lg bg-white p-5 shadow-xl shadow-emerald/10"
+                  className="rounded-[1.5rem] border border-emerald/10 bg-white p-5 shadow-xl shadow-emerald/10"
                   icon={feature.icon}
                   iconClassName="text-emerald"
                   iconWrapClassName="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald/10"
                   index={index}
                   key={feature.title}
                   title={feature.title}
-                  titleClassName="text-sm font-black uppercase text-graphite"
+                  titleClassName="text-sm font-semibold text-graphite"
                   text={feature.text}
                   textClassName="mt-2 text-sm leading-6 text-slate-500"
                 />
@@ -62,20 +75,20 @@ export default function About() {
           </div>
         </div>
 
-        <Motion.div
+          <Motion.div
           className="relative"
           initial={{ opacity: 0, scale: 0.96, y: 28 }}
           whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <div className="relative min-h-[540px] overflow-hidden rounded-lg bg-ink shadow-2xl shadow-emerald/15">
+          <div className="relative min-h-[540px] overflow-hidden rounded-[2rem] bg-ink shadow-2xl shadow-emerald/15">
             <SiteImage src={siteImages.about} alt={about.imageAlt} className="absolute inset-0" />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
           </div>
-          <div className="absolute inset-6 rounded-lg border border-white/30 bg-white/12 backdrop-blur-sm" />
+          <div className="absolute inset-6 rounded-[1.5rem] border border-white/30 bg-white/12 backdrop-blur-sm" />
           <Motion.div
-            className="absolute -left-5 top-14 rounded-lg bg-white p-5 shadow-2xl shadow-emerald/15"
+            className="absolute -left-5 top-14 rounded-2xl bg-white p-5 shadow-2xl shadow-emerald/15"
             animate={{ y: [0, -12, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
           >
@@ -83,16 +96,10 @@ export default function About() {
             <p className="mt-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">{about.smartHome}</p>
             <p className="text-2xl font-black text-graphite">{about.controlTotal}</p>
           </Motion.div>
-          <Motion.div
-            className="absolute -right-5 bottom-14 rounded-lg bg-ink p-5 text-white shadow-2xl shadow-emerald/20"
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <SunMedium className="text-orange" size={26} />
-            <p className="mt-3 text-xs font-black uppercase tracking-[0.2em] text-white/45">{about.energy}</p>
-            <p className="text-2xl font-black">8 kWp</p>
-          </Motion.div>
         </Motion.div>
+      </div>
+      <div className="mt-16 mb-0" style={{ marginBottom: '-100px' }}>
+        <Stats stats={aboutHomeStats} />
       </div>
     </AnimatedSection>
   );

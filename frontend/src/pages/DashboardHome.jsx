@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
-    LayoutDashboard, Briefcase, Bell, ArrowRight, Plus, Calendar, FileText, Zap, ChevronRight, Loader2,
+    LayoutDashboard, Briefcase, Bell, ArrowRight, Plus, Calendar, FileText, Zap, Loader2, Home, Layers3, Gauge, Hash,
 } from 'lucide-react';
 import { Button, Badge, Alert, Card, AnimatedPageWrapper, SectionTitle } from '@/components/common/UIComponents';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { resetConfigurator } from '@/features/configurator/configuratorSlice';
 import { fetchDashboard } from '@/features/dashboard/dashboardSlice';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/offers/StatusBadge';
+import { dedupeProjectsById, getProjectTitle } from '@/utils/projectUtils';
 
 export default function DashboardHome() {
     const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function DashboardHome() {
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const displayName = dashboardUser?.fullName || authUser?.fullName || authUser?.email || t('dashboardLayout.user', { defaultValue: 'User' });
     const pendingOffersCount = stats.offerGeneratedOffers ?? stats.offerReady ?? 0;
+    const uniqueRecentProjects = useMemo(() => dedupeProjectsById(recentProjects), [recentProjects]);
 
     useEffect(() => {
         dispatch(fetchDashboard());
@@ -30,7 +32,7 @@ export default function DashboardHome() {
 
     const handleNewConfig = () => {
         dispatch(resetConfigurator());
-        navigate('/configurator');
+        navigate('/configurator', { state: { freshConfigurator: true } });
     };
 
     const formatDate = (value) => {
@@ -46,6 +48,24 @@ export default function DashboardHome() {
         maximumFractionDigits: 0,
     }).format(Number(value || 0));
 
+    const formatNumber = (value) => new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(value || 0));
+
+    const formatArea = (value) => {
+        const area = Number(value || 0);
+        return area > 0 ? `${formatNumber(area)} m2` : '-';
+    };
+
+    const formatMultiplier = (value) => {
+        const multiplier = Number(value || 0);
+        return multiplier > 0 ? `x ${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(multiplier)}` : '-';
+    };
+
+    const getProjectStatusVariant = (status) => {
+        const normalized = String(status || '').toLowerCase();
+        if (normalized === 'active') return 'success';
+        if (normalized === 'archived') return 'neutral';
+        return 'warning';
+    };
     const statCards = [
         { name: t('dashboardHome.stats.activeProjects', { defaultValue: 'Active Projects' }), value: stats.activeProjects || 0, icon: Briefcase },
         { name: t('dashboardHome.stats.pendingOffers', { defaultValue: 'Pending Offers' }), value: pendingOffersCount, icon: Bell },
@@ -68,7 +88,7 @@ export default function DashboardHome() {
         return (
             <AnimatedPageWrapper className="mx-auto max-w-2xl space-y-6">
                 <Alert variant="error">{error}</Alert>
-                <Button onClick={() => dispatch(fetchDashboard())} variant="outline" size="lg">
+                <Button onClick={() => dispatch(fetchDashboard())} variant="outline" size="md">
                     {t('dashboardHome.retry', { defaultValue: 'Try again' })}
                 </Button>
             </AnimatedPageWrapper>
@@ -100,17 +120,17 @@ export default function DashboardHome() {
                         </div>
                     </div>
 
-                    <Button onClick={handleNewConfig} size="lg" className="gap-2">
+                    <Button onClick={handleNewConfig} size="md" className="gap-2">
                         <Plus className="h-4.5 w-4.5" />
                         {t('dashboardHome.startProject', { defaultValue: 'Start New Project' })}
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {statCards.map((stat) => (
-                    <Card key={stat.name} className="rounded-[1.8rem] p-6">
-                        <div className="flex items-start justify-between gap-4">
+                    <Card key={stat.name} className="h-full rounded-[1.8rem] p-6">
+                        <div className="flex h-full items-start justify-between gap-4">
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{stat.name}</p>
                                 <p className="mt-3 font-heading text-5xl font-semibold leading-none text-textPrimary">{stat.value}</p>
@@ -123,10 +143,10 @@ export default function DashboardHome() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.4fr_0.9fr]">
+            <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[1.4fr_0.9fr]">
                 <div className="space-y-8">
                     <section className="space-y-4">
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-end justify-between gap-4">
                             <SectionTitle
                                 title={t('dashboardHome.recentProjects', { defaultValue: 'Recent Projects' })}
                                 badge={t('dashboardLayout.projects')}
@@ -137,46 +157,82 @@ export default function DashboardHome() {
                             </Link>
                         </div>
 
-                        {recentProjects.length === 0 ? (
+                        {uniqueRecentProjects.length === 0 ? (
                             <Card className="rounded-[2rem] p-8 text-center">
                                 <p className="text-lg font-medium text-textPrimary">{t('dashboardHome.noProjectsTitle', { defaultValue: 'No projects yet' })}</p>
                                 <p className="mt-2 text-sm text-textSecondary">{t('dashboardHome.noProjectsDesc', { defaultValue: 'Start a new smart home configuration to see your saved projects here.' })}</p>
-                                <Button onClick={handleNewConfig} size="lg" className="mt-6">
+                                <Button onClick={handleNewConfig} size="md" className="mt-6">
                                     {t('dashboardHome.startProject', { defaultValue: 'Start New Project' })}
                                 </Button>
                             </Card>
                         ) : (
                             <div className="grid gap-4">
-                                {recentProjects.map((project) => (
-                                    <Link key={project.id} to={`/dashboard/projects/${project.id}`} className="block">
-                                        <Card hover className="rounded-[1.9rem] p-6">
-                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                                        <Briefcase className="h-5 w-5" />
+                                {uniqueRecentProjects.map((project) => {
+                                    const projectTitle = getProjectTitle(project);
+                                    const buildingTypeName = project.buildingTypeName || project.buildingType?.name || null;
+
+                                    return (
+                                        <Link key={project.id} to={`/dashboard/projects/${project.id}`} className="block">
+                                            <Card hover className="rounded-[1.9rem] p-6">
+                                                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                                                    <div className="min-w-0 flex-1 space-y-4">
+                                                        <div className="flex items-start gap-4">
+                                                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                                                <Briefcase className="h-5 w-5" />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <h3 className="truncate text-lg font-medium text-textPrimary">{projectTitle}</h3>
+                                                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                                    <Badge variant="neutral" className="gap-2">
+                                                                        <Calendar className="h-3.5 w-3.5" />
+                                                                        {formatDate(project.updatedAt)}
+                                                                    </Badge>
+                                                                    {buildingTypeName ? <Badge variant="primary" className="gap-2"><Home className="h-3.5 w-3.5" />{buildingTypeName}</Badge> : null}
+                                                                    <Badge variant={getProjectStatusVariant(project.status)}>
+                                                                        {t(`projects.statuses.${project.status || 'draft'}`, { defaultValue: project.status || 'draft' })}
+                                                                    </Badge>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                                            <div className="rounded-2xl border border-white/8 bg-white/5 p-3">
+                                                                <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-textSecondary"><Layers3 className="h-3.5 w-3.5" />{t('projects.detail.levels', { defaultValue: 'Levels' })}</p>
+                                                                <p className="mt-1 text-sm font-medium text-textPrimary">{project.levelsCount || '-'}</p>
+                                                            </div>
+                                                            <div className="rounded-2xl border border-white/8 bg-white/5 p-3">
+                                                                <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-textSecondary"><Gauge className="h-3.5 w-3.5" />{t('projects.detail.builtUpArea', { defaultValue: 'Built-up Area' })}</p>
+                                                                <p className="mt-1 text-sm font-medium text-textPrimary">{formatArea(project.builtUpArea)}</p>
+                                                            </div>
+                                                            <div className="rounded-2xl border border-white/8 bg-white/5 p-3">
+                                                                <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-textSecondary"><Hash className="h-3.5 w-3.5" />{t('projects.detail.multiplier', { defaultValue: 'Multiplier' })}</p>
+                                                                <p className="mt-1 text-sm font-medium text-textPrimary">{formatMultiplier(project.multiplicationIndex)}</p>
+                                                            </div>
+                                                            <div className="rounded-2xl border border-white/8 bg-white/5 p-3">
+                                                                <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-textSecondary"><Zap className="h-3.5 w-3.5" />{t('projects.detail.complexity', { defaultValue: 'Complexity' })}</p>
+                                                                <p className="mt-1 truncate text-sm font-medium text-textPrimary">{project.projectComplexity || '-'}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {project.description ? (
+                                                            <p className="text-sm leading-relaxed text-textSecondary">{project.description}</p>
+                                                        ) : null}
                                                     </div>
-                                                    <div>
-                                                        <h3 className="text-lg font-medium text-textPrimary">{project.title}</h3>
-                                                        <p className="mt-1 flex items-center gap-2 text-sm text-textSecondary">
-                                                            <Calendar className="h-4 w-4" />
-                                                            {formatDate(project.updatedAt)}
-                                                        </p>
-                                                    </div>
+                                                    <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-primary-300">
+                                                        {t('dashboardHome.open', { defaultValue: 'Open' })}
+                                                        <ArrowRight className="h-4 w-4" />
+                                                    </span>
                                                 </div>
-                                                <span className="inline-flex items-center gap-2 text-sm font-medium text-primary-300">
-                                                    {t('dashboardHome.open', { defaultValue: 'Open' })}
-                                                    <ArrowRight className="h-4 w-4" />
-                                                </span>
-                                            </div>
-                                        </Card>
-                                    </Link>
-                                ))}
+                                            </Card>
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         )}
                     </section>
 
                     <section className="space-y-4">
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-end justify-between gap-4">
                             <SectionTitle
                                 title={t('dashboardHome.recentOffers', { defaultValue: 'Recent Offers' })}
                                 badge={t('dashboardLayout.offers')}
@@ -224,20 +280,20 @@ export default function DashboardHome() {
                 </div>
 
                 <aside className="space-y-6">
-                    <div className="hero-frame rounded-[2.2rem] p-8">
+                    <div className="hero-frame p-8">
                         <div className="space-y-6">
                             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                 <Zap className="h-5 w-5" />
                             </div>
                             <div>
-                                <h3 className="font-heading text-4xl font-semibold leading-none text-textPrimary">
+                                <h3 className="font-heading text-2xl font-semibold leading-tight text-textPrimary sm:text-3xl">
                                     {t('dashboardHome.configuratorTitle', { defaultValue: 'Plan Your Smart Home' })}
                                 </h3>
                                 <p className="mt-3 text-sm leading-relaxed text-textSecondary">
                                     {t('dashboardHome.configuratorDesc', { defaultValue: 'Use the configurator to define rooms, smart functions, and create a saved offer.' })}
                                 </p>
                             </div>
-                            <Button onClick={handleNewConfig} size="lg" className="w-full gap-2">
+                            <Button onClick={handleNewConfig} size="md" className="w-full gap-2">
                                 {t('nav.configurator')}
                                 <ArrowRight className="h-4.5 w-4.5" />
                             </Button>
@@ -277,3 +333,4 @@ export default function DashboardHome() {
         </AnimatedPageWrapper>
     );
 }
+

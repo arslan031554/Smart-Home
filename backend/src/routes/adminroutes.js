@@ -2,6 +2,7 @@ import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import crypto from 'crypto';
 import * as adminController from '../controllers/admincontroller.js';
 import * as offerController from '../controllers/offercontroller.js';
 import protect from '../middlewares/authmiddleware.js';
@@ -12,6 +13,68 @@ import { adminOfferListQueryValidator } from '../validators/offervalidator.js';
 const router = Router();
 const rangeUploadDirectory = path.resolve(process.cwd(), 'uploads', 'ranges');
 fs.mkdirSync(rangeUploadDirectory, { recursive: true });
+
+const productUploadDirectory = path.resolve(process.cwd(), 'uploads', 'products');
+fs.mkdirSync(productUploadDirectory, { recursive: true });
+
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
+function safeImageExtension(file) {
+    const originalExt = path.extname(file.originalname || '').toLowerCase();
+    const mime = String(file.mimetype || '').toLowerCase();
+    const ext = originalExt === '.jpeg' ? '.jpg' : originalExt;
+    if (!ALLOWED_IMAGE_MIME.has(mime) || !ALLOWED_IMAGE_EXT.has(ext)) return null;
+    if (mime === 'image/png' && ext !== '.png') return null;
+    if (mime === 'image/webp' && ext !== '.webp') return null;
+    if (mime === 'image/jpeg' && !['.jpg', '.jpeg'].includes(originalExt)) return null;
+    return ext;
+}
+
+const productImageUpload = multer({
+    storage: multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, productUploadDirectory),
+        filename: (_req, file, cb) => {
+            const extension = safeImageExtension(file) || '.jpg';
+            cb(null, `product-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`);
+        },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        const extension = safeImageExtension(file);
+        if (extension) return cb(null, true);
+        cb(new Error('Only JPEG, PNG, and WEBP product images are allowed'));
+    },
+});
+
+const handleProductImageUpload = (req, res, next) => {
+    productImageUpload.single('imageFile')(req, res, (error) => {
+        if (!error) return next();
+        error.statusCode = 400;
+        error.publicMessage = error.code === 'LIMIT_FILE_SIZE'
+            ? 'Product image must be 5 MB or smaller'
+            : (error.message || 'Product image upload failed');
+        next(error);
+    });
+};
+
+function parseJsonBodyFields(fields) {
+    return (req, _res, next) => {
+        fields.forEach((field) => {
+            if (typeof req.body?.[field] !== 'string') return;
+            const value = req.body[field].trim();
+            if (!value) return;
+            if (!value.startsWith('[') && !value.startsWith('{')) return;
+            try {
+                req.body[field] = JSON.parse(value);
+            } catch (_) {
+                // Let validators/service return the normal validation message.
+            }
+        });
+        next();
+    };
+};
+
 
 const rangeImageUpload = multer({
     storage: multer.diskStorage({
@@ -47,6 +110,7 @@ router.use(authorize('admin'));
 
 router.get('/stats', adminController.getStats);
 router.get('/offers', requireAdminPermission('view_offers'), adminOfferListQueryValidator, offerController.listAdminOffers);
+router.get('/projects', requireAdminPermission('view_offers'), adminController.projectHandlers.getAll);
 router.post('/uploads/range-image', requireAdminPermission('edit_hardware'), handleRangeImageUpload, adminController.uploadRangeImage);
 
 router.get('/employees', requireAdminPermission('manage_employees'), adminController.employeeHandlers.getAll);
@@ -73,8 +137,8 @@ registerCrudRoutes('product-ranges', adminController.productRangeHandlers, v.pro
 registerCrudRoutes('colors', adminController.colorHandlers, v.colorValidator, { view: 'view_hardware', edit: 'edit_hardware', delete: 'edit_hardware' });
 router.get('/products', requireAdminPermission('view_hardware'), adminController.productHandlers.getAll);
 router.get('/products/:id', requireAdminPermission('view_hardware'), adminController.productHandlers.getOne);
-router.post('/products', requireAdminPermission('edit_hardware'), v.productCreateValidator, adminController.productHandlers.create);
-router.put('/products/:id', requireAdminPermission('edit_hardware'), v.productUpdateValidator, adminController.productHandlers.update);
+router.post('/products', requireAdminPermission('edit_hardware'), handleProductImageUpload, parseJsonBodyFields(['allowedRanges', 'allowedColors', 'rangeIds', 'colorIds', 'mappings', 'dependencies', 'mainProducts']), v.productCreateValidator, adminController.productHandlers.create);
+router.put('/products/:id', requireAdminPermission('edit_hardware'), handleProductImageUpload, parseJsonBodyFields(['allowedRanges', 'allowedColors', 'rangeIds', 'colorIds', 'mappings', 'dependencies', 'mainProducts']), v.productUpdateValidator, adminController.productHandlers.update);
 router.delete('/products/:id', requireAdminPermission('edit_hardware'), adminController.productHandlers.delete);
 registerCrudRoutes('product-function-mappings', adminController.productFunctionMappingHandlers, v.productFunctionMappingValidator, { view: 'view_hardware', edit: 'edit_hardware', delete: 'edit_hardware' });
 registerCrudRoutes('services', adminController.serviceHandlers, v.serviceValidator, { view: 'view_hardware', edit: 'edit_hardware', delete: 'edit_hardware' });

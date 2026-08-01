@@ -4,7 +4,7 @@ export default function SectionTitle({ kicker, title, copy, align = 'left', ligh
   return (
     <div className={centered ? 'mx-auto max-w-3xl text-center' : 'max-w-3xl'}>
       {kicker && <span className="section-kicker">{kicker}</span>}
-      <h2 className={light ? 'text-3xl font-black uppercase leading-tight text-white sm:text-4xl lg:text-5xl' : 'section-title'}>
+      <h2 className={light ? 'text-3xl font-bold leading-tight tracking-[-0.025em] text-white sm:text-4xl lg:text-5xl' : 'section-title'}>
         {title}
       </h2>
       {copy && (

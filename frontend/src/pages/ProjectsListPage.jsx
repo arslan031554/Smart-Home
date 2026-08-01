@@ -22,6 +22,7 @@ import api from '@/utils/api';
 import { resetConfigurator } from '@/features/configurator/configuratorSlice';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { dedupeProjectsById } from '@/utils/projectUtils';
 
 export default function ProjectsListPage() {
     const dispatch = useDispatch();
@@ -35,7 +36,7 @@ export default function ProjectsListPage() {
         let cancelled = false;
         api.get('/projects')
             .then((res) => {
-                if (!cancelled) setProjects(Array.isArray(res.data?.data) ? res.data.data : []);
+                if (!cancelled) setProjects(dedupeProjectsById(Array.isArray(res.data?.data) ? res.data.data : []));
             })
             .catch((err) => {
                 if (!cancelled) setError(err.response?.data?.message || t('projects.list.loadError', { defaultValue: 'Failed to load projects.' }));
@@ -54,7 +55,7 @@ export default function ProjectsListPage() {
 
     const handleStartProject = () => {
         dispatch(resetConfigurator());
-        navigate('/configurator');
+        navigate('/configurator', { state: { freshConfigurator: true } });
     };
 
     if (loading) {
@@ -178,3 +179,4 @@ export default function ProjectsListPage() {
         </AnimatedPageWrapper>
     );
 }
+

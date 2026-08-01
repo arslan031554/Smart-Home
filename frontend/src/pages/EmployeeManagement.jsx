@@ -152,7 +152,7 @@ export default function EmployeeManagement() {
                             ].map((item) => (
                                 <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
@@ -165,7 +165,7 @@ export default function EmployeeManagement() {
                         </div>
                     </div>
 
-                    <Button size="lg" onClick={() => handleOpenForm()} className="gap-2">
+                    <Button size="md" onClick={() => handleOpenForm()} className="gap-2">
                         <UserPlus className="h-4.5 w-4.5" />
                         {t('adminPages.employees.create', { defaultValue: 'Create Employee' })}
                     </Button>
@@ -183,7 +183,7 @@ export default function EmployeeManagement() {
                             placeholder={t('adminPages.employees.searchPlaceholder', { defaultValue: 'Search by employee name or email...' })}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                         />
                     </div>
                     <Badge variant="neutral">
@@ -202,10 +202,10 @@ export default function EmployeeManagement() {
                                         {employee.name?.split(' ').map((name) => name[0]).join('').slice(0, 2) || '??'}
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={() => handleOpenForm(employee)} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
+                                        <button onClick={() => handleOpenForm(employee)} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
                                             <Edit className="h-4 w-4" />
                                         </button>
-                                        <button onClick={() => setDeleteModal({ isOpen: true, employeeId: employee.id })} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                        <button onClick={() => setDeleteModal({ isOpen: true, employeeId: employee.id })} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
@@ -358,7 +358,7 @@ export default function EmployeeManagement() {
                                     )}
                                 >
                                     <div className={clsx(
-                                        'mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border',
+                                        'mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border',
                                         formData.role === roleName
                                             ? 'border-primary-500/20 bg-primary-500/12 text-primary-300'
                                             : 'border-white/10 bg-[#1c1c1c] text-textSecondary',
@@ -410,3 +410,4 @@ export default function EmployeeManagement() {
         </AnimatedPageWrapper>
     );
 }
+

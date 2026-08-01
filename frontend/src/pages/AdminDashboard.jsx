@@ -102,12 +102,12 @@ export default function AdminDashboard() {
                     />
                     <div className="flex flex-wrap gap-3">
                         <Link to="/admin/offers">
-                            <Button variant="secondary" size="lg">
+                            <Button variant="secondary" size="md">
                                 {t('adminPages.dashboard.recentOffersLink')}
                             </Button>
                         </Link>
                         <Link to="/admin/employees">
-                            <Button size="lg">
+                            <Button size="md">
                                 {t('adminPages.dashboard.quickLinks.teamManagement')}
                             </Button>
                         </Link>
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
                                 <ShieldCheck className="h-5 w-5" />
                             </div>
                             <div>
-                                <h3 className="font-heading text-4xl font-semibold leading-none text-textPrimary">
+                                <h3 className="font-heading text-2xl font-semibold leading-tight text-textPrimary sm:text-3xl">
                                     {t('adminPages.dashboard.quickLinksTitle')}
                                 </h3>
                                 <p className="mt-3 text-sm leading-relaxed text-textSecondary">
@@ -246,3 +246,4 @@ export default function AdminDashboard() {
         </AnimatedPageWrapper>
     );
 }
+

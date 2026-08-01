@@ -60,17 +60,17 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
     };
 
     return (
-        <div className="mx-auto max-w-5xl space-y-10 animate-fade-in">
+        <div className="mx-auto w-full max-w-5xl space-y-6 animate-fade-in sm:space-y-8">
             <SectionTitle
                 title={t('configurator.projectDefinition.title')}
                 subtitle={t('configurator.projectDefinition.subtitle')}
                 badge={t('configurator.projectDefinition.badge')}
             />
 
-            <Card className="rounded-[2rem] border border-primary-100 bg-primary-50 p-6">
+            <Card className="rounded-[1.25rem] border border-primary-100/70 bg-[#f7f8f2] p-5 sm:rounded-md sm:p-6">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-primary-200 bg-white text-primary-700 shadow-soft">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-primary-200 bg-white text-primary-700 shadow-soft">
                             <ShieldCheck className="h-5 w-5" />
                         </div>
                             <div className="space-y-2">
@@ -104,7 +104,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                                 className="gap-2"
                                 onClick={() => navigate('/auth/register', { state: { returnTo: '/configurator', returnStep: 1 } })}
                             >
-                                <UserPlus className="h-4.5 w-4.5" />
+                                <UserPlus className="h-5 w-5" />
                                 {t('auth.createAccount', { defaultValue: 'Create Account' })}
                             </Button>
                             <Button
@@ -113,7 +113,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                                 className="gap-2"
                                 onClick={() => navigate('/auth/login', { state: { returnTo: '/configurator', returnStep: 1 } })}
                             >
-                                <LogIn className="h-4.5 w-4.5" />
+                                <LogIn className="h-5 w-5" />
                                 {t('nav.login', { defaultValue: 'Log In' })}
                             </Button>
                         </div>
@@ -122,9 +122,9 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
             </Card>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <Card className="rounded-[2rem] p-7">
+                <Card className="rounded-md p-5 sm:rounded-md sm:p-6">
                     <div className="mb-6 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
                             <Briefcase className="h-5 w-5" />
                         </div>
                         <div>
@@ -137,7 +137,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                         <button
                             onClick={() => dispatch(updateProjectInfo({ clientType: 'private', companyName: '' }))}
                             className={clsx(
-                                'rounded-[1.35rem] border px-4 py-4 text-center text-sm font-semibold transition-all duration-300',
+                                'rounded-md border px-4 py-4 text-center text-sm font-semibold transition-all duration-300',
                                 projectInfo.clientType === 'private'
                                     ? 'border-primary-200 bg-primary-50 text-primary-700'
                                     : 'border-[#D1D5DB] bg-[#EDEFE8] text-textSecondary hover:border-primary-300 hover:bg-white hover:text-textPrimary',
@@ -148,7 +148,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                         <button
                             onClick={() => dispatch(updateProjectInfo({ clientType: 'company' }))}
                             className={clsx(
-                                'rounded-[1.35rem] border px-4 py-4 text-center text-sm font-semibold transition-all duration-300',
+                                'rounded-md border px-4 py-4 text-center text-sm font-semibold transition-all duration-300',
                                 projectInfo.clientType === 'company'
                                     ? 'border-primary-200 bg-primary-50 text-primary-700'
                                     : 'border-[#D1D5DB] bg-[#EDEFE8] text-textSecondary hover:border-primary-300 hover:bg-white hover:text-textPrimary',
@@ -171,9 +171,9 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                     ) : null}
                 </Card>
 
-                <Card className="rounded-[2rem] p-7">
+                <Card className="rounded-[1.25rem] p-5 sm:rounded-md sm:p-6">
                     <div className="mb-6 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
                             <FileText className="h-5 w-5" />
                         </div>
                         <div>
@@ -193,9 +193,9 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                 </Card>
             </div>
 
-            <Card className="rounded-[2rem] p-7">
+            <Card className="rounded-[1.25rem] p-5 sm:rounded-md sm:p-6">
                 <div className="mb-5 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
                         <PencilLine className="h-5 w-5" />
                     </div>
                     <div>
@@ -218,8 +218,8 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
 
             <div className="space-y-5">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
-                        <Target className="h-4.5 w-4.5" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
+                        <Target className="h-5 w-5" />
                     </div>
                     <div>
                         <h4 className="text-lg font-semibold text-textPrimary">{t('configurator.projectDefinition.buildingType.title')}</h4>
@@ -227,7 +227,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                     {BUILDING_TYPES.map((type) => {
                         const slug = String(type.code || type.slug || type.name || '').trim().toLowerCase();
                         const Icon = BUILDING_ICONS[slug] || Building;
@@ -237,30 +237,34 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                                 key={type.id}
                                 onClick={() => handleTypeSelect(type.id)}
                                 className={clsx(
-                                    'relative overflow-hidden rounded-[1.75rem] border px-5 py-6 text-left transition-all duration-300',
+                                    'group relative overflow-hidden rounded-md border bg-white p-4 text-left transition-all duration-300 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary-500/25 sm:p-5',
                                     isSelected
-                                        ? 'border-primary-200 bg-primary-50 text-textPrimary shadow-soft'
-                                        : 'border-[#D1D5DB] bg-[#EDEFE8] text-textSecondary hover:border-primary-300 hover:bg-white hover:text-textPrimary',
+                                        ? 'border-primary-300 bg-primary-50 text-slate-900 shadow-md ring-1 ring-primary-500/15'
+                                        : 'border-slate-200 text-slate-600 hover:border-primary-300 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm',
                                     (validationErrors.buildingType || validationErrors.buildingTypeId) && !projectInfo.buildingType && 'border-amber-500/30',
                                 )}
                             >
                                 <div className={clsx(
-                                    'mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border',
-                                    isSelected ? 'border-primary-200 bg-primary-50 text-primary-700' : 'border-[#D1D5DB] bg-[#EDEFE8] text-textSecondary',
+                                    'mb-4 flex h-12 w-12 items-center justify-center rounded-md border transition-colors duration-300',
+                                    isSelected ? 'border-primary-300 bg-primary-600 text-white' : 'border-slate-200 bg-white text-slate-500 group-hover:border-primary-200 group-hover:bg-primary-50 group-hover:text-primary-700',
                                 )}>
                                     <Icon className="h-5 w-5" />
                                 </div>
-                                <span className="block text-sm font-semibold">{type.name}</span>
-                                {isSelected ? <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-primary-700" /> : null}
+                                <span className="block text-sm font-semibold leading-snug">{type.name}</span>
+                                {isSelected ? (
+                                    <div className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md bg-primary-600 text-white shadow-sm">
+                                        <span className="text-[11px] font-black">✓</span>
+                                    </div>
+                                ) : null}
                             </button>
                         );
                     })}
                 </div>
 
                 {(validationErrors.buildingType || validationErrors.buildingTypeId) && !projectInfo.buildingType ? (
-                    <div className="rounded-[1.5rem] border border-amber-500/18 bg-amber-500/10 px-5 py-4 text-sm text-amber-200">
+                    <div className="rounded-md border border-amber-500/18 bg-amber-500/10 px-5 py-4 text-sm text-amber-200">
                         <div className="flex items-center gap-3">
-                            <Info className="h-4.5 w-4.5" />
+                            <Info className="h-5 w-5" />
                             <p>{validationErrors.buildingType || validationErrors.buildingTypeId}</p>
                         </div>
                     </div>
@@ -317,10 +321,10 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                         ),
                     },
                 ].map((item) => (
-                    <Card key={item.title} className="rounded-[1.85rem] p-6">
+                    <Card key={item.title} className="rounded-[1.5rem] p-5 sm:p-6">
                         <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
-                                <item.icon className="h-4.5 w-4.5" />
+                            <div className="flex h-11 w-11 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
+                                <item.icon className="h-5 w-5" />
                             </div>
                             <div>
                                 <span className="block text-sm font-semibold text-textPrimary">{item.title}</span>

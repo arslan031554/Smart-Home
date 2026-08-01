@@ -48,7 +48,7 @@ export const navLinks = [
 ];
 
 export const companyDescription =
-  'Green Electric City este o companie cu capital integral autohton ce are ca obiect de activitate proiectarea si implementarea solutiilor de eficientizare energetica, solutiilor de cladiri inteligente precum si solutiilor personale de productie energie electrica.';
+  'Green Electric Innovations este o companie cu capital integral autohton ce are ca obiect de activitate proiectarea si implementarea solutiilor de eficientizare energetica, solutiilor de cladiri inteligente precum si solutiilor personale de productie energie electrica.';
 
 const uploadBase = 'https://green-electric.ro/wp-content/uploads';
 const sampleBase = 'https://images.unsplash.com';
@@ -71,7 +71,7 @@ export const siteImages = {
   imobil: `${sampleBase}/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1500&q=85`,
   pergola: `${sampleBase}/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1500&q=85`,
   apartament: `${sampleBase}/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1500&q=85`,
-  smartPanel: `${sampleBase}/photo-1558002038-1055907df827?auto=format&fit=crop&w=1500&q=85`,
+  // smartPanel: `${sampleBase}/photo-1558002038-1055907df827?auto=format&fit=crop&w=1500&q=85`,
   smartInterior: `${sampleBase}/photo-1600566753151-384129cf4e3e?auto=format&fit=crop&w=1500&q=85`,
 };
 
@@ -138,37 +138,7 @@ export const services = [
     icon: CircuitBoard,
     chips: ['Programare KNX', 'Integrare sisteme', 'Control mobil'],
     image: siteImages.anasped,
-  },
-  {
-    title: 'Productie energie regenerabila',
-    slug: 'productie-energie-regenerabila',
-    text: 'Dorind ca lumea si viata din jurul nostru sa fie mai curate am dezvoltat departamentul de implementare solutii de productie energie electrica de mica si medie capacitate.',
-    detail:
-      'Proiectam si integram sisteme fotovoltaice si solutii de eficienta energetica ce pot functiona independent sau impreuna cu automatizarea cladirii.',
-    icon: CloudSun,
-    chips: ['Fotovoltaic', 'Monitorizare', 'Eficienta energetica'],
-    image: siteImages.heroEnergy,
-  },
-  {
-    title: 'Uzinare si productie tablouri electrice de automatizari',
-    slug: 'uzinare-si-productie-tablouri-electrice-de-automatizari',
-    text: 'Departamentul de productie tablouri electrice de automatizare a ridicat nivelul de calitate al proiectelor noastre. Realizam tablouri electrice si de automatizare pentru proiecte proprii sau solicitari externe.',
-    detail:
-      'Executam tablouri electrice organizate, documentate si pregatite pentru mentenanta, cu atentie la siguranta, scalabilitate si calitatea montajului.',
-    icon: Blocks,
-    chips: ['Tablouri electrice', 'Automatizari', 'Testare'],
-    image: siteImages.research,
-  },
-  {
-    title: 'Cercetare si inovare',
-    slug: 'cercetare-si-inovare',
-    text: 'Misiunea noastra este aceea de a putea raspunde provocarilor tehnice si de aceea o parte insemnata a activitatii noastre este reprezentata de alocarea de resurse pentru gasirea a noi solutii optime.',
-    detail:
-      'Ca rezultate a activitatii de cercetare si inovare putem nota dezvoltarea suitei de aplicatii Wireeo cat si a serie de produse dedicate pentru detectia inundatiilor I-STOP. De asemena alte proiecte sunt in curs de dezvoltare.',
-    icon: Cpu,
-    chips: ['Wireeo', 'I-STOP', 'Proiecte in dezvoltare'],
-    image: siteImages.research,
-  },
+  }
 ];
 
 export const pageDropdownItems = [
@@ -270,13 +240,13 @@ export const mediaItems = [
 
 export const youtubeVideos = [
   {
-    title: 'Green Electric City - Cladiri inteligente',
+    title: 'Green Electric Innovations - Cladiri inteligente',
     subtitle: 'Automatizare, control si confort pentru cladiri moderne',
     videoId: 'X_GduzTu_EU',
     href: 'https://youtu.be/X_GduzTu_EU',
   },
   {
-    title: 'Green Electric City - Solutii smart home',
+    title: 'Green Electric Innovations - Solutii smart home',
     subtitle: 'Tehnologie integrata pentru locuinte si spatii eficiente',
     videoId: '131dfskhxfU',
     href: 'https://youtu.be/131dfskhxfU',

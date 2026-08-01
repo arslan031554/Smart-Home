@@ -2,14 +2,16 @@ import React from 'react';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { normalizeOfferStatus } from '@/constants/offerStatuses';
+import { useTranslation } from 'react-i18next';
 
 export default function OfferStatusTimeline({ currentStatus }) {
+    const { t } = useTranslation();
     const timeline = [
-        { id: 'draft', name: 'Specification Initialised' },
-        { id: 'in_progress', name: 'Configuration Pending' },
-        { id: 'offer_generated', name: 'Offer Generated' },
-        { id: 'ordered', name: 'Procurement Active' },
-        { id: 'cancelled', name: 'Cancelled' },
+        { id: 'draft', name: t('offerSuccess.timeline.draft', { defaultValue: 'Specification Initialised' }) },
+        { id: 'in_progress', name: t('offerSuccess.timeline.inProgress', { defaultValue: 'Configuration Pending' }) },
+        { id: 'offer_generated', name: t('offerSuccess.timeline.generated', { defaultValue: 'Offer Generated' }) },
+        { id: 'ordered', name: t('offerSuccess.timeline.ordered', { defaultValue: 'Procurement Active' }) },
+        { id: 'cancelled', name: t('offerSuccess.timeline.cancelled', { defaultValue: 'Cancelled' }) },
     ];
 
     const getStatusIndex = (status) => timeline.findIndex(step => step.id === status);
@@ -17,7 +19,7 @@ export default function OfferStatusTimeline({ currentStatus }) {
 
     return (
         <div className="w-full max-w-5xl mx-auto py-12 px-6 bg-white rounded-[3rem] shadow-premium-sm border border-slate-50">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] text-center mb-12">Project Lifecycle Stage</h3>
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] text-center mb-12">{t('offerSuccess.timeline.title', { defaultValue: 'Project Lifecycle Stage' })}</h3>
             <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center">
                 {/* Horizontal Rule Background */}
                 <div className="hidden md:block absolute top-1/2 left-0 right-0 h-1.5 bg-slate-50 -translate-y-1/2 rounded-full" />
@@ -67,7 +69,7 @@ export default function OfferStatusTimeline({ currentStatus }) {
                                 )}>
                                     {step.name}
                                 </span>
-                                {isActive && <span className="text-[8px] font-bold text-primary-400 uppercase tracking-tighter mt-1 animate-pulse">Current Phase</span>}
+                                {isActive && <span className="text-[8px] font-bold text-primary-400 uppercase tracking-tighter mt-1 animate-pulse">{t('offerSuccess.timeline.current', { defaultValue: 'Current Phase' })}</span>}
                             </div>
                         </div>
                     );

@@ -72,14 +72,14 @@ export default function ServicesStep() {
         .reduce((acc, service) => acc + Number(service.price || 0), 0);
 
     return (
-        <div className="space-y-10 animate-fade-in pb-20 max-w-5xl mx-auto">
+        <div className="space-y-6 animate-fade-in pb-16 max-w-5xl mx-auto sm:space-y-8 sm:pb-20">
             <SectionTitle
                 title={t('configurator.servicesStep.title', { defaultValue: 'Professional Services' })}
                 subtitle={t('configurator.servicesStep.subtitle', { defaultValue: 'Select the additional installation, programming, and support services that should be included in the offer.' })}
                 badge={t('configurator.servicesStep.badge', { defaultValue: 'Step 06: Services' })}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {visibleServices.map((service) => {
                     const isMandatory = service?.isOptionalForCustomer === false;
                     const isSelected = isMandatory || selectedServices.includes(service.id);
@@ -89,7 +89,7 @@ export default function ServicesStep() {
                             key={service.id}
                             onClick={() => handleToggle(service)}
                             className={clsx(
-                                'group relative overflow-hidden border-2 p-8 transition-all duration-300 active:scale-[0.98]',
+                                'group relative overflow-hidden rounded-[1.15rem] border p-5 transition-all duration-300 active:scale-[0.98] sm:p-6',
                                 isMandatory ? 'cursor-default' : 'cursor-pointer',
                                 isSelected
                                     ? 'border-primary-500 bg-white shadow-premium ring-2 ring-primary-500/10'

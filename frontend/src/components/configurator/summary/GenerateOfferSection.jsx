@@ -74,7 +74,7 @@ export default function GenerateOfferSection() {
         ];
 
         return (
-            <Card id="summary-account-activation" className="rounded-[2.5rem] border border-primary-500/16 bg-primary-50 p-8 shadow-soft sm:p-10">
+            <Card id="summary-account-activation" className="rounded-[1.15rem] border border-primary-500/16 bg-primary-50 p-5 shadow-soft sm:rounded-[1.25rem] sm:p-6">
                 <div className="space-y-8">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div className="flex items-start gap-4">
@@ -114,7 +114,7 @@ export default function GenerateOfferSection() {
                         {activationItems.map((item) => {
                             const Icon = item.icon;
                             return (
-                                <div key={item.label} className="rounded-[1.6rem] border border-white/60 bg-white/70 p-5">
+                                <div key={item.label} className="rounded-[1.15rem] border border-white/60 bg-white/70 p-4 sm:p-5">
                                     <div className="flex items-start gap-4">
                                         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
                                             <Icon className="h-5 w-5" />
@@ -129,7 +129,7 @@ export default function GenerateOfferSection() {
                         })}
                     </div>
 
-                    <div className="rounded-[1.6rem] border border-primary-200 bg-white/80 px-5 py-4 text-sm leading-relaxed text-textSecondary">
+                    <div className="rounded-[1.2rem] border border-primary-200 bg-white/80 px-4 py-3 text-sm leading-relaxed text-textSecondary sm:px-5">
                         {t('configurator.summary.generate.activationGateFooter', { defaultValue: 'The registration flow already includes reCAPTCHA and email/SMS OTP verification, so the customer account is activated before the final offer is generated.' })}
                     </div>
                 </div>
@@ -138,12 +138,12 @@ export default function GenerateOfferSection() {
     }
 
     return (
-        <Card className="p-10 space-y-8 flex flex-col items-center justify-center text-center bg-slate-900 text-white border-none shadow-premium relative overflow-hidden group rounded-[2.5rem]">
+        <Card className="flex flex-col items-center justify-center space-y-5 rounded-[1.15rem] border-none bg-slate-900 p-5 text-center text-white shadow-premium relative overflow-hidden group sm:rounded-[1.25rem] sm:p-6">
             <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500 rounded-full -mr-48 -mt-48 blur-[100px] opacity-20 group-hover:scale-110 transition-transform duration-1000" />
 
             <div className="w-full relative z-10 space-y-8">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center shadow-inner">
+                    <div className="w-14 h-14 bg-white/10 rounded-[1.15rem] flex items-center justify-center shadow-inner sm:w-16 sm:h-16">
                         <FileText className="w-8 h-8 text-primary-400" />
                     </div>
                     <div className="space-y-1">
@@ -169,7 +169,7 @@ export default function GenerateOfferSection() {
                     <Button
                         size="lg"
                         onClick={handleGenerate}
-                        className="px-12 h-16 text-lg font-bold bg-primary-700 hover:bg-primary-800 text-white rounded-2xl shadow-xl shadow-primary-600/20 active:scale-95 transition-all group/btn min-w-[300px]"
+                        className="h-14 min-w-[240px] px-8 text-base font-bold bg-primary-700 hover:bg-primary-800 text-white rounded-[1.15rem] shadow-xl shadow-primary-600/20 active:scale-95 transition-all group/btn sm:h-16 sm:min-w-[300px] sm:text-lg"
                         disabled={isBlocked}
                     >
                         <span className="flex items-center gap-3">

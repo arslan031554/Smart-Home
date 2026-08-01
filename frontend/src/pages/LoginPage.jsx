@@ -57,7 +57,7 @@ export default function LoginPage() {
     const handleGuestStart = () => {
         dispatch(startGuestSession());
         dispatch(resetConfigurator());
-        navigate('/configurator');
+        navigate('/configurator', { state: { freshConfigurator: true } });
     };
 
     return (
@@ -160,3 +160,4 @@ export default function LoginPage() {
         </div>
     );
 }
+

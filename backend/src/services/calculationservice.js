@@ -2,13 +2,14 @@ import Product from '../../models/Product.js';
 import ProductRangeProduct from '../../models/ProductRangeProduct.js';
 import ProductColorProduct from '../../models/ProductColorProduct.js';
 import ProductFunctionMapping from '../../models/ProductFunctionMapping.js';
+import ProductDependency from '../../models/ProductDependency.js';
 import Service from '../../models/Service.js';
 import ServiceSmartFunction from '../../models/ServiceSmartFunction.js';
 import DiscountRule from '../../models/DiscountRule.js';
 import { Op } from 'sequelize';
 import { getLocalizedValue, normalizeBusinessLanguage, serializeLocalizedEntity } from '../utils/localization.js';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const safeNum = (v, def = 0) => (v != null && !Number.isNaN(Number(v)) ? Number(v) : def);
 const roundMoney = (value) => Number(safeNum(value).toFixed(2));
 const normalizeRoomCount = (value) => {
@@ -25,7 +26,7 @@ function collectSelectedFunctionIds(levels = []) {
                 : (Array.isArray(room.functions) ? room.functions : []);
             selections.forEach((selection) => {
                 const smartFunctionId = selection?.smartFunctionId ?? selection?.id;
-                if (smartFunctionId) ids.add(smartFunctionId);
+                if (isValidUuid(smartFunctionId)) ids.add(String(smartFunctionId).trim());
             });
         });
     });
@@ -74,7 +75,7 @@ const normalizeLevels = (levels) => (Array.isArray(levels) ? levels : []).map(le
         roomCount: normalizeRoomCount(room.roomCount ?? room.count),
         functionSelections: (Array.isArray(room.functionSelections) ? room.functionSelections : (Array.isArray(room.functions) ? room.functions : [])).map(selection => ({
             ...selection,
-            smartFunctionId: selection.smartFunctionId ?? selection.id,
+            smartFunctionId: isValidUuid(selection.smartFunctionId ?? selection.id) ? String(selection.smartFunctionId ?? selection.id).trim() : null,
             quantity: normalizeRoomCount(selection.quantity),
         })),
     })),
@@ -132,7 +133,9 @@ export const calculateOffer = async (projectData) => {
     const selectedRangeId = isValidUuid(projectData.selectedRangeId || projectData.rangeId) ? (projectData.selectedRangeId || projectData.rangeId) : null;
     const selectedColorId = isValidUuid(projectData.selectedColorId || projectData.colorId) ? (projectData.selectedColorId || projectData.colorId) : null;
     const multiplicationIndex = Math.max(0.01, Math.min(100, safeNum(projectData.multiplicationIndex, 1.0)));
-    const selectedServiceIds = Array.isArray(projectData.selectedServiceIds) ? projectData.selectedServiceIds : [];
+    const selectedServiceIds = Array.isArray(projectData.selectedServiceIds)
+        ? projectData.selectedServiceIds.map((id) => (isValidUuid(id) ? String(id).trim() : null)).filter(Boolean)
+        : [];
     const language = normalizeBusinessLanguage(projectData.language);
 
     const compatibleProductIds = await getCompatibleProductIds(selectedRangeId, selectedColorId);
@@ -162,9 +165,11 @@ export const calculateOffer = async (projectData) => {
     const colorRow = selectedColorId ? await Color.findByPk(selectedColorId) : null;
     const rangeMultiplier = Math.max(0.01, Math.min(100, safeNum(rangeRow?.priceMultiplier, 1.0)));
 
+    const relatedProducts = await buildRelatedProducts(allocatedProducts, { selectedRangeId, selectedColorId, language });
     const calculatedProducts = buildCalculatedProducts(allocatedProducts, { rangeMultiplier, multiplicationIndex });
+    const calculatedRelatedProducts = buildCalculatedProducts(relatedProducts, { rangeMultiplier, multiplicationIndex });
     const calculatedServices = buildCalculatedServices(allocatedServices, { multiplicationIndex });
-    const totals = await calculateTotals(calculatedProducts, calculatedServices, multiplicationIndex);
+    const totals = await calculateTotals([...calculatedProducts, ...calculatedRelatedProducts], calculatedServices, multiplicationIndex);
 
     const hasAnyReq =
         (requirements?.room && Object.keys(requirements.room).some(k => Object.values(requirements.room[k] || {}).some(v => safeNum(v) > 0))) ||
@@ -177,6 +182,7 @@ export const calculateOffer = async (projectData) => {
 
     return {
         products: calculatedProducts,
+        relatedProducts: calculatedRelatedProducts,
         services: calculatedServices,
         ...totals,
         rangeName: rangeRow ? getLocalizedValue(rangeRow, 'name', language, rangeRow?.name ?? null) : null,
@@ -447,7 +453,7 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
     // Fetch all active mappings
     const mappingOptions = {
         where: { isActive: true },
-        include: [{ model: Product, as: 'product' }]
+        include: [{ model: Product, as: 'product', where: { isActive: true, productType: 'STANDARD' }, required: true }]
     };
     if (Array.isArray(compatibleProductIds)) {
         if (compatibleProductIds.length === 0) {
@@ -677,6 +683,62 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
     };
 };
 
+async function buildRelatedProducts(products, { selectedRangeId, selectedColorId, language }) {
+    const standardProducts = Array.isArray(products) ? products : [];
+    const mainProductIds = standardProducts.map((product) => product.productId).filter(Boolean);
+    if (mainProductIds.length === 0) return [];
+
+    const dependencies = await ProductDependency.findAll({
+        where: { mainProductId: { [Op.in]: mainProductIds } },
+        include: [{
+            model: Product,
+            as: 'relatedProduct',
+            where: { isActive: true, productType: 'RELATED' },
+            required: true
+        }]
+    });
+    if (!dependencies.length) return [];
+
+    const mainQuantity = new Map(standardProducts.map((product) => [product.productId, Math.max(0, safeNum(product.quantity))]));
+    const { ProductRange, Color } = (await import('../../models/index.js')).default;
+    const range = selectedRangeId ? await ProductRange.findByPk(selectedRangeId) : null;
+    const color = selectedColorId ? await Color.findByPk(selectedColorId) : null;
+    const aggregate = new Map();
+
+    dependencies.forEach((dependency) => {
+        const row = dependency?.toJSON ? dependency.toJSON() : dependency;
+        const related = row?.relatedProduct;
+        if (!related?.id) return;
+        const quantity = mainQuantity.get(row.mainProductId) || 0;
+        const requiredQuantity = quantity * Math.max(0, safeNum(row.quantityPerMainProduct, 1));
+        if (requiredQuantity <= 0) return;
+        const current = aggregate.get(related.id) || { product: related, quantity: 0, sources: [] };
+        current.quantity += requiredQuantity;
+        current.sources.push({ mainProductId: row.mainProductId, quantityPerMainProduct: row.quantityPerMainProduct });
+        aggregate.set(related.id, current);
+    });
+
+    return Array.from(aggregate.entries()).map(([productId, item]) => {
+        const po = serializeLocalizedEntity(item.product, { language, fields: ['name', 'description'] });
+        const quantity = Math.max(0, safeNum(item.quantity));
+        const unitPrice = safeNum(po.unitPriceEurExVat);
+        return {
+            productId,
+            code: po.code || 'N/A',
+            name: po.name || 'Related Product',
+            description: po.description || '',
+            imageUrl: po.imageUrl || null,
+            unitPrice,
+            quantity,
+            subtotal: Number((quantity * unitPrice).toFixed(2)),
+            rangeName: range ? getLocalizedValue(range, 'name', language, range?.name ?? 'N/A') : 'N/A',
+            colorName: color ? getLocalizedValue(color, 'name', language, color?.name ?? 'N/A') : 'N/A',
+            lineType: 'RELATED',
+            isSystemCalculated: true,
+            dependencySources: item.sources
+        };
+    });
+}
 const calculateServices = async (projectData, products, selectedServiceIds) => {
     const language = normalizeBusinessLanguage(projectData?.language);
     const SmartFunction = (await import('../../models/SmartFunction.js')).default;
@@ -689,7 +751,10 @@ const calculateServices = async (projectData, products, selectedServiceIds) => {
     levels.forEach(l => {
         (Array.isArray(l.rooms) ? l.rooms : []).forEach(r => {
             const selections = Array.isArray(r.functionSelections) ? r.functionSelections : (Array.isArray(r.functions) ? r.functions : []);
-            selections.forEach(s => { if (s?.smartFunctionId ?? s?.id) projectFunctionIds.add(s.smartFunctionId || s.id); });
+            selections.forEach(s => {
+                const functionId = s?.smartFunctionId ?? s?.id;
+                if (isValidUuid(functionId)) projectFunctionIds.add(String(functionId).trim());
+            });
         });
     });
 

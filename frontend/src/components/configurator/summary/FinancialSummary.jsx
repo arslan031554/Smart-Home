@@ -26,7 +26,7 @@ export default function FinancialSummary() {
 
     if (!hasCalculation) {
         return (
-            <Card className="p-8 border-none shadow-premium-sm rounded-2xl bg-white overflow-hidden relative">
+            <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white overflow-hidden relative sm:p-6">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="p-2.5 bg-primary-50 rounded-xl text-primary-600">
                         <Calculator className="w-5 h-5" />
@@ -49,7 +49,7 @@ export default function FinancialSummary() {
     }
 
     return (
-        <Card className="p-8 border-none shadow-premium-sm rounded-2xl bg-white overflow-hidden relative">
+        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white overflow-hidden relative sm:p-6">
             {isCalculating && (
                 <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-2">

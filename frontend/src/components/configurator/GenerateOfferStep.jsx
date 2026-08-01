@@ -1,14 +1,25 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { generateOffer } from '../../features/offers/offersSlice';
-import { setStep, hydrateConfigurator } from '../../features/configurator/configuratorSlice';
+import { clearGeneratedOffer, generateOffer } from '../../features/offers/offersSlice';
+import { setStep, hydrateConfigurator, resetConfigurator } from '../../features/configurator/configuratorSlice';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Cpu, Database, Globe, Zap, Loader2, UserPlus, LogIn, ArrowRight, ShieldAlert, Sparkles, Fingerprint, Server } from 'lucide-react';
+import { Activity, Cpu, Database, Globe, Zap, Loader2, UserPlus, LogIn, ArrowRight, ShieldAlert, Fingerprint, Server, RotateCcw } from 'lucide-react';
 import { Card, SectionTitle, Button, Alert, Badge } from '../common/UIComponents';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { buildStoredConfiguratorSnapshot, clearStoredConfiguratorSnapshot, getOrCreateGuestSessionId, loadStoredConfiguratorSnapshot, saveStoredConfiguratorSnapshot } from '@/utils/configuratorDraftStorage';
 
+function hasMeaningfulOfferState(configurator = {}) {
+    const projectInfo = configurator.projectInfo || {};
+    const levels = Array.isArray(configurator.levels) ? configurator.levels : [];
+    return Boolean(
+        String(projectInfo.name || '').trim() ||
+        String(projectInfo.buildingType || '').trim() ||
+        configurator.range ||
+        configurator.color ||
+        levels.some((level) => Array.isArray(level.rooms) && level.rooms.length > 0)
+    );
+}
 export default function GenerateOfferStep() {
     const dispatch = useDispatch();
     const configurator = useSelector((state) => state.configurator);
@@ -22,11 +33,17 @@ export default function GenerateOfferStep() {
     const navigate = useNavigate();
     const { generationError } = useSelector((state) => state.offers);
     const finalizeOfferRef = useRef(null);
+    const finalizeTimeoutRef = useRef(null);
     const hasHydratedRef = useRef(false);
+    const hasSubmittedRef = useRef(false);
+    const cancelledRef = useRef(false);
 
     useEffect(() => {
-        if (!isAuthenticated) return;
         if (hasHydratedRef.current) return;
+        hasHydratedRef.current = true;
+        if (!isAuthenticated) return;
+        if (configurator.currentProjectId || configurator.currentOfferId || hasMeaningfulOfferState(configurator)) return;
+
         try {
             const snap = loadStoredConfiguratorSnapshot();
             if (snap) {
@@ -34,10 +51,8 @@ export default function GenerateOfferStep() {
             }
         } catch {
             // ignore
-        } finally {
-            hasHydratedRef.current = true;
         }
-    }, [dispatch, isAuthenticated]);
+    }, [configurator, dispatch, isAuthenticated]);
 
     const generationPhases = useMemo(() => [
         { progress: 10, label: `${t('configurator.generateOffer.nodes.configuration')}...` },
@@ -46,15 +61,17 @@ export default function GenerateOfferStep() {
         { progress: 55, label: `${t('configurator.generateOffer.nodes.services')}...` },
         { progress: 70, label: `${t('configurator.generateOffer.nodes.services')}...` },
         { progress: 85, label: `${t('configurator.generateOffer.nodes.documentation')}...` },
-        { progress: 100, label: `${t('configurator.steps.summary')} complete` },
+        { progress: 100, label: t('configurator.generateOffer.summaryComplete', { defaultValue: '{{summary}} complete', summary: t('configurator.steps.summary') }) },
     ], [t]);
 
     useEffect(() => {
         if (!isAuthenticated) {
-            setProgress(100);
-            setCurrentPhase(t('configurator.generateOffer.activationTitle', { defaultValue: 'Create account to finish' }));
-            setShowActivationPrompt(true);
-            return undefined;
+            const activationTimer = window.setTimeout(() => {
+                setProgress(100);
+                setCurrentPhase(t('configurator.generateOffer.activationTitle', { defaultValue: 'Create account to finish' }));
+                setShowActivationPrompt(true);
+            }, 0);
+            return () => window.clearTimeout(activationTimer);
         }
 
         const totalDuration = 4000;
@@ -70,7 +87,9 @@ export default function GenerateOfferStep() {
 
                 if (next >= 100) {
                     clearInterval(timer);
-                    setTimeout(() => {
+                    if (finalizeTimeoutRef.current) clearTimeout(finalizeTimeoutRef.current);
+                    finalizeTimeoutRef.current = setTimeout(() => {
+                        finalizeTimeoutRef.current = null;
                         if (finalizeOfferRef.current) {
                             finalizeOfferRef.current();
                         }
@@ -81,10 +100,18 @@ export default function GenerateOfferStep() {
             });
         }, intervalTime);
 
-        return () => clearInterval(timer);
+        return () => {
+            clearInterval(timer);
+            if (finalizeTimeoutRef.current) {
+                clearTimeout(finalizeTimeoutRef.current);
+                finalizeTimeoutRef.current = null;
+            }
+        };
     }, [generationPhases, isAuthenticated, t]);
 
     const finalizeOffer = useCallback(async () => {
+        if (cancelledRef.current || hasSubmittedRef.current || isGenerating) return;
+        hasSubmittedRef.current = true;
         setGenError(null);
         const levels = Array.isArray(configurator.levels) && configurator.levels.length > 0
             ? configurator.levels
@@ -100,14 +127,31 @@ export default function GenerateOfferStep() {
             offerId: configurator.currentOfferId || null,
         };
         const resultAction = await dispatch(generateOffer(payload));
+        if (cancelledRef.current) return;
         if (generateOffer.fulfilled.match(resultAction)) {
             clearStoredConfiguratorSnapshot({ keepGuestSession: true });
             dispatch(setStep(9));
         } else {
+            hasSubmittedRef.current = false;
             setGenError(resultAction.payload || generationError || 'Offer generation failed');
         }
-    }, [configurator, dispatch, generationError]);
-    finalizeOfferRef.current = finalizeOffer;
+    }, [configurator, dispatch, generationError, isGenerating]);
+    useEffect(() => {
+        finalizeOfferRef.current = finalizeOffer;
+    }, [finalizeOffer]);
+
+    const handleStartNewConfigurator = useCallback(() => {
+        cancelledRef.current = true;
+        hasSubmittedRef.current = false;
+        if (finalizeTimeoutRef.current) {
+            clearTimeout(finalizeTimeoutRef.current);
+            finalizeTimeoutRef.current = null;
+        }
+        clearStoredConfiguratorSnapshot({ keepGuestSession: true });
+        dispatch(resetConfigurator());
+        dispatch(clearGeneratedOffer());
+        navigate('/configurator', { replace: true, state: { freshConfigurator: true } });
+    }, [dispatch, navigate]);
 
     const systemNodes = [
         { name: t('configurator.generateOffer.nodes.configuration'), icon: Cpu, status: progress > 20 ? 'Active' : 'Syncing' },
@@ -117,11 +161,11 @@ export default function GenerateOfferStep() {
     ];
 
     return (
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center space-y-10 py-10 animate-fade-in">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center space-y-6 py-4 animate-fade-in sm:space-y-8 sm:py-6">
             <div className="space-y-5 text-center">
                 <div className="relative inline-flex items-center justify-center">
                     <div className="absolute inset-0 rounded-full bg-primary-500/12 blur-3xl" />
-                    <div className="relative flex h-28 w-28 items-center justify-center rounded-[2rem] border border-primary-500/18 bg-primary-500/12 text-primary-300 shadow-glow sm:h-32 sm:w-32">
+                    <div className="relative flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-primary-500/18 bg-primary-500/12 text-primary-300 shadow-glow sm:h-28 sm:w-28">
                         <Activity className="h-12 w-12 animate-pulse" />
                     </div>
                 </div>
@@ -134,7 +178,7 @@ export default function GenerateOfferStep() {
 
             {genError ? <Alert variant="error">{genError}</Alert> : null}
 
-            <Card className="w-full rounded-[2rem] p-8 sm:p-10">
+            <Card className="w-full rounded-[1.25rem] p-5 sm:rounded-[1.5rem] sm:p-7">
                 <div className="space-y-8">
                     <div className="space-y-2">
                         <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
@@ -157,6 +201,19 @@ export default function GenerateOfferStep() {
                             </div>
                         </div>
                         <Badge variant="info">{isGenerating ? 'Processing' : 'Queued'}</Badge>
+                    </div>
+
+                    <div className="flex justify-center border-t border-white/8 pt-6">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="lg"
+                            className="w-full gap-2 sm:w-auto"
+                            onClick={handleStartNewConfigurator}
+                        >
+                            <RotateCcw className="h-4.5 w-4.5" />
+                            {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
+                        </Button>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -185,8 +242,8 @@ export default function GenerateOfferStep() {
             </Card>
 
             {showActivationPrompt ? (
-                <Card className="w-full rounded-[2rem] p-8 text-center sm:p-10">
-                    <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-primary-500/18 bg-primary-500/12 text-primary-300 shadow-glow">
+                <Card className="w-full rounded-[1.25rem] p-5 text-center sm:rounded-[1.5rem] sm:p-7">
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-primary-500/18 bg-primary-500/12 text-primary-300 shadow-glow sm:h-24 sm:w-24">
                         <Fingerprint className="h-10 w-10" />
                     </div>
                     <div className="space-y-3">
@@ -222,6 +279,19 @@ export default function GenerateOfferStep() {
                         >
                             <LogIn className="h-4.5 w-4.5" />
                             {t('configurator.generateOffer.logIn')}
+                        </Button>
+                    </div>
+
+                    <div className="mt-4">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="lg"
+                            className="mx-auto gap-2"
+                            onClick={handleStartNewConfigurator}
+                        >
+                            <RotateCcw className="h-4.5 w-4.5" />
+                            {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
                         </Button>
                     </div>
 

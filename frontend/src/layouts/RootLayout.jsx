@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { createElement, useState, useEffect, useMemo } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useSelector, useDispatch } from 'react-redux';
@@ -51,6 +51,7 @@ export default function RootLayout() {
       {
         name: t('nav.configurator'),
         href: '/configurator',
+        state: { freshConfigurator: true },
         icon: Sliders,
         requiresAuth: false,
         onClick: () => dispatch(resetConfigurator()),
@@ -153,13 +154,13 @@ export default function RootLayout() {
             <Link
               to={appHomePath}
               onClick={closeAllOverlays}
-              className="app-logo-shell group flex flex-shrink-0 items-center rounded-md bg-white shadow-lg shadow-emerald/10"
+              className="app-logo-shell group flex flex-shrink-0 items-center"
               aria-label={t('app.brandName')}
             >
               <img
                 src="/images/green-electric-logo.png"
                 alt={t('app.brandName')}
-                className="h-11 w-auto max-w-[210px] rounded-md bg-white object-contain p-1.5 transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-12"
+                className="h-11 w-auto max-w-[210px] object-contain transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-12"
               />
               <div className="flex flex-col leading-none">
                 <span className="sr-only">
@@ -181,6 +182,7 @@ export default function RootLayout() {
                     <Link
                       key={item.href}
                       to={item.href}
+                      state={item.state}
                       onClick={() => handleNavClick(item.onClick)}
                       className={cn(
                         'flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-300',
@@ -196,22 +198,15 @@ export default function RootLayout() {
                 })}
               </div>
 
-              <div className="ml-1 flex items-center gap-3 border-l border-white/8 pl-4">
+              <div className="ml-1 flex items-center gap-3 border-md border-white/8 pl-4">
                 <LanguageSwitcher variant="inline" className="hidden xl:inline-flex" />
                 {isAuthenticated ? (
                   <div className="relative">
                     <button
                       onClick={() => setIsDropdownOpen((prev) => !prev)}
-                      className="flex items-center gap-3 rounded-full border border-white/8 bg-white/5 px-2 py-1.5 transition-all duration-300 hover:border-primary-500/20 hover:bg-white/8"
+                      className="flex items-center gap-3 rounded-full  bg-white/5 px-2 py-1.5 transition-all duration-300 hover:border-primary-500/20 hover:bg-white/8"
                     >
-                      <div className="hidden text-right sm:block">
-                        <p className="text-sm font-semibold text-textPrimary leading-none">
-                          {user?.fullName || user?.name}
-                        </p>
-                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-textSecondary">
-                          {t('nav.profile')}
-                        </p>
-                      </div>
+                      
                       <Avatar
                         name={user?.fullName || user?.name}
                         size="md"
@@ -222,7 +217,7 @@ export default function RootLayout() {
                     {isDropdownOpen ? (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
-                        <div className="premium-panel absolute right-0 z-20 mt-3 w-60 overflow-hidden rounded-[1.5rem] border border-white/10">
+                        <div className="premium-panel absolute right-0 z-20 mt-3 w-60 overflow-hidden rounded-sm border border-white/10">
                           <div className="border-b border-white/8 px-5 py-4">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300">{t('nav.profile')}</p>
                             <p className="mt-2 truncate text-sm font-medium text-textPrimary">{user?.email}</p>
@@ -263,6 +258,7 @@ export default function RootLayout() {
               </div>
             </nav>
 
+            {createElement(LanguageSwitcher, { variant: 'compact', className: 'ml-auto lg:hidden' })}
             <button
               onClick={() => setIsMenuOpen((prev) => !prev)}
               className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary shadow-soft transition-all hover:border-primary-500/20 hover:text-primary-300 lg:hidden"
@@ -294,6 +290,7 @@ export default function RootLayout() {
                     <Link
                       key={item.href}
                       to={item.href}
+                      state={item.state}
                       onClick={() => handleNavClick(item.onClick)}
                       className={cn(
                         'flex items-center gap-4 rounded-2xl px-4 py-3 text-sm transition-all',
@@ -351,7 +348,7 @@ export default function RootLayout() {
                 <img
                   src="/images/green-electric-logo.png"
                   alt={t('app.brandName')}
-                  className="h-14 w-auto max-w-[240px] rounded-md bg-white p-2 object-contain"
+                  className="h-14 w-auto max-w-[240px] object-contain"
                 />
                 <div className="flex flex-col leading-none">
                   <span className="sr-only">{t('app.brandName')}</span>
@@ -379,6 +376,7 @@ export default function RootLayout() {
                 <li>
                   <Link
                     to="/configurator"
+                    state={{ freshConfigurator: true }}
                     onClick={() => {
                       dispatch(resetConfigurator());
                       closeAllOverlays();

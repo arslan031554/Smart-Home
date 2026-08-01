@@ -2,8 +2,10 @@ import { motion as Motion } from 'framer-motion';
 import { Quote, Star } from 'lucide-react';
 import AnimatedSection from './AnimatedSection';
 import { testimonials } from '../data/siteData';
+import { useTranslation } from 'react-i18next';
 
 export default function Testimonials() {
+  const { t } = useTranslation();
   return (
     <AnimatedSection className="relative overflow-hidden bg-fog py-24">
       {/* Subtle green accent */}
@@ -11,10 +13,10 @@ export default function Testimonials() {
 
       <div className="section-shell container-px relative">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="section-kicker">Testimoniale</span>
-          <h2 className="section-title mt-4">Ce spun clienții noștri</h2>
+          <span className="section-kicker">{t('presentation.testimonials.kicker', { defaultValue: 'Testimonials' })}</span>
+          <h2 className="section-title mt-4">{t('presentation.testimonials.title', { defaultValue: 'What our clients say' })}</h2>
           <p className="section-copy mt-5">
-            Peste 180 de proiecte livrate — iată ce spun beneficiarii care au ales Green Electric City pentru casele și birourile lor inteligente.
+            {t('presentation.testimonials.copy', { defaultValue: 'Over 180 projects delivered — see what clients who chose Green Electric Innovations for their intelligent homes and offices say.' })}
           </p>
         </div>
 

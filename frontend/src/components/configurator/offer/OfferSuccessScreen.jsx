@@ -8,8 +8,10 @@ import NotificationsStatus from './NotificationsStatus';
 import OfferActions from './OfferActions';
 import OfferStatusTimeline from './OfferStatusTimeline';
 import { normalizeOfferStatus } from '@/constants/offerStatuses';
+import { useTranslation } from 'react-i18next';
 
 export default function OfferSuccessScreen() {
+    const { t, i18n } = useTranslation();
     const configuratorState = useSelector((state) => state.configurator);
     const { generatedOffer } = useSelector((state) => state.offers);
 
@@ -18,7 +20,7 @@ export default function OfferSuccessScreen() {
     const offerNumber = offer.offerNumber ?? (offerId ? `Offer ${offerId.slice(0, 8)}` : '-');
     const status = normalizeOfferStatus(offer.status ?? 'offer_generated');
     const grandTotal = offer.grandTotal != null && !Number.isNaN(Number(offer.grandTotal)) ? Number(offer.grandTotal) : 0;
-    const projectName = offer.project?.name ?? configuratorState.projectInfo?.name ?? 'Untitled';
+    const projectName = offer.project?.name ?? configuratorState.projectInfo?.name ?? t('offerSuccess.untitled', { defaultValue: 'Untitled' });
     const emailSent = offer.notifications?.email ?? false;
     const smsSent = offer.notifications?.sms ?? false;
 
@@ -33,26 +35,26 @@ export default function OfferSuccessScreen() {
                 </div>
 
                 <SectionTitle
-                    title="Offer Generated Successfully"
-                    subtitle={`Project "${projectName}" - offer compiled and ready for download.`}
-                    badge="Step 08: Offer Generated"
+                    title={t('offerSuccess.title', { defaultValue: 'Offer Generated Successfully' })}
+                    subtitle={t('offerSuccess.subtitle', { projectName, defaultValue: 'Project "{{projectName}}" - offer compiled and ready for download.' })}
+                    badge={t('offerSuccess.badge', { defaultValue: 'Step 08: Offer Generated' })}
                     className="flex flex-col items-center"
                 />
 
                 <div className="mt-4 flex flex-col items-center justify-center gap-6 sm:flex-row sm:flex-wrap">
-                    <KpiBlock label="Offer ID" value={offerNumber} mono />
+                    <KpiBlock label={t('offerSuccess.offerId', { defaultValue: 'Offer ID' })} value={offerNumber} mono />
                     <div className="hidden h-10 w-px bg-slate-200 sm:block" />
-                    <KpiBlock label="Record ID" value={offerId || '-'} mono />
+                    <KpiBlock label={t('offerSuccess.recordId', { defaultValue: 'Record ID' })} value={offerId || '-'} mono />
                     <div className="hidden h-10 w-px bg-slate-200 sm:block" />
-                    <KpiBlock label="Status">
+                    <KpiBlock label={t('offerSuccess.status', { defaultValue: 'Status' })}>
                         <Badge variant="cyan" className="border-none bg-blue-50 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-700">
-                            {status === 'draft' ? 'Draft' : status === 'offer_generated' ? 'Offer Generated' : status.replace(/_/g, ' ')}
+                            {status === 'draft' ? t('offerSuccess.timeline.draftShort', { defaultValue: 'Draft' }) : status === 'offer_generated' ? t('offerSuccess.timeline.generated', { defaultValue: 'Offer Generated' }) : status.replace(/_/g, ' ')}
                         </Badge>
                     </KpiBlock>
                     <div className="hidden h-10 w-px bg-slate-200 sm:block" />
-                    <KpiBlock label="Grand Total (excl. VAT)">
+                    <KpiBlock label={t('offerSuccess.grandTotal', { defaultValue: 'Grand Total (excl. VAT)' })}>
                         <span className="text-lg font-black text-emerald-700">
-                            EUR {grandTotal.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            EUR {grandTotal.toLocaleString(i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                     </KpiBlock>
                 </div>
@@ -67,14 +69,14 @@ export default function OfferSuccessScreen() {
 
             {!offerId ? (
                 <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-700">
-                    If you do not see download buttons, the offer may still be saving. Open <strong>My Offers</strong> from the dashboard to view and export your offers.
+                    {t('offerSuccess.savingHelp', { defaultValue: 'If you do not see download buttons, the offer may still be saving. Open My Offers from the dashboard to view and export your offers.' })}
                 </p>
             ) : null}
 
             <OfferActions offerId={offerId} config={{ configuratorState }} />
 
             <div className="flex items-center justify-center gap-2 pt-6 text-xs font-medium uppercase tracking-widest text-slate-400">
-                <ShieldCheck className="h-4 w-4" /> Secure - Offer saved to your account
+                <ShieldCheck className="h-4 w-4" /> {t('offerSuccess.secure', { defaultValue: 'Secure - Offer saved to your account' })}
             </div>
         </AnimatedPageWrapper>
     );

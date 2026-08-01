@@ -21,7 +21,7 @@ export default function SummaryStep() {
     const levelsCount = levels?.length || 0;
 
     return (
-        <AnimatedPageWrapper className="space-y-6 pb-20 max-w-5xl mx-auto">
+        <AnimatedPageWrapper className="mx-auto max-w-5xl space-y-4 pb-16 sm:space-y-5 sm:pb-20">
             <SectionTitle
                 title={t('configurator.summary.title', 'Project Summary')}
                 subtitle={t('configurator.summary.subtitle', 'Review the final project, functions, calculated products, services, totals, and offer notes before generating the offer.')}

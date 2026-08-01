@@ -22,16 +22,16 @@ export default function Contact() {
         </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="smart-building min-h-[520px] rounded-lg shadow-2xl shadow-emerald/15">
+          <div className="smart-building min-h-[520px] rounded-[2rem] shadow-2xl shadow-emerald/15">
             <div className="absolute inset-0 bg-[rgba(3,18,13,0.34)]" />
-            <div className="absolute bottom-7 left-7 right-7 rounded-lg border border-white/20 bg-white/15 p-6 text-white backdrop-blur">
+            <div className="absolute bottom-7 left-7 right-7 rounded-2xl border border-white/20 bg-white/15 p-6 text-white backdrop-blur">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-orange">{contactCopy.mapLabel}</p>
               <h3 className="mt-2 text-3xl font-black uppercase">{contactCopy.city}</h3>
               <p className="mt-3 text-sm leading-7 text-white/75">{contactInfo.shortAddress}</p>
             </div>
           </div>
 
-          <form className="rounded-lg bg-white p-6 shadow-2xl shadow-emerald/10 sm:p-8" onSubmit={(e) => e.preventDefault()}>
+          <form className="rounded-[2rem] border border-emerald/10 bg-white p-6 shadow-2xl shadow-emerald/10 sm:p-8" onSubmit={(e) => e.preventDefault()}>
             <h3 className="mb-6 text-xl font-black uppercase text-graphite">{contactCopy.formTitle}</h3>
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="block">
