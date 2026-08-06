@@ -41,11 +41,10 @@ import {
 } from 'lucide-react';
 import { motion as Motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import LongFormDisclosure from './LongFormDisclosure';
 import PresentationImage from './PresentationImage';
+import PublicDetailSection from './PublicDetailSection';
 import SeoHead from './SeoHead';
 import { getPageImage, stripDeckCtaArrow } from '../data/deckContent';
-import { useTranslation } from 'react-i18next';
 import { siteImages } from '../data/siteData';
 
 const featureIcons = [
@@ -89,8 +88,7 @@ const onlineImages = {
   solutions: [siteImages.research, siteImages.heroEnergy, siteImages.smartInterior, siteImages.heroControl],
 };
 
-export default function DeckPageTemplate({ page, pageIndex = 0 }) {
-  const { t } = useTranslation();
+export default function DeckPageTemplate({ page, detailPage, registry, pageIndex = 0 }) {
   const reduceMotion = useReducedMotion();
   const image = onlineImages[page.section]?.[pageIndex % onlineImages[page.section].length]
     || getPageImage(page, pageIndex);
@@ -141,14 +139,6 @@ export default function DeckPageTemplate({ page, pageIndex = 0 }) {
               sizes="(min-width: 1024px) 54vw, 92vw"
               eager
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-transparent to-transparent" />
-            <figcaption className="absolute inset-x-0 bottom-0 px-6 pb-6 pt-16 text-sm font-semibold text-white/80 sm:px-8">
-              {page.supportingHeadline}
-            </figcaption>
-            </div>
-            <div className="absolute right-6 top-6 flex items-center gap-2 rounded-full border border-white/15 bg-ink/70 px-4 py-2 text-xs font-bold backdrop-blur">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald" />
-              System online
             </div>
           </Motion.figure>
         </div>
@@ -192,38 +182,7 @@ export default function DeckPageTemplate({ page, pageIndex = 0 }) {
           )}
         </div>
       </section>
-
-      <section className="overflow-hidden bg-white py-16 sm:py-20">
-        <div className="section-shell container-px grid items-center gap-10 lg:grid-cols-[0.72fr_1.28fr] lg:gap-16">
-          <Motion.div {...revealProps} transition={{ duration: 0.6 }}>
-            <p className="section-kicker">Green Electric</p>
-            <h2 className="section-title">{t('presentation.moreDetail', { defaultValue: 'More detail, whenever you need it.' })}</h2>
-            <div className="mt-7 overflow-hidden rounded-[1.25rem]">
-              <PresentationImage src={image} alt="" className="aspect-[16/10] w-full object-cover" sizes="(min-width: 1024px) 32vw, 92vw" />
-            </div>
-          </Motion.div>
-          <Motion.div {...revealProps} transition={{ duration: 0.6, delay: 0.08 }}>
-            <LongFormDisclosure
-              paragraphs={page.longForm}
-              title={t('presentation.readCompletePage', { title: page.title.toLowerCase(), defaultValue: 'Read the complete {{title}} page information' })}
-            />
-          </Motion.div>
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden bg-emerald py-14 text-ink sm:py-16">
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-ink/5" />
-        <Motion.div {...revealProps} transition={{ duration: 0.6 }} className="section-shell container-px relative grid items-center gap-8 lg:grid-cols-[1fr_auto]">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/65">{t('presentation.configureNow', { defaultValue: 'Configure now' })}</p>
-            <h2 className="mt-3 text-3xl font-bold leading-tight tracking-[-0.03em] sm:text-4xl">{page.closingDescription}</h2>
-          </div>
-          <Link className="deck-button bg-ink text-white hover:bg-white hover:text-ink" to="/configurator">
-            {stripDeckCtaArrow(page.closingCta)}
-            <ArrowRight size={18} />
-          </Link>
-        </Motion.div>
-      </section>
+      {detailPage && <PublicDetailSection detailPage={detailPage} image={image} registry={registry} />}
     </>
   );
 }

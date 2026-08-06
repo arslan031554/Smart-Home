@@ -1,5 +1,5 @@
 /**
- * Smart Home Configurator — Advanced Calculation Engine
+ * Smart Building Configurator — Advanced Calculation Engine
  * 
  * Data-driven calculation simulating complex hardware BOM generation 
  * based on admin-defined mappings, capacities, and prioritisation logic.

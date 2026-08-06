@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Smart Home Configurator supports OTP delivery via **SMS (Twilio)** and **Email (SendGrid)**. Users can choose their preferred method during login and signup.
+The Smart Building Configurator supports OTP delivery via **SMS (Twilio)** and **Email (SendGrid)**. Users can choose their preferred method during login and signup.
 
 ---
 
@@ -65,7 +65,7 @@ TWILIO_MOCK_MODE=false
 ### Step 2: Get Credentials
 1. Go to Settings → API Keys
 2. Click "Create API Key"
-3. Name it `Smart Home Configurator Dev`
+3. Name it `Smart Building Configurator Dev`
 4. Copy the generated key (format: `SG.xxx.yyy`)
 
 ### Step 3: Verify Sender Email

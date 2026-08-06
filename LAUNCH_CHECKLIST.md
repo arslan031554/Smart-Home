@@ -1,4 +1,4 @@
-# Smart Home Configurator - Implementation & Launch Checklist
+# Smart Building Configurator - Implementation & Launch Checklist
 
 **Last Updated:** April 20, 2026  
 **Status:** Development → Staging → Production

@@ -1,4 +1,4 @@
-# Smart Home Configurator - Developer Quick Reference Guide
+# Smart Building Configurator - Developer Quick Reference Guide
 
 **For:** Development Team  
 **Updated:** April 20, 2026  
@@ -299,7 +299,7 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Smart Home Configurator API',
+      title: 'Smart Building Configurator API',
       version: '1.0.0',
       description: 'API for smart home configuration and offer generation'
     },

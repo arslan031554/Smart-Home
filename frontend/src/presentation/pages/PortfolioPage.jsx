@@ -35,6 +35,28 @@ const projectImages = [
   siteImages.apartament,
 ];
 
+const resultSectors = [
+  { label: 'Residential', filter: 'Home' },
+  { label: 'Offices', filter: 'Offices' },
+  { label: 'Hospitality', filter: 'Hotel' },
+  { label: 'Industrial', filter: 'Factory' },
+];
+
+const proofSteps = [
+  {
+    title: 'Integrated scope',
+    copy: 'Systems, technologies and services delivered as one coordinated project.',
+  },
+  {
+    title: 'Measured outcome',
+    copy: 'Energy, comfort, safety or operational results presented clearly.',
+  },
+  {
+    title: 'Scalable delivery',
+    copy: 'A solution designed for the building today and ready for future expansion.',
+  },
+];
+
 export default function PortfolioPage() {
   const { t, i18n } = useTranslation();
   const portfolio = i18n.language?.startsWith('ro')
@@ -138,16 +160,94 @@ export default function PortfolioPage() {
       </section>
 
       <section className="bg-white py-20 sm:py-28">
-        <div className="section-shell container-px grid gap-10 lg:grid-cols-[0.72fr_1.28fr]">
-          <div>
+        <div className="section-shell container-px">
+          <div className="max-w-4xl">
             <p className="section-kicker">{t('presentation.portfolio.resultsKicker', { defaultValue: 'Delivered results' })}</p>
-            <h2 className="section-title">{t('presentation.portfolio.resultsTitle', { defaultValue: 'Smart building experience across sectors.' })}</h2>
+            <h2 className="mt-5 text-3xl font-black leading-tight text-graphite sm:text-4xl">
+              {t('presentation.portfolio.proofTitle', { defaultValue: 'Proven results across building types.' })}
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              {t('presentation.portfolio.proofIntro', { defaultValue: 'Explore projects by sector, challenge and integrated technology - without reading a long generic description.' })}
+            </p>
           </div>
-          <LongFormDisclosure
+
+          <div className="mt-7 flex flex-wrap gap-3" role="group" aria-label={t('presentation.portfolio.resultsSectorLabel', { defaultValue: 'Browse result sectors' })}>
+            {resultSectors.map((sector) => (
+              <button
+                type="button"
+                className={`min-w-[8.75rem] rounded-full border px-6 py-3 text-sm font-extrabold transition ${
+                  filter === sector.filter ? 'border-emerald bg-emerald text-ink shadow-glow' : 'border-emerald/15 bg-white text-graphite hover:border-emerald hover:text-emerald'
+                }`}
+                onClick={() => setFilter(sector.filter)}
+                key={sector.label}
+              >
+                {t(`presentation.portfolio.resultsSector.${sector.label}`, { defaultValue: sector.label })}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-emerald/15 bg-white shadow-soft">
+            <div className="grid items-center gap-8 p-6 sm:p-8 lg:grid-cols-[1.12fr_0.88fr]">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald">
+                  {t('presentation.portfolio.caseStructure', { defaultValue: 'Case study structure' })}
+                </p>
+                <h3 className="mt-4 max-w-2xl text-2xl font-black leading-tight text-graphite sm:text-3xl">
+                  {t('presentation.portfolio.caseTitle', { defaultValue: 'Every project should show proof, not promises.' })}
+                </h3>
+
+                <div className="mt-6 space-y-5">
+                  {proofSteps.map((step, index) => (
+                    <div className="grid grid-cols-[2.5rem_1fr] gap-4" key={step.title}>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald text-sm font-black text-ink">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-black uppercase tracking-[0.08em] text-graphite">
+                          {t(`presentation.portfolio.proofSteps.${index}.title`, { defaultValue: step.title })}
+                        </h4>
+                        <p className="mt-1 max-w-xl text-sm leading-6 text-slate-600">
+                          {t(`presentation.portfolio.proofSteps.${index}.copy`, { defaultValue: step.copy })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative min-h-[20rem] overflow-hidden rounded-[1.25rem] bg-ink shadow-card">
+                <PresentationImage
+                  src={siteImages.euromaster}
+                  alt="Smart office project with glass partitions"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  sizes="(min-width: 1024px) 34vw, 88vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-transparent" />
+                <div className="absolute left-5 top-5 rounded-md bg-ink/75 px-3 py-2 text-xs font-black text-white backdrop-blur">
+                  {t('presentation.portfolio.featuredProjectsBadge', { count: portfolio.projects.length, defaultValue: '{{count}}+ featured projects' })}
+                </div>
+                <div className="absolute bottom-5 left-5 right-5 rounded-xl border border-white/15 bg-ink/80 px-4 py-3 text-sm font-black text-white shadow-2xl backdrop-blur">
+                  {t('presentation.portfolio.clearOutcomes', { defaultValue: 'Real projects. Clear outcomes.' })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-5 rounded-[1.25rem] border border-emerald/15 bg-emerald/10 p-6 text-ink sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-xl text-sm font-semibold leading-6 text-ink/75">
+              {t('presentation.portfolio.browsePrompt', { defaultValue: 'Browse projects by sector or open a complete case study.' })}
+            </p>
+            <a className="deck-button bg-ink text-white hover:bg-emerald hover:text-ink" href="#page-content">
+              {t('presentation.portfolio.viewAllProjects', { defaultValue: 'View all projects' })}
+              <ArrowRight size={18} />
+            </a>
+          </div>
+
+          {/* <LongFormDisclosure
             paragraphs={portfolio.longForm}
             title={t('presentation.portfolio.readComplete', { defaultValue: 'Read the complete portfolio information' })}
-            className="self-start"
-          />
+            className="mt-8"
+          /> */}
         </div>
       </section>
 

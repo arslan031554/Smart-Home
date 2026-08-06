@@ -33,6 +33,7 @@ import PresentationMediaPage from '../presentation/pages/MediaPage';
 import PresentationContactPage from '../presentation/pages/ContactPage';
 import PresentationServicePage from '../presentation/pages/ServicePage';
 import DeckContentPage from '../presentation/pages/DeckContentPage';
+import DeckOverviewPage from '../presentation/pages/DeckOverviewPage';
 
 // Admin Pages
 import AdminDashboard from '../pages/AdminDashboard';
@@ -90,8 +91,11 @@ const router = createBrowserRouter([
             { path: 'servicii/:slug', element: <PresentationServiceRoute /> },
             { path: 'portofoliu', element: <PresentationPortfolioPage /> },
             { path: 'portfolio', element: <PresentationPortfolioPage /> },
+            { path: 'technology', element: <DeckOverviewPage section="technology" /> },
             { path: 'technology/:slug', element: <DeckContentPage section="technology" /> },
+            { path: 'buildings', element: <DeckOverviewPage section="buildings" /> },
             { path: 'buildings/:slug', element: <DeckContentPage section="buildings" /> },
+            { path: 'solutions', element: <DeckOverviewPage section="solutions" /> },
             { path: 'solutions/:slug', element: <DeckContentPage section="solutions" /> },
             { path: 'media', element: <PresentationMediaPage /> },
             { path: 'contact', element: <PresentationContactPage /> },

@@ -2,7 +2,7 @@
 
 ## 1. Platform Overview
 
-Smart Home Configurator is an existing full-stack quotation platform for residential/commercial smart-home projects. The system supports:
+Smart Building Configurator is an existing full-stack quotation platform for residential/commercial smart-home projects. The system supports:
 
 - customer registration, OTP verification, login, password reset
 - guest-start configurator with draft persistence and authenticated handoff

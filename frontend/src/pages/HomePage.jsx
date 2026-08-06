@@ -86,7 +86,7 @@ export default function HomePage() {
                             <div className="flex flex-wrap items-center gap-3">
                                 <Badge className="border-emerald/35 bg-emerald/12 text-emerald">
                                     <Sparkles className="h-3.5 w-3.5" />
-                                    {t('smartHome.hero.badge', { defaultValue: 'Smart Home Configurator' })}
+                                    {t('smartHome.hero.badge', { defaultValue: 'Smart Building Configurator' })}
                                 </Badge>
                                 <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/72">
                                     {t('smartHome.hero.mode', { defaultValue: 'Project to proposal' })}

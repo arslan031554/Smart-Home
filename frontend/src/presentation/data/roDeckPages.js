@@ -32,12 +32,48 @@ const pageCopy = {
   maintenance: ['Mentenanță', 'Suport, optimizare și întreținere pentru performanță pe termen lung.', 'Fiabilitate după punerea în funcțiune.'],
 };
 
+function localizeFeatures(page) {
+  const presets = {
+    technology: [
+      ['Control inteligent', 'Funcție integrată în sistemul smart al clădirii.'],
+      ['Automatizare', 'Răspuns adaptat la program, senzori și scenarii.'],
+      ['Control pe zone', 'Setări diferite pentru camere, grupuri sau zone.'],
+      ['Eficiență', 'Mai puțină risipă și funcționare mai clară.'],
+      ['Utilizare simplă', 'Control local, mobil sau automat.'],
+      ['Integrare completă', 'Coordonare cu celelalte sisteme ale clădirii.'],
+    ],
+    buildings: [
+      ['Confort', 'Funcții adaptate modului în care este folosit spațiul.'],
+      ['Control', 'Administrare clară local, mobil sau centralizat.'],
+      ['Siguranță', 'Acces, alerte și monitorizare coordonate.'],
+      ['Eficiență', 'Consum redus prin programe și automatizări.'],
+      ['Vizibilitate', 'Stare și date utile pentru utilizatori și administratori.'],
+      ['Scalabilitate', 'Sistem pregătit pentru extinderi viitoare.'],
+    ],
+    solutions: [
+      ['Analiză', 'Înțelegem clădirea, prioritățile și bugetul.'],
+      ['Proiect', 'Definim arhitectura tehnică și funcțiile necesare.'],
+      ['Coordonare', 'Legăm echipamentele, instalarea și scenariile într-un plan clar.'],
+      ['Validare', 'Verificăm compatibilitatea, costurile și modul de operare.'],
+      ['Predare', 'Documentație, instruire și suport pentru utilizare.'],
+      ['Evoluție', 'Sistem pregătit pentru optimizare și extindere.'],
+    ],
+  };
+  const copy = presets[page.section] || presets.technology;
+
+  return (page.features || []).map((feature, index) => {
+    const [title, description] = copy[index] || copy[copy.length - 1];
+    return { ...feature, title, description };
+  });
+}
+
 export function localizeDeckPageRo(page) {
   const [title, summary, result] = pageCopy[page.slug] || ['Soluție smart building', 'Tehnologie integrată, adaptată clădirii tale.', 'Confort, eficiență și control.'];
   const lowerTitle = title.toLocaleLowerCase('ro-RO');
 
   return {
     ...page,
+    language: 'ro',
     title,
     menuLabel: title,
     eyebrow: `${page.section === 'technology' ? 'TEHNOLOGIE' : page.section === 'buildings' ? 'CLĂDIRI' : 'SOLUȚII'} · ${title.toLocaleUpperCase('ro-RO')}`,
@@ -47,11 +83,7 @@ export function localizeDeckPageRo(page) {
     secondaryCta: 'Descoperă tehnologia',
     sectionHeading: `Ce poate oferi ${lowerTitle}`,
     resultLine: result,
-    features: page.features.map((feature, index) => ({
-      ...feature,
-      title: `Beneficiu inteligent ${index + 1}`,
-      description: `${title}: funcție integrată pentru mai mult confort, control și eficiență.`,
-    })),
+    features: localizeFeatures(page),
     longForm: [
       `${title} pornește de la o idee clară: toate funcțiile importante trebuie să lucreze împreună, fără a complica utilizarea zilnică. Soluția Green Electric conectează echipamentele și regulile de automatizare într-un sistem coerent.`,
       `Controlul poate fi local, mobil sau complet automat, pe baza programului, senzorilor și scenariilor definite pentru clădire. Fiecare zonă poate avea setări și drepturi diferite, iar sistemul rămâne flexibil pe măsură ce nevoile se schimbă.`,

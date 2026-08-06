@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { ChevronDown, Mail, Menu, Phone, Settings, X } from 'lucide-react';
 import { deckNavigation } from '../data/deckContent';
+import { CATEGORY_CONFIG } from '../data/publicPageHelpers';
 import { usePresentationContent } from '../data/usePresentationContent';
 import PresentationLanguageSwitcher from './PresentationLanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +38,14 @@ function DesktopDropdown({ group, open, onToggle, onClose, buttonRef }) {
             exit={{ opacity: 0, y: 10 }}
             onMouseLeave={onClose}
           >
+            <Link
+              className="mb-2 flex items-center justify-between rounded-md bg-emerald/10 px-3 py-2.5 text-sm font-bold text-emerald hover:bg-emerald hover:text-ink focus-visible:bg-emerald focus-visible:text-ink"
+              to={CATEGORY_CONFIG[group.key]?.overviewRoute || '/'}
+              onClick={onClose}
+            >
+              {group.allLabel}
+              <span aria-hidden="true">-&gt;</span>
+            </Link>
             <p className="px-3 pb-3 pt-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald">{group.label}</p>
             <div className="grid grid-cols-2 gap-1">
               {group.items.map((item) => (
@@ -63,6 +72,7 @@ export default function Navbar({ currentPath = '/' }) {
   const localizedNavigation = deckNavigation.map((group) => ({
     ...group,
     label: t(`presentation.navigation.${group.key}`, { defaultValue: group.label }),
+    allLabel: t(`presentation.pager.${group.key}.all`, { defaultValue: CATEGORY_CONFIG[group.key]?.allLabel || group.label }),
     items: group.items.map((item) => ({
       ...item,
       menuLabel: t(`presentation.navigation.items.${item.slug}`, { defaultValue: item.menuLabel }),
@@ -183,6 +193,9 @@ export default function Navbar({ currentPath = '/' }) {
                   </button>
                   {mobileSection === group.key && (
                     <div className="grid gap-1 pb-4 sm:grid-cols-2">
+                      <Link className="rounded-md bg-emerald/10 px-4 py-3 text-sm font-semibold text-emerald hover:bg-emerald hover:text-ink" to={CATEGORY_CONFIG[group.key]?.overviewRoute || '/'} onClick={closeMobile}>
+                        {group.allLabel}
+                      </Link>
                       {group.items.map((item) => (
                         <Link className="rounded-md bg-fog px-4 py-3 text-sm font-semibold text-graphite/75 hover:text-emerald" to={item.route} onClick={closeMobile} key={item.route}>
                           {item.menuLabel}

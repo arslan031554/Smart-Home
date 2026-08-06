@@ -1,6 +1,6 @@
-# Smart Home Configurator
+# Smart Building Configurator
 
-Smart Home Configurator is a full-stack customer quotation platform for smart-home projects. Customers can start a configuration, define a building, add rooms and smart functions, select range/color/services, review a calculation-backed summary, and generate a stored offer. Internal staff use the admin backoffice to manage master data, offers, employees, permissions, reminder templates, and commercial settings.
+Smart Building Configurator is a full-stack customer quotation platform for smart-home projects. Customers can start a configuration, define a building, add rooms and smart functions, select range/color/services, review a calculation-backed summary, and generate a stored offer. Internal staff use the admin backoffice to manage master data, offers, employees, permissions, reminder templates, and commercial settings.
 
 Detailed handoff notes are available in [docs/TECHNICAL_HANDOFF.md](docs/TECHNICAL_HANDOFF.md).
 

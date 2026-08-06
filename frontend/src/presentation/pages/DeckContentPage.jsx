@@ -6,6 +6,7 @@ import {
   solutionPages,
   technologyPages,
 } from '../data/deckContent';
+import { createPublicRegistry, findPublicPage } from '../data/publicPageRegistry';
 import { localizeDeckPageRo } from '../data/roDeckPages';
 import { useTranslation } from 'react-i18next';
 
@@ -15,7 +16,8 @@ export default function DeckContentPage({ section }) {
   const basePage = findDeckPage(section, slug);
 
   if (!basePage) return <Navigate to="/" replace />;
-  const page = i18n.language?.startsWith('ro') ? localizeDeckPageRo(basePage) : basePage;
+  const localize = (page) => i18n.language?.startsWith('ro') ? localizeDeckPageRo(page) : page;
+  const page = localize(basePage);
 
   const collection = section === 'technology'
     ? technologyPages
@@ -23,6 +25,12 @@ export default function DeckContentPage({ section }) {
       ? buildingPages
       : solutionPages;
   const pageIndex = collection.findIndex((item) => item.slug === slug);
+  const registry = createPublicRegistry({
+    technology: technologyPages.map(localize),
+    buildings: buildingPages.map(localize),
+    solutions: solutionPages.map(localize),
+  });
+  const detailPage = findPublicPage(section, slug, registry);
 
-  return <DeckPageTemplate page={page} pageIndex={pageIndex} />;
+  return <DeckPageTemplate page={page} detailPage={detailPage} registry={registry} pageIndex={pageIndex} />;
 }

@@ -24,7 +24,7 @@ export default function Footer() {
     { label: pages.portfolio.title, href: '/portfolio', children: [] },
     { label: pages.about.title, href: '/despre', children: [] },
     { label: pages.contact.title, href: '/contact', children: [] },
-    { label: footer.configurator, href: '/configurator', children: [] },
+    // { label: footer.configurator, href: '/configurator', children: [] },
   ];
 
   return (

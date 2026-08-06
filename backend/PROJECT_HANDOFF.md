@@ -1,4 +1,4 @@
-# Smart Home Configurator Backend Handoff
+# Smart Building Configurator Backend Handoff
 
 ## Delivered capability
 - authentication, OTP verification, password reset

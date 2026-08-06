@@ -1,5 +1,5 @@
 /**
- * Seed test users for Smart Home Configurator.
+ * Seed test users for Smart Building Configurator.
  * Run from backend directory: node scripts/seed-test-users.js
  * Requires: .env with DB_* and JWT_SECRET.
  *

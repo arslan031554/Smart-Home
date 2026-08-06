@@ -1,6 +1,6 @@
-# Smart Home Configurator Backend
+# Smart Building Configurator Backend
 
-Express + PostgreSQL API for the Smart Home Configurator.
+Express + PostgreSQL API for the Smart Building Configurator.
 
 ## Delivered modules
 - customer authentication, OTP verification, password reset

@@ -8,7 +8,8 @@
     "build": "vite build",
     "i18n:audit": "node scripts/audit-i18n-resources.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test src/presentation/data/*.test.mjs"
   },
   "dependencies": {
     "@formatjs/intl-localematcher": "^0.8.2",

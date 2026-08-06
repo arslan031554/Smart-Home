@@ -1,11 +1,30 @@
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import AnimatedSection from './AnimatedSection';
 import ContactCards from './ContactCards';
 import SectionTitle from './SectionTitle';
 import { usePresentationContent } from '../data/usePresentationContent';
+import { getContactPrefill } from '../data/publicPageHelpers';
 
 export default function Contact() {
   const { contact: contactCopy, contactInfo } = usePresentationContent();
+  const location = useLocation();
+  const [initialPrefill] = useState(() => getContactPrefill(new URLSearchParams(location.search).get('service'), contactCopy.prefillMessages));
+  const serviceLabel = initialPrefill?.service
+    ? contactCopy.serviceProjectTypes?.[initialPrefill.service] || ''
+    : '';
+  const [form, setForm] = useState(() => ({
+    name: '',
+    email: '',
+    phone: '',
+    projectType: serviceLabel,
+    message: initialPrefill?.message || '',
+  }));
+  const projectTypes = serviceLabel && !contactCopy.projectTypes.includes(serviceLabel)
+    ? [serviceLabel, ...contactCopy.projectTypes]
+    : contactCopy.projectTypes;
+  const updateField = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
 
   return (
     <AnimatedSection id="contact" className="bg-fog py-24">
@@ -36,29 +55,29 @@ export default function Contact() {
             <div className="grid gap-5 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-graphite">{contactCopy.labels.name}</span>
-                <input className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.name} type="text" required />
+                <input className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.name} type="text" value={form.name} onChange={updateField('name')} required />
               </label>
               <label className="block">
                 <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-graphite">{contactCopy.labels.email}</span>
-                <input className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.email} type="email" required />
+                <input className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.email} type="email" value={form.email} onChange={updateField('email')} required />
               </label>
             </div>
             <label className="mt-5 block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-graphite">{contactCopy.labels.phone}</span>
-              <input className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.phone} type="tel" />
+              <input className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.phone} type="tel" value={form.phone} onChange={updateField('phone')} />
             </label>
             <label className="mt-5 block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-graphite">{contactCopy.labels.projectType}</span>
-              <select className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12">
+              <select className="w-full rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" value={form.projectType} onChange={updateField('projectType')}>
                 <option value="">{contactCopy.placeholders.projectType}</option>
-                {contactCopy.projectTypes.map((type) => (
+                {projectTypes.map((type) => (
                   <option key={type}>{type}</option>
                 ))}
               </select>
             </label>
             <label className="mt-5 block">
               <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-graphite">{contactCopy.labels.message}</span>
-              <textarea className="min-h-36 w-full resize-y rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.message} required />
+              <textarea className="min-h-36 w-full resize-y rounded-lg border border-slate-200 bg-fog px-4 py-3 text-graphite outline-none transition focus:border-emerald focus:ring-4 focus:ring-emerald/12" placeholder={contactCopy.placeholders.message} value={form.message} onChange={updateField('message')} required />
             </label>
             <button className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-full bg-orange px-7 py-4 text-sm font-black uppercase tracking-[0.16em] text-white shadow-orange transition hover:-translate-y-1 hover:bg-emerald" type="submit">
               {contactCopy.submit}

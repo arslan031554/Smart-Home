@@ -1,5 +1,5 @@
 /**
- * Master data for Smart Home Configurator.
+ * Master data for Smart Building Configurator.
  * Source: client requirements + existing app context.
  * Values marked PROVISIONAL in SEED_ASSUMPTIONS.md are defaults for testing only.
  */

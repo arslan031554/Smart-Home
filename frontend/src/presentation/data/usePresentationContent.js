@@ -289,6 +289,16 @@ const presentationCopy = {
         message: 'Spune-ne cateva detalii despre proiectul tau...',
       },
       projectTypes: ['Rezidential - casa/apartament', 'Comercial - birouri', 'Hospitality - hotel/restaurant', 'Industrial / Medical', 'Consultanta'],
+      serviceProjectTypes: {
+        design: 'Servicii de proiectare',
+        maintenance: 'Servicii de mentenanta',
+        implementation: 'Servicii de implementare',
+      },
+      prefillMessages: {
+        design: 'Sunt interesat de serviciile de proiectare Green Electric.',
+        maintenance: 'Sunt interesat de serviciile de mentenanta Green Electric.',
+        implementation: 'Sunt interesat de serviciile de implementare Green Electric.',
+      },
       submit: 'Trimite mesajul',
     },
     contactCards: [
@@ -330,7 +340,7 @@ const presentationCopy = {
       home: 'Home',
       pages: 'Pages',
       portfolio: 'Portfolio',
-      configurator: 'Smart Home Configurator',
+      configurator: 'Smart Building Configurator',
       contact: 'Contact',
       support: 'Customer Support',
     },
@@ -594,6 +604,16 @@ const presentationCopy = {
         message: 'Tell us a few details about your project...',
       },
       projectTypes: ['Residential - house/apartment', 'Commercial - offices', 'Hospitality - hotel/restaurant', 'Industrial / Medical', 'Consulting'],
+      serviceProjectTypes: {
+        design: 'Design services',
+        maintenance: 'Maintenance services',
+        implementation: 'Implementation services',
+      },
+      prefillMessages: {
+        design: 'I am interested in Green Electric design services.',
+        maintenance: 'I am interested in Green Electric maintenance services.',
+        implementation: 'I am interested in Green Electric implementation services.',
+      },
       submit: 'Send message',
     },
     contactCards: [
@@ -622,7 +642,7 @@ const presentationCopy = {
       menu: 'Menu',
       services: 'Services',
       contact: 'Contact',
-      configurator: 'Smart Home Configurator',
+      configurator: 'Smart Building Configurator',
       offer: 'Request offer',
       copyright: 'All rights reserved.',
       tagline: 'Intelligent buildings and energy efficiency',

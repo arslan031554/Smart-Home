@@ -1,4 +1,5 @@
 import { motion as Motion, useReducedMotion } from 'framer-motion';
+import { useState } from 'react';
 import {
   Activity,
   ArrowRight,
@@ -14,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import HomeImageCarousel from '../components/HomeImageCarousel';
-import LongFormDisclosure from '../components/LongFormDisclosure';
 import PresentationImage from '../components/PresentationImage';
 import SeoHead from '../components/SeoHead';
 import {
@@ -81,6 +81,68 @@ const getProcessSteps = (t) => [
   },
 ];
 
+const getApproachTabs = (t) => [
+  {
+    id: 'how-it-works',
+    label: t('presentation.home.approach.tabs.how', { defaultValue: 'How it works' }),
+    title: t('presentation.home.approach.howTitle', { defaultValue: 'A simpler path from first idea to a buildable solution.' }),
+    copy: t('presentation.home.approach.howCopy', {
+      defaultValue:
+        'Start with the building type, rooms and required functions. The configurator creates a structured project brief, while our specialists validate the system architecture, equipment and services.',
+    }),
+  },
+  {
+    id: 'what-you-receive',
+    label: t('presentation.home.approach.tabs.receive', { defaultValue: 'What you receive' }),
+    title: t('presentation.home.approach.receiveTitle', { defaultValue: 'A clear scope for every connected system.' }),
+    copy: t('presentation.home.approach.receiveCopy', {
+      defaultValue:
+        'You receive a coherent project direction covering functions, rooms, compatible technologies, services and next-step priorities before implementation begins.',
+    }),
+  },
+  {
+    id: 'why-it-matters',
+    label: t('presentation.home.approach.tabs.why', { defaultValue: 'Why it matters' }),
+    title: t('presentation.home.approach.whyTitle', { defaultValue: 'Better decisions before equipment is installed.' }),
+    copy: t('presentation.home.approach.whyCopy', {
+      defaultValue:
+        'A coordinated approach reduces surprises, avoids isolated devices and keeps comfort, safety, energy and control working as one integrated infrastructure.',
+    }),
+  },
+  {
+    id: 'next-step',
+    label: t('presentation.home.approach.tabs.next', { defaultValue: 'Next step' }),
+    title: t('presentation.home.approach.nextTitle', { defaultValue: 'Configure the project or talk to the team.' }),
+    copy: t('presentation.home.approach.nextCopy', {
+      defaultValue:
+        'Use the configurator for a structured estimate, or contact Green Electric directly when the building needs a guided technical discussion.',
+    }),
+  },
+];
+
+const getApproachSteps = (t) => [
+  {
+    number: '01',
+    title: t('presentation.home.approach.steps.defineTitle', { defaultValue: 'How it works' }),
+    copy: t('presentation.home.approach.steps.defineCopy', { defaultValue: 'Rooms, destination and priorities.' }),
+  },
+  {
+    number: '02',
+    title: t('presentation.home.approach.steps.shapeTitle', { defaultValue: 'What you receive' }),
+    copy: t('presentation.home.approach.steps.shapeCopy', { defaultValue: 'Functions, technologies and automation level.' }),
+  },
+  {
+    number: '03',
+    title: t('presentation.home.approach.steps.validateTitle', { defaultValue: 'Why it matters' }),
+    copy: t('presentation.home.approach.steps.validateCopy', { defaultValue: 'Products, services, compatibility and budget.' }),
+  },
+  {
+    number: '04',
+    title: t('presentation.home.approach.steps.deliverTitle', { defaultValue: 'Next step' }),
+    copy: t('presentation.home.approach.steps.deliverCopy', { defaultValue: 'Design, commissioning and maintenance.' }),
+  },
+];
+
 const reveal = {
   hidden: { opacity: 0, y: 28 },
   visible: (index = 0) => ({
@@ -99,6 +161,10 @@ export default function HomePage() {
   const home = i18n.language?.startsWith('ro') ? { ...greenElectricDeck.home, ...roDeckHome } : greenElectricDeck.home;
   const heroSlides = getHeroSlides(t);
   const processSteps = getProcessSteps(t);
+  const approachTabs = getApproachTabs(t);
+  const approachSteps = getApproachSteps(t);
+  const [activeApproachTab, setActiveApproachTab] = useState(approachTabs[0].id);
+  const activeApproach = approachTabs.find((tab) => tab.id === activeApproachTab) || approachTabs[0];
   const reduceMotion = useReducedMotion();
   const motionProps = reduceMotion
     ? {}
@@ -372,11 +438,74 @@ export default function HomePage() {
             ))}
           </div>
 
-          <Motion.div {...motionProps} variants={reveal} className="mx-auto mt-8 max-w-5xl">
-            <LongFormDisclosure
-              paragraphs={home.longForm}
-              title="Explore Green Electric’s complete integrated approach"
-            />
+          <Motion.div {...motionProps} variants={reveal} className="mx-auto mt-12 max-w-6xl">
+            <div className="rounded-xl border border-emerald/12 bg-white p-5 shadow-[0_20px_55px_rgba(3,18,13,0.10)] sm:p-7 lg:p-9">
+              <p className="inline-flex rounded-full border border-emerald/20 bg-emerald/12 px-4 py-1.5 text-[11px] font-bold uppercase tracking-normal text-emerald">
+                {t('presentation.home.approach.kicker', { defaultValue: 'EXPLORE THE APPROACH' })}
+              </p>
+              <h3 className="mt-5 max-w-4xl text-2xl font-bold leading-tight text-graphite sm:text-3xl lg:text-4xl">
+                {t('presentation.home.approach.title', { defaultValue: 'One building. One coordinated system.' })}
+              </h3>
+              <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                {t('presentation.home.approach.copy', {
+                  defaultValue:
+                    'Green Electric brings lighting, climate, shading, security, energy and control into one integrated infrastructure - designed around the building and the people who use it.',
+                })}
+              </p>
+
+              <div className="mt-8 grid gap-2 sm:grid-cols-2 lg:grid-cols-4" role="tablist" aria-label={t('presentation.home.approach.tablist', { defaultValue: 'Integrated approach sections' })}>
+                {approachTabs.map((tab) => {
+                  const selected = tab.id === activeApproach.id;
+                  return (
+                    <button
+                      className={`min-h-12 rounded-lg border px-4 py-2 text-sm font-bold ${selected ? 'border-emerald/25 bg-emerald/18 text-emerald' : 'border-emerald/20 bg-white text-graphite hover:border-emerald hover:text-emerald'}`}
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => setActiveApproachTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-8 grid min-w-0 gap-6 md:grid-cols-[1.02fr_0.98fr] md:items-start">
+                <div className="min-w-0" role="tabpanel">
+                  <h4 className="text-[1.55rem] font-bold leading-[1.08] text-graphite sm:text-3xl md:text-2xl lg:text-3xl">
+                    {activeApproach.title}
+                  </h4>
+                  <p className="mt-3 max-w-[54ch] text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                    {activeApproach.copy}
+                  </p>
+                </div>
+
+                <ol className="grid gap-3">
+                  {approachSteps.map((step) => (
+                    <li className="grid min-w-0 grid-cols-[auto_1fr] gap-3 rounded-lg border border-emerald/18 bg-emerald/10 p-3 shadow-[0_8px_20px_rgba(3,18,13,0.04)]" key={step.number}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ink text-xs font-bold text-white">
+                        {step.number}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold leading-5 text-graphite">{step.title}</span>
+                        <span className="mt-1 block text-xs leading-5 text-slate-600">{step.copy}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="mt-10 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <Link className="deck-button deck-button-primary justify-center sm:min-w-[16rem]" to="/configurator">
+                  {t('presentation.home.approach.configure', { defaultValue: 'Configure a project' })}
+                  <ArrowRight size={18} aria-hidden="true" />
+                </Link>
+                <Link className="deck-button border border-emerald/35 bg-white text-ink hover:border-emerald hover:bg-emerald/10" to="/contact">
+                  {t('presentation.home.approach.talk', { defaultValue: 'Talk to us' })}
+                </Link>
+              </div>
+            </div>
           </Motion.div>
         </div>
       </section>

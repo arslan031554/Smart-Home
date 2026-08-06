@@ -1,5 +1,5 @@
 /**
- * Smart Home Configurator — Export Utilities
+ * Smart Building Configurator — Export Utilities
  * Generates client-facing PDF and internal Excel exports.
  * All prices in EUR, excluding VAT.
  */
@@ -86,7 +86,7 @@ export function generatePDFOffer(config, offerId) {
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text('SMART HOME CONFIGURATOR', 14, 10);
+        doc.text('Smart Building Configurator', 14, 10);
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(148, 163, 184);
@@ -316,7 +316,7 @@ export function generateExcelOffer(config, offerId) {
 
     // ── Sheet 1: Offer Summary ────────────────────────────────────
     const summaryData = [
-        ['SMART HOME CONFIGURATOR — INTERNAL OFFER SHEET', '', '', ''],
+        ['Smart Building Configurator — INTERNAL OFFER SHEET', '', '', ''],
         ['', '', '', ''],
         ['OFFER ID', pid, 'DATE', today()],
         ['', '', '', ''],

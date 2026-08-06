@@ -1,4 +1,4 @@
-# Smart Home Configurator Frontend Handoff
+# Smart Building Configurator Frontend Handoff
 
 ## Delivered capability
 - guest start configurator flow

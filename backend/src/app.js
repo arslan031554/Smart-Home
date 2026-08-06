@@ -101,7 +101,7 @@ app.use('/api', routes);
 app.get('/', (req, res) => {
     res.status(200).json({
         success: true,
-        message: 'Smart Home Configurator Backend is running'
+        message: 'Smart Building Configurator Backend is running'
     });
 });
 

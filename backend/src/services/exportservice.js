@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const BRAND = {
-    name: process.env.APP_BRAND_NAME || 'Smart Home Configurator',
+    name: process.env.APP_BRAND_NAME || 'Smart Building Configurator',
     currency: process.env.APP_CURRENCY || 'EUR',
     locale: process.env.APP_LOCALE || 'en-GB',
 };

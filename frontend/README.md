@@ -1,4 +1,4 @@
-# Smart Home Configurator Frontend
+# Smart Building Configurator Frontend
 
 React + Vite SPA for the customer configurator and admin/backoffice.
 

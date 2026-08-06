@@ -130,7 +130,7 @@
   "auth": {
     "welcomeBack": "Welcome Back",
     "loginTitle": "Log In to Your Account",
-    "loginSubtitle": "Log in to access your smart home configurator and saved designs.",
+    "loginSubtitle": "Log in to access your Smart Building Configurator and saved designs.",
     "email": "Email Address",
     "password": "Password",
     "rememberMe": "Remember Me",
@@ -229,7 +229,7 @@
     }
   },
   "configurator": {
-    "title": "Smart Home Configurator",
+    "title": "Smart Building Configurator",
     "loadingMasterData": "Loading configurator master data",
     "preparingOptions": "Preparing configuration options…",
     "retry": "Retry",
@@ -885,9 +885,9 @@
   "legal": {
     "badge": "Legal",
     "terms": {
-      "subtitle": "Please read the terms and conditions governing the Smart Home Configurator platform.",
+      "subtitle": "Please read the terms and conditions governing the Smart Building Configurator platform.",
       "paragraphs": [
-        "By using the Smart Home Configurator, you agree to use the platform for legitimate project estimation and communication with the provider team.",
+        "By using the Smart Building Configurator, you agree to use the platform for legitimate project estimation and communication with the provider team.",
         "The platform generates budgetary technical and financial offers based on the configuration data you provide. Final contract, procurement, and implementation terms are confirmed separately in writing.",
         "You are responsible for providing accurate project details, contact information, and account data. Inaccurate data may affect output quality, pricing, and follow-up communication.",
         "Generated offers, pricing logic, documentation templates, and platform content remain proprietary to the service provider unless explicitly agreed otherwise.",
