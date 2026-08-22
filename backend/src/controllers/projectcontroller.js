@@ -1,7 +1,7 @@
 import * as projectService from '../services/projectservice.js';
 import { sendResponse, sendError } from '../utils/apiResponse.js';
 
-const resolveProjectScopeUserId = (user) => user?.id;
+const resolveProjectScopeUserId = (user) => user?.role === 'admin' ? null : user?.id;
 
 export const createProject = async (req, res, next) => {
     try {
@@ -14,7 +14,7 @@ export const createProject = async (req, res, next) => {
 
 export const getMyProjects = async (req, res, next) => {
     try {
-        const projects = await projectService.getMyProjects(resolveProjectScopeUserId(req.user));
+        const projects = await projectService.getMyProjects(req.user.id);
         sendResponse(res, 200, true, 'Projects fetched', projects);
     } catch (error) {
         next(error);

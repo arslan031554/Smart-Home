@@ -229,3 +229,18 @@ export const employeeUpdateValidator = [
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
     validate
 ];
+
+export const userUpdateValidator = [
+    body('fullName').optional({ values: 'null' }).isString().trim().isLength({ max: 120 }).withMessage('Full name must be at most 120 characters'),
+    body('email').optional().trim().notEmpty().withMessage('Email must be non-empty').isEmail().withMessage('Valid email is required'),
+    body('phone').optional({ values: 'null' }).isString().trim().isLength({ max: 30 }).withMessage('Phone must be at most 30 characters'),
+    body('companyName').optional({ values: 'null' }).isString().trim().isLength({ max: 160 }).withMessage('Company name must be at most 160 characters'),
+    body('role').optional().isIn(['customer', 'employee', 'admin']).withMessage('Role must be customer, employee, or admin'),
+    body('employeeRole').optional({ values: 'null' }).isString().trim().isLength({ max: 80 }).withMessage('Employee role must be at most 80 characters'),
+    body('permissions').optional().isArray().withMessage('permissions must be an array'),
+    body('permissions.*').optional().isString().withMessage('permissions must contain strings'),
+    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+    body('isVerified').optional().isBoolean().withMessage('isVerified must be a boolean'),
+    body('password').optional().isString().isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    validate
+];

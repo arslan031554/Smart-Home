@@ -20,6 +20,8 @@ export default function ChooseVerificationMethodPage() {
     const email = location.state?.email || user?.email;
     const verificationReason = location.state?.verificationReason || reduxVerificationReason || 'account_verification';
     const deliveryError = location.state?.deliveryError || null;
+    const initialDelivery = location.state?.delivery || null;
+    const sentChannel = location.state?.sentChannel || null;
     const availableChannels = (location.state?.availableChannels?.length > 0)
         ? location.state.availableChannels
         : reduxChannels;
@@ -36,6 +38,21 @@ export default function ChooseVerificationMethodPage() {
 
     const handleSelectMethod = async (channel) => {
         setLocalError(null); // Clear any previous errors when trying a new channel
+        const canUseExistingCode = sentChannel === channel && initialDelivery && !deliveryError;
+        if (canUseExistingCode) {
+            navigate('/auth/verify-otp', {
+                state: {
+                    email,
+                    channel,
+                    availableChannels,
+                    message: t('auth.errors.otpSent', { channel: channel.toUpperCase() }),
+                    verificationReason,
+                    ...(location.state?.returnTo != null && { returnTo: location.state.returnTo, returnStep: location.state.returnStep }),
+                },
+            });
+            return;
+        }
+
         try {
             const resultAction = await dispatch(sendVerificationOtp({ email, channel }));
             if (sendVerificationOtp.fulfilled.match(resultAction)) {

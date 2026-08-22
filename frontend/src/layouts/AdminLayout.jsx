@@ -18,6 +18,7 @@ import {
     Search,
     Menu,
     X,
+    Mail,
     ShieldCheck,
     Box,
     Monitor,
@@ -76,6 +77,7 @@ export default function AdminLayout() {
                 { name: t('admin.menu.colors'), href: '/admin/colors', icon: Palette, permission: 'view_hardware' },
                 { name: t('admin.menu.productsCatalog'), href: '/admin/products', icon: Package, permission: 'view_hardware' },
                 { name: t('admin.menu.professionalServices'), href: '/admin/services', icon: Briefcase, permission: 'view_hardware' },
+                { name: t('admin.menu.portfolioProjects', { defaultValue: 'Portfolio Projects' }), href: '/admin/portfolio-projects', icon: Briefcase, permission: 'view_master' },
             ],
         },
         {
@@ -94,6 +96,7 @@ export default function AdminLayout() {
             items: [
                 { name: t('admin.menu.employeeManagement'), href: '/admin/employees', icon: Users, permission: 'manage_employees' },
                 { name: t('admin.menu.userDirectory', { defaultValue: 'Users Directory' }), href: '/admin/users', icon: UserRound, permission: 'manage_employees' },
+                { name: t('admin.menu.newsletter', { defaultValue: 'Newsletter Subscriptions' }), href: '/admin/newsletter', icon: Mail, permission: 'manage_employees' },
                 { name: t('admin.menu.accessPermissions'), href: '/admin/permissions', icon: ShieldCheck, permission: 'manage_employees' },
                 { name: t('admin.menu.globalSettings'), href: '/admin/settings', icon: Settings },
             ],

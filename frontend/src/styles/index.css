@@ -999,6 +999,171 @@
 .dashboard-theme a[role="button"] {
   letter-spacing: 0.08em;
 }
+/* Admin content refresh aligned with DashboardHome cards while preserving the dark admin shell. */
+.admin-theme,
+.dashboard-theme {
+  --admin-radius: 0.125rem;
+  --admin-radius-sm: 0.125rem;
+}
+
+.admin-theme main {
+  background: #f6f8f3;
+}
+
+.admin-theme main > .animate-fade-in {
+  width: 100%;
+  max-width: 80rem;
+  margin: 1rem auto 3rem;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid rgba(17, 24, 21, 0.1);
+  border-radius: var(--admin-radius) !important;
+  box-shadow: 0 2px 10px rgba(3, 18, 13, 0.04);
+}
+
+@media (min-width: 640px) {
+  .admin-theme main > .animate-fade-in {
+    padding: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-theme main > .animate-fade-in {
+    padding: 1.5rem;
+  }
+}
+
+.admin-theme main .premium-card > .border-b:first-child,
+.admin-theme main .premium-card-muted > .border-b:first-child {
+  background: #60b93f !important;
+  border-color: #60b93f !important;
+  color: #ffffff !important;
+}
+
+.admin-theme main .premium-card > .border-b:first-child .text-textPrimary,
+.admin-theme main .premium-card > .border-b:first-child .text-textSecondary,
+.admin-theme main .premium-card > .border-b:first-child .text-primary-300,
+.admin-theme main .premium-card-muted > .border-b:first-child .text-textPrimary,
+.admin-theme main .premium-card-muted > .border-b:first-child .text-textSecondary,
+.admin-theme main .premium-card-muted > .border-b:first-child .text-primary-300 {
+  color: #ffffff !important;
+}
+.admin-theme main .premium-card,
+.admin-theme main .premium-card-muted {
+  background: #ffffff !important;
+  border-color: rgba(17, 24, 21, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(3, 18, 13, 0.03) !important;
+  backdrop-filter: none;
+}
+
+.admin-theme main .premium-card:hover,
+.admin-theme main .premium-card-muted:hover {
+  border-color: rgba(96, 185, 63, 0.28) !important;
+  box-shadow: 0 6px 16px rgba(96, 185, 63, 0.08), 0 2px 8px rgba(3, 18, 13, 0.04) !important;
+}
+
+.admin-theme main .hero-frame {
+  --text-primary: #111815;
+  --text-secondary: #48554f;
+  --text-dim: #6b7771;
+  background: rgba(96, 185, 63, 0.05) !important;
+  border: 1px solid rgba(96, 185, 63, 0.16) !important;
+  box-shadow: 0 2px 8px rgba(3, 18, 13, 0.03) !important;
+  color: #111815;
+}
+
+.admin-theme main .hero-frame .absolute[class*="blur-3xl"],
+.admin-theme main .premium-card > .absolute[class*="blur-3xl"],
+.admin-theme main .premium-card-muted > .absolute[class*="blur-3xl"] {
+  display: none !important;
+}
+
+.admin-theme main .hero-frame .text-textPrimary,
+.admin-theme main .hero-frame h1,
+.admin-theme main .hero-frame h2,
+.admin-theme main .hero-frame h3 {
+  color: #111815 !important;
+}
+
+.admin-theme main .hero-frame .text-primary-200,
+.admin-theme main .hero-frame .text-primary-300,
+.admin-theme main .hero-frame .text-primary-400,
+.admin-theme main .hero-frame svg {
+  color: #60b93f !important;
+}
+
+.admin-theme main .hero-frame .text-textSecondary,
+.admin-theme main .hero-frame p {
+  color: #48554f !important;
+}
+
+.admin-theme main .hero-frame h1,
+.admin-theme main .hero-frame h2 {
+  font-size: clamp(1.45rem, 1.8vw, 1.75rem) !important;
+  line-height: 1.12 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.admin-theme main .hero-frame .bg-primary-500\/12,
+.admin-theme main .hero-frame .bg-primary-500\/10,
+.admin-theme main .hero-frame .bg-white\/10,
+.admin-theme main .hero-frame [class*="bg-primary-500/"] {
+  background-color: rgba(96, 185, 63, 0.1) !important;
+}
+
+.admin-theme main .hero-frame .border-primary-500\/20,
+.admin-theme main .hero-frame .border-primary-500\/18,
+.admin-theme main .hero-frame .border-white\/20,
+.admin-theme main .hero-frame [class*="border-primary-500/"] {
+  border-color: rgba(96, 185, 63, 0.22) !important;
+}
+
+.admin-theme main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.admin-theme main textarea,
+.admin-theme main select {
+  border-radius: var(--admin-radius) !important;
+  border-color: rgba(17, 24, 21, 0.12) !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(3, 18, 13, 0.03) !important;
+}
+
+.admin-theme main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.admin-theme main textarea:focus,
+.admin-theme main select:focus {
+  border-color: rgba(96, 185, 63, 0.42) !important;
+  box-shadow: 0 0 0 4px rgba(96, 185, 63, 0.1), 0 2px 8px rgba(3, 18, 13, 0.03) !important;
+}
+
+.admin-theme main table thead,
+.admin-theme main table thead tr {
+  background: #60b93f !important;
+  border-color: #60b93f !important;
+}
+
+.admin-theme main table thead th,
+.admin-theme main table thead th *,
+.admin-theme main table thead .text-textPrimary,
+.admin-theme main table thead .text-textSecondary {
+  color: #ffffff !important;
+}
+
+.admin-theme main table tr,
+.admin-theme main table tbody {
+  border-color: rgba(17, 24, 21, 0.08) !important;
+}
+
+.admin-theme main table tbody tr:hover {
+  background: rgba(96, 185, 63, 0.05) !important;
+}
+
+.admin-theme main [class~="bg-[#1b1b1b]"],
+.admin-theme main [class~="bg-[#1c1c1c]"],
+.admin-theme main [class~="bg-[#1f1f1f]"] {
+  background-color: #ffffff !important;
+}
+
 /* Scrollable Disclosure Content */
 .scrollable-disclosure {
   @apply max-h-[55vh] overflow-y-auto border-t border-emerald/10 px-5 py-6 text-base leading-8 text-slate-600 sm:px-7 sm:py-8;
@@ -1031,6 +1196,36 @@
 .admin-theme table td p,
 .admin-theme table td span {
   overflow-wrap: anywhere;
+}
+
+:is(.admin-theme, .dashboard-theme) .bg-slate-50\/80 > .grid.grid-cols-2.sm\:grid-cols-3.md\:grid-cols-4.lg\:grid-cols-6.gap-3.pt-2 {
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)) !important;
+}
+
+:is(.admin-theme, .dashboard-theme) .bg-slate-50\/80 > .grid.grid-cols-2.sm\:grid-cols-3.md\:grid-cols-4.lg\:grid-cols-6.gap-3.pt-2 > button {
+  min-height: 4rem;
+  min-width: 0;
+  padding: 0.75rem !important;
+}
+
+:is(.admin-theme, .dashboard-theme) .bg-slate-50\/80 > .grid.grid-cols-2.sm\:grid-cols-3.md\:grid-cols-4.lg\:grid-cols-6.gap-3.pt-2 > button > div:first-child {
+  height: 2rem !important;
+  width: 2rem !important;
+}
+
+:is(.admin-theme, .dashboard-theme) .bg-slate-50\/80 > .grid.grid-cols-2.sm\:grid-cols-3.md\:grid-cols-4.lg\:grid-cols-6.gap-3.pt-2 > button > div:last-child {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+:is(.admin-theme, .dashboard-theme) .bg-slate-50\/80 > .grid.grid-cols-2.sm\:grid-cols-3.md\:grid-cols-4.lg\:grid-cols-6.gap-3.pt-2 > button p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.admin-theme, .dashboard-theme) .bg-slate-50\/80 > .grid.grid-cols-2.sm\:grid-cols-3.md\:grid-cols-4.lg\:grid-cols-6.gap-3.pt-2 > button p + p {
+  font-size: 0.625rem;
 }
 
 @media (max-width: 767px) {
@@ -1189,8 +1384,4 @@
     transition-duration: 0.01ms !important;
   }
 }
-
-
-
-
 

@@ -298,6 +298,25 @@ export function getConfiguredEmailSender() {
     return String(process.env.SENDGRID_FROM_EMAIL || '').trim() || null;
 }
 
+function getSendGridTemplateId(...envNames) {
+    for (const name of envNames) {
+        const value = String(process.env[name] || '').trim();
+        if (value) return value;
+    }
+    return String(process.env.SENDGRID_DEFAULT_TEMPLATE_ID || '').trim() || null;
+}
+
+function buildSendGridTemplateData({ subject, text, html, data = null }) {
+    return {
+        subject: subject || '',
+        text: text || '',
+        html: html || '',
+        contentText: text || '',
+        contentHtml: html || '',
+        year: new Date().getFullYear(),
+        ...(data || {}),
+    };
+}
 function buildEmailPayload(to, from, subject, text, html, attachments = null, templateId = null, templateData = null) {
     const msg = {
         to,
@@ -343,7 +362,11 @@ function getEmailPayloadLog(msg) {
 
 export const sendEmail = async (to, subject, text, html, attachments = null, templateId = null, templateData = null) => {
     const state = ensureLiveSendGrid();
-    const msg = buildEmailPayload(to, state.fromEmail, subject, text, html, attachments, templateId, templateData);
+    const resolvedTemplateId = templateId || getSendGridTemplateId();
+    const resolvedTemplateData = resolvedTemplateId
+        ? buildSendGridTemplateData({ subject, text, html, data: templateData })
+        : null;
+    const msg = buildEmailPayload(to, state.fromEmail, subject, text, html, attachments, resolvedTemplateId, resolvedTemplateData);
 
     console.info(`[SendGrid] Using from email ${msg.from} (${state.mode} mode) for recipient ${msg.to}`);
 
@@ -421,22 +444,7 @@ export const sendSms = async (to, body) => {
 };
 
 export const sendOtpEmail = async (email, otpCode, recipientName = null) => {
-    const templateId = process.env.SENDGRID_OTP_TEMPLATE_ID;
     const displayName = String(recipientName || '').trim() || String(email || '').split('@')[0] || 'there';
-    const templateData = {
-        name: displayName,
-        otp: otpCode,
-        expiryMinutes: 10,
-        year: new Date().getFullYear(),
-    };
-
-    if (templateId) {
-        const result = await sendEmail(email, null, null, null, null, templateId, templateData);
-        maybeLogOtp({ channel: 'email', destination: email, otp: otpCode, result });
-        return result;
-    }
-
-    // Fallback to plain email if no template configured
     const subject = 'Your Verification Code';
     const text = `Your verification code is: ${otpCode}. It will expire in 10 minutes.`;
     const html = `
@@ -447,11 +455,14 @@ export const sendOtpEmail = async (email, otpCode, recipientName = null) => {
             <p style="color: #6B7280; font-size: 14px;">This code will expire in 10 minutes.</p>
         </div>
     `;
-    const result = await sendEmail(email, subject, text, html);
+    const result = await sendEmail(email, subject, text, html, null, getSendGridTemplateId('SENDGRID_OTP_TEMPLATE_ID'), {
+        name: displayName,
+        otp: otpCode,
+        expiryMinutes: 10,
+    });
     maybeLogOtp({ channel: 'email', destination: email, otp: otpCode, result });
     return result;
 };
-
 export const resendOtpEmail = async (email, otpCode) => {
     return sendOtpEmail(email, otpCode);
 };
@@ -478,7 +489,7 @@ export const sendPasswordResetEmail = async (email, resetUrl) => {
             <p style="margin-top: 20px; font-size: 12px; color: #6B7280;">If you didn't request this, please ignore this email.</p>
         </div>
     `;
-    return sendEmail(email, subject, text, html);
+    return sendEmail(email, subject, text, html, null, getSendGridTemplateId('SENDGRID_PASSWORD_RESET_TEMPLATE_ID'), { resetUrl });
 };
 
 export const sendReminderSms = async (phone, message) => {
@@ -486,7 +497,8 @@ export const sendReminderSms = async (phone, message) => {
 };
 
 export const sendReminderEmail = async (email, subject, body) => {
-    return sendEmail(email, subject, body, `<p>${String(body || '').replace(/\n/g, '<br>')}</p>`);
+    const html = `<p>${String(body || '').replace(/\n/g, '<br>')}</p>`;
+    return sendEmail(email, subject, body, html, null, getSendGridTemplateId('SENDGRID_REMINDER_TEMPLATE_ID'), { body, bodyHtml: html });
 };
 
 export const sendTestEmail = async ({ to, subject, text, html } = {}) => {
@@ -501,7 +513,7 @@ export const sendTestEmail = async ({ to, subject, text, html } = {}) => {
             <p style="color: #6B7280; font-size: 14px;">If you received this message, the SendGrid email path is working.</p>
         </div>
     `;
-    return sendEmail(to, finalSubject, finalText, finalHtml);
+    return sendEmail(to, finalSubject, finalText, finalHtml, null, getSendGridTemplateId('SENDGRID_TEST_TEMPLATE_ID'), { sender });
 };
 
 export const sendOfferPdfEmail = async ({ to, customerName, offerNumber, offerUrl, pdfBuffer, language = 'en' }) => {
@@ -548,5 +560,10 @@ export const sendOfferPdfEmail = async ({ to, customerName, offerNumber, offerUr
         filename: `offer-${offerNumber}.pdf`,
         disposition: 'attachment',
     }];
-    return sendEmail(to, subject, text, html, attachments);
+    return sendEmail(to, subject, text, html, attachments, getSendGridTemplateId('SENDGRID_OFFER_TEMPLATE_ID'), {
+        customerName: safeName,
+        offerNumber,
+        offerUrl,
+        language: lang,
+    });
 };

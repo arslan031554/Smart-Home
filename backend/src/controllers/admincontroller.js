@@ -38,8 +38,9 @@ const createCrudHandlers = (modelName, displayName) => ({
     },
     delete: async (req, res, next) => {
         try {
-            await adminService.remove(modelName, req.params.id);
-            sendResponse(res, 200, true, `${displayName} deleted`);
+            const data = await adminService.remove(modelName, req.params.id);
+            const action = data?.archived ? 'archived' : 'deleted';
+            sendResponse(res, 200, true, `${displayName} ${action}`, data);
         } catch (error) {
             next(error);
         }
@@ -122,6 +123,17 @@ export const projectHandlers = {
         }
     },
 };
+export const newsletterHandlers = {
+    getAll: async (_req, res, next) => {
+        try {
+            const data = await adminService.getNewsletterSubscribers();
+            sendResponse(res, 200, true, 'Newsletter subscribers fetched', data);
+        } catch (error) {
+            next(error);
+        }
+    },
+};
+
 export const userHandlers = {
     getAll: async (_req, res, next) => {
         try {
@@ -136,6 +148,22 @@ export const userHandlers = {
             const data = await adminService.getUserById(req.params.id);
             if (!data) return sendError(res, 404, 'User not found');
             sendResponse(res, 200, true, 'User fetched', data);
+        } catch (error) {
+            next(error);
+        }
+    },
+    update: async (req, res, next) => {
+        try {
+            const data = await adminService.updateUser(req.params.id, req.body, req.user.id);
+            sendResponse(res, 200, true, 'User updated', data);
+        } catch (error) {
+            next(error);
+        }
+    },
+    delete: async (req, res, next) => {
+        try {
+            const data = await adminService.deleteUser(req.params.id, req.user.id);
+            sendResponse(res, 200, true, 'User deleted', data);
         } catch (error) {
             next(error);
         }

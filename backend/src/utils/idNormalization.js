@@ -9,7 +9,11 @@ export function isValidOptionalUuid(value) {
 
 export function normalizeUuid(value) {
     if (value === null || value === undefined || value === "") return null;
-    const str = String(value).trim();
+    const candidate = typeof value === 'object'
+        ? value.id ?? value.serviceId ?? value.smartFunctionId ?? value.roomTypeId ?? value.productId
+        : value;
+    if (candidate === null || candidate === undefined || candidate === '') return null;
+    const str = String(candidate).trim();
     return UUID_REGEX.test(str) ? str : null;
 }
 

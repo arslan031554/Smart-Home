@@ -81,6 +81,9 @@ const normalizeProjectPayload = (projectData = {}) => {
     if (projectData.selectedColorId !== undefined) {
         payload.selectedColorId = normalizeNullableUuid(projectData.selectedColorId);
     }
+    if (projectData.status !== undefined && ['draft', 'active', 'archived'].includes(projectData.status)) {
+        payload.status = projectData.status;
+    }
 
     return payload;
 };

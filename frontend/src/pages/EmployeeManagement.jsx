@@ -132,32 +132,36 @@ export default function EmployeeManagement() {
 
     return (
         <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-10 pb-20">
-            <div className="hero-frame overflow-hidden rounded-[2.25rem] px-6 py-8 sm:px-8">
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
-
-                <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+            <div className="bg-white border border-gray-200 shadow-sm relative rounded-sm p-5 sm:p-6 mb-6">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                     <div className="space-y-6">
-                        <SectionTitle
-                            title={t('adminPages.employees.title', { defaultValue: 'Employee Accounts' })}
-                            subtitle={t('adminPages.employees.subtitle', { defaultValue: 'Create and maintain internal backoffice accounts, passwords, and activation state for staff members.' })}
-                            badge={t('adminPages.employees.badge', { defaultValue: 'Backoffice Access' })}
-                            className="mb-0"
-                        />
+                        <div>
+                            <div className="inline-flex items-center gap-2 mb-2">
+                                <Badge variant="neutral" className="!rounded-sm !text-[10px] !py-1 !px-2.5 uppercase font-bold tracking-widest text-primary-600 bg-primary-50">
+                                    {t('adminPages.employees.badge', { defaultValue: 'Backoffice Access' })}
+                                </Badge>
+                            </div>
+                            <h1 className="text-2xl font-bold leading-tight text-textPrimary sm:text-3xl">
+                                {t('adminPages.employees.title', { defaultValue: 'Employee Accounts' })}
+                            </h1>
+                            <p className="text-sm leading-relaxed text-textSecondary mt-1.5">
+                                {t('adminPages.employees.subtitle', { defaultValue: 'Create and maintain internal backoffice accounts, passwords, and activation state for staff members.' })}
+                            </p>
+                        </div>
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {[
-                                { icon: Users, label: t('adminPages.employees.count', { count: employees.length, defaultValue: '{{count}} employees' }), value: employees.length },
-                                { icon: Activity, label: t('adminPages.employees.activeBadge', { defaultValue: 'Active account' }), value: employees.filter((employee) => employee.isActive !== false).length },
-                            ].map((item) => (
-                                <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                { icon: Users, label: t('adminPages.employees.count', { count: employees.length, defaultValue: '{{count}} employees' }), value: employees.length, color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.22)' },
+                                { icon: Activity, label: t('adminPages.employees.activeBadge', { defaultValue: 'Active account' }), value: employees.filter((employee) => employee.isActive !== false).length, color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.22)' },
+                            ].map((item, idx) => (
+                                <div key={idx} className="bg-white border shadow-sm rounded-sm p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderColor: item.border }}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-lg shadow-sm" style={{ backgroundColor: item.bg, color: item.color }}>
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.label}</p>
-                                            <p className="mt-1 font-heading text-3xl font-semibold leading-none text-textPrimary">{item.value}</p>
+                                            <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-snug">{item.label}</h3>
+                                            <span className="text-2xl font-black block mt-0.5 leading-none" style={{ color: item.color }}>{item.value}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -165,97 +169,99 @@ export default function EmployeeManagement() {
                         </div>
                     </div>
 
-                    <Button size="md" onClick={() => handleOpenForm()} className="gap-2">
-                        <UserPlus className="h-4.5 w-4.5" />
-                        {t('adminPages.employees.create', { defaultValue: 'Create Employee' })}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:w-auto xl:self-start">
+                        <Button size="md" onClick={() => handleOpenForm()} className="!rounded-sm justify-center h-10 px-6 text-[11px] font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto flex-1 sm:flex-none">
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            {t('adminPages.employees.create', { defaultValue: 'Create Employee' })}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {apiError ? <Alert variant="error">{apiError}</Alert> : null}
+            {apiError ? <Alert variant="error" className="mb-6">{apiError}</Alert> : null}
 
-            <Card className="rounded-[1.9rem] p-4">
+            <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-4 mb-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="relative w-full xl:w-96">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
                             placeholder={t('adminPages.employees.searchPlaceholder', { defaultValue: 'Search by employee name or email...' })}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                            className="w-full rounded-sm border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors duration-200 shadow-sm"
                         />
                     </div>
-                    <Badge variant="neutral">
+                    <Badge variant="neutral" className="!rounded-sm bg-gray-100 border-gray-200 text-gray-700 shadow-sm">
                         {t('adminPages.employees.count', { count: filteredEmployees.length, defaultValue: '{{count}} employees' })}
                     </Badge>
                 </div>
-            </Card>
+            </div>
 
             {filteredEmployees.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {filteredEmployees.map((employee) => (
-                        <Card key={employee.id} className="rounded-[2rem] p-6">
-                            <div className="space-y-6">
+                        <div key={employee.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-primary-500/30 transition-all duration-300 rounded-sm p-6 group flex flex-col">
+                            <div className="space-y-6 flex-1 flex flex-col">
                                 <div className="flex items-start justify-between gap-4">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-[1.35rem] border border-primary-500/18 bg-primary-500/12 text-lg font-semibold uppercase text-primary-300">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50 text-lg font-bold uppercase text-primary-600 shadow-sm">
                                         {employee.name?.split(' ').map((name) => name[0]).join('').slice(0, 2) || '??'}
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={() => handleOpenForm(employee)} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
+                                        <button onClick={() => handleOpenForm(employee)} className="flex h-9 w-9 items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-400 transition-colors hover:border-primary-500/30 hover:text-primary-600 shadow-sm hover:shadow-md">
                                             <Edit className="h-4 w-4" />
                                         </button>
-                                        <button onClick={() => setDeleteModal({ isOpen: true, employeeId: employee.id })} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                        <button onClick={() => setDeleteModal({ isOpen: true, employeeId: employee.id })} className="flex h-9 w-9 items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-400 transition-colors hover:border-red-500/30 hover:text-red-600 shadow-sm hover:shadow-md">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h3 className="text-xl font-medium text-textPrimary">{employee.name}</h3>
-                                    <p className="mt-2 flex items-center gap-2 text-sm text-textSecondary">
-                                        <Mail className="h-4 w-4 text-primary-300" />
+                                <div className="flex-1">
+                                    <h3 className="text-xl font-bold text-gray-800">{employee.name}</h3>
+                                    <p className="mt-2 flex items-center gap-2 text-sm font-medium text-gray-500">
+                                        <Mail className="h-4 w-4 text-primary-500" />
                                         {employee.email}
                                     </p>
                                 </div>
 
-                                <div className="space-y-3 rounded-[1.5rem] border border-white/8 bg-white/5 p-4">
+                                <div className="space-y-3 rounded-sm border border-gray-200 bg-gray-50 p-4 shadow-sm">
                                     <div className="flex items-center justify-between gap-3">
-                                        <span className="inline-flex items-center gap-2 text-sm text-textSecondary">
-                                            <Briefcase className="h-4 w-4 text-primary-300" />
+                                        <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-600">
+                                            <Briefcase className="h-4 w-4 text-primary-500" />
                                             {roleLabels[employee.role] || employee.role}
                                         </span>
-                                        <Badge variant={employee.isActive !== false ? 'success' : 'warning'}>
+                                        <Badge variant={employee.isActive !== false ? 'success' : 'warning'} className="!rounded-sm shadow-sm text-[10px]">
                                             {employee.isActive !== false
                                                 ? t('adminPages.employees.active', { defaultValue: 'Active' })
                                                 : t('adminPages.employees.suspended', { defaultValue: 'Suspended' })}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center justify-between gap-3">
-                                        <span className="inline-flex items-center gap-2 text-sm text-textSecondary">
-                                            <ShieldCheck className="h-4 w-4 text-primary-300" />
+                                        <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-600">
+                                            <ShieldCheck className="h-4 w-4 text-primary-500" />
                                             {t('adminPages.employees.permissionsCount', { count: (employee.permissions || []).length, defaultValue: '{{count}} permissions' })}
                                         </span>
-                                        <Fingerprint className="h-4 w-4 text-primary-300" />
+                                        <Fingerprint className="h-4 w-4 text-primary-500" />
                                     </div>
                                 </div>
                             </div>
-                        </Card>
+                        </div>
                     ))}
                 </div>
             ) : (
-                <Card className="rounded-[2rem]">
+                <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-8">
                     <EmptyState
                         title={t('adminPages.employees.emptyTitle', { defaultValue: 'No employee accounts yet' })}
                         description={t('adminPages.employees.emptyDesc', { defaultValue: 'Create employee accounts before assigning permissions and using the internal backoffice.' })}
                         icon={Users}
                         action={(
-                            <Button onClick={() => handleOpenForm()}>
+                            <Button onClick={() => handleOpenForm()} className="!rounded-sm">
                                 {t('adminPages.employees.create', { defaultValue: 'Create Employee' })}
                             </Button>
                         )}
                     />
-                </Card>
+                </div>
             )}
 
             <Modal

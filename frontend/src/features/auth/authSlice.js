@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 import { normalizeApiError } from '../../utils/normalizeApiError';
 import { clearStoredConfiguratorSnapshot } from '../../utils/configuratorDraftStorage';
+import { setSessionTimestamp, clearSession } from '../../utils/sessionManager';
 
 // Async Thunks
 export const login = createAsyncThunk('auth/login', async (credentials, { rejectWithValue }) => {
@@ -9,6 +10,7 @@ export const login = createAsyncThunk('auth/login', async (credentials, { reject
         const response = await api.post('/auth/login', credentials);
         if (response.data.success) {
             localStorage.setItem('token', response.data.data.token);
+            setSessionTimestamp();
             return response.data;
         }
         return rejectWithValue(response.data.message);
@@ -21,6 +23,8 @@ export const login = createAsyncThunk('auth/login', async (credentials, { reject
                 preferredVerificationChannel: error.response.data.data.preferredVerificationChannel,
                 verificationReason: error.response.data.data.verificationReason || 'account_verification',
                 delivery: error.response.data.data.delivery || null,
+                deliveryError: error.response.data.data.deliveryError || null,
+                sentChannel: error.response.data.data.sentChannel || null,
             });
         }
         return rejectWithValue(normalizeApiError(error));
@@ -54,6 +58,7 @@ export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (otpData, { re
         const response = await api.post('/auth/verify-otp', otpData);
         if (response.data.success) {
             localStorage.setItem('token', response.data.data.token);
+            setSessionTimestamp();
             return response.data.data;
         }
         return rejectWithValue(response.data.message);
@@ -92,11 +97,11 @@ export const performPasswordReset = createAsyncThunk('auth/performPasswordReset'
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
     try {
         await api.post('/auth/logout');
-        localStorage.removeItem('token');
+        clearSession();
         clearStoredConfiguratorSnapshot();
         return true;
     } catch (error) {
-        localStorage.removeItem('token');
+        clearSession();
         clearStoredConfiguratorSnapshot();
         return rejectWithValue(normalizeApiError(error));
     }
@@ -135,6 +140,7 @@ const initialState = {
     verificationStatus: 'none', 
     verificationReason: null,
     verificationDelivery: null,
+    verificationSentChannel: null,
     availableChannels: [],
     loading: false,
     error: null
@@ -156,7 +162,8 @@ const authSlice = createSlice({
             state.user = null;
             state.token = null;
             state.isAuthenticated = false;
-            localStorage.removeItem('token');
+            state.verificationSentChannel = null;
+            clearSession();
         }
     },
     extraReducers: (builder) => {
@@ -176,6 +183,7 @@ const authSlice = createSlice({
                 state.verificationStatus = 'verified';
                 state.verificationReason = null;
                 state.verificationDelivery = null;
+                state.verificationSentChannel = null;
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
@@ -187,6 +195,7 @@ const authSlice = createSlice({
                     state.verificationStatus = 'otp_required';
                     state.verificationReason = action.payload.verificationReason || 'account_verification';
                     state.verificationDelivery = action.payload.delivery || null;
+                    state.verificationSentChannel = action.payload.sentChannel || null;
                 } else {
                     state.error = action.payload?.message || action.payload || 'auth.errors.loginFailed';
                 }
@@ -204,6 +213,7 @@ const authSlice = createSlice({
                 state.verificationStatus = 'otp_required';
                 state.verificationReason = action.payload.data.verificationReason || 'account_verification';
                 state.verificationDelivery = action.payload.data.verification?.delivery || null;
+                state.verificationSentChannel = action.payload.data.verification?.channel || null;
             })
             .addCase(registerUser.rejected, (state, action) => {
                 state.loading = false;
@@ -242,6 +252,7 @@ const authSlice = createSlice({
                 state.token = action.payload.token;
                 state.verificationReason = null;
                 state.verificationDelivery = null;
+                state.verificationSentChannel = null;
             })
             // Logout
             .addCase(logout.fulfilled, (state) => {
@@ -266,7 +277,7 @@ const authSlice = createSlice({
                 state.user = null;
                 state.token = null;
                 state.isAuthenticated = false;
-                localStorage.removeItem('token');
+                clearSession();
             })
             // Update profile
             .addCase(updateProfile.pending, (state) => {

@@ -131,7 +131,7 @@ export default function LanguageSwitcher({ className = '', variant = 'dropdown' 
                   key={lang.code}
                   type="button"
                   onClick={() => handleLanguageSelect(lang.code)}
-                  className={`flex w-full items-center justify-between rounded-[0.9rem] border px-2.5 py-2 text-left transition-all duration-200 ${
+                  className={`flex w-full items-center justify-between rounded-sm border px-2.5 py-2 text-left transition-all duration-200 ${
                     isActive
                       ? 'border-emerald/24 bg-emerald/12 text-textPrimary'
                       : 'border-transparent bg-white/0 text-textSecondary hover:border-emerald/16 hover:bg-emerald/8 hover:text-emerald'

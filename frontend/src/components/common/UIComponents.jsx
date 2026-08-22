@@ -121,26 +121,30 @@ export const Button = React.forwardRef(({
 });
 Button.displayName = 'Button';
 
-export const Input = React.forwardRef(({ label, error, icon: Icon, className, ...props }, ref) => (
+export const Input = React.forwardRef(({ label, error, icon: Icon, trailingIcon, className, required, ...props }, ref) => (
     <div className="w-full space-y-2">
         {label ? (
             <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                {label}
+                {label}{required ? <span className="ml-1 text-red-300">*</span> : null}
             </label>
         ) : null}
         <div className="group relative flex items-center">
             {Icon ? <Icon className="pointer-events-none absolute left-4 h-4.5 w-4.5 text-emerald transition-colors group-focus-within:text-orange" /> : null}
             <input
                 ref={ref}
+                required={required}
+                aria-invalid={error ? 'true' : undefined}
                 className={cn(
                     'w-full min-h-10 rounded-lg border border-emerald/18 bg-white/95 py-2.5 text-sm font-medium text-textPrimary shadow-soft transition-all duration-300',
                     'placeholder:text-textSecondary focus:border-emerald/45 focus:outline-none focus:ring-4 focus:ring-emerald/12',
-                    Icon ? 'pl-10 pr-3.5' : 'px-3.5',
+                    Icon ? 'pl-10' : 'px-3.5',
+                    trailingIcon ? 'pr-12' : 'pr-3.5',
                     error && 'border-red-400/60 focus:border-red-400 focus:ring-red-400/10',
                     className,
                 )}
                 {...props}
             />
+            {trailingIcon ? <div className="absolute right-3">{trailingIcon}</div> : null}
         </div>
         {error ? <p className="ml-1 text-xs font-medium text-red-300">{error}</p> : null}
     </div>
@@ -175,15 +179,15 @@ export const Card = ({ children, className, hover = false, ...props }) => (
     </AnimatedCard>
 );
 
-export const Checkbox = React.forwardRef(({ label, error, className, ...props }, ref) => (
+export const Checkbox = React.forwardRef(({ label, error, className, required, ...props }, ref) => (
     <div className="flex w-fit flex-col items-start gap-1.5">
         <label className={cn('inline-flex cursor-pointer items-center gap-3', className)}>
             <div className="relative flex-shrink-0">
-                <input ref={ref} type="checkbox" className="peer sr-only" {...props} />
+                <input ref={ref} type="checkbox" required={required} aria-invalid={error ? 'true' : undefined} className="peer sr-only" {...props} />
                 <div className="h-5 w-5 rounded-md border border-emerald/20 bg-white transition-all duration-200 peer-checked:border-emerald peer-checked:bg-emerald/15" />
                 <Check className="absolute inset-0 h-5 w-5 scale-0 text-emerald transition-transform duration-200 peer-checked:scale-90" />
             </div>
-            {label ? <span className="text-sm text-textSecondary transition-colors hover:text-textPrimary">{label}</span> : null}
+            {label ? <span className="text-sm text-textSecondary transition-colors hover:text-textPrimary">{label}{required ? <span className="ml-1 text-red-300">*</span> : null}</span> : null}
         </label>
         {error ? <p className="ml-8 text-xs font-medium text-red-300">{error}</p> : null}
     </div>
@@ -360,16 +364,18 @@ export const EmptyState = ({ title, description, icon: Icon, action }) => (
     </motion.div>
 );
 
-export const Select = React.forwardRef(({ label, error, className, children, ...props }, ref) => (
+export const Select = React.forwardRef(({ label, error, className, children, required, ...props }, ref) => (
     <div className="w-full space-y-2">
         {label ? (
             <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                {label}
+                {label}{required ? <span className="ml-1 text-red-300">*</span> : null}
             </label>
         ) : null}
         <div className="relative">
             <select
                 ref={ref}
+                required={required}
+                aria-invalid={error ? 'true' : undefined}
                 className={cn(
                     'w-full min-h-10 appearance-none rounded-lg border border-emerald/18 bg-white/95 px-3.5 py-2.5 pr-10 text-sm font-medium text-textPrimary shadow-soft transition-all duration-300',
                     'focus:border-emerald/45 focus:outline-none focus:ring-4 focus:ring-emerald/12',

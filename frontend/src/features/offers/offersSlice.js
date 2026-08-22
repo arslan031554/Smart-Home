@@ -88,6 +88,24 @@ export const fetchOffers = createAsyncThunk('offers/fetchAll', async (_, { rejec
     }
 });
 
+export const fetchAdminOffers = createAsyncThunk('offers/fetchAdmin', async (params = {}, { rejectWithValue }) => {
+    try {
+        const response = await api.get('/admin/offers', {
+            params: {
+                page: 1,
+                limit: 5,
+                sort: 'created_at_desc',
+                ...params,
+            },
+        });
+        const data = response.data.data || {};
+        const items = Array.isArray(data) ? data : (Array.isArray(data.items) ? data.items : []);
+        return items.map(buildOfferListItem);
+    } catch (error) {
+        return rejectWithValue(error.response?.data?.message || 'Failed to fetch admin offers');
+    }
+});
+
 export const fetchOfferById = createAsyncThunk('offers/fetchById', async (id, { rejectWithValue }) => {
     try {
         const response = await api.get(`/offers/${id}`);
@@ -100,7 +118,8 @@ export const fetchOfferById = createAsyncThunk('offers/fetchById', async (id, { 
 
 export const generateOffer = createAsyncThunk('offers/generate', async (offerData, { rejectWithValue }) => {
     try {
-        const language = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en';
+        const candidateLang = offerData?.language || i18n?.resolvedLanguage || i18n?.language || (typeof localStorage !== 'undefined' && localStorage.getItem('hsc_lang')) || 'en';
+        const language = String(candidateLang).toLowerCase().startsWith('ro') ? 'ro' : 'en';
         const normalized = buildNormalizedOfferPayload({
             projectInfo: offerData.projectInfo || {},
             levels: offerData.levels || [],
@@ -108,6 +127,7 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             color: offerData.colorId || offerData.color || null,
             services: offerData.serviceIds || offerData.services || [],
             customerComments: offerData.customerComments || null,
+            language,
         });
         const offerId = sanitizeOfferId(offerData.offerId || offerData.id || null);
         const payload = {
@@ -121,8 +141,8 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             language,
         };
         const response = offerId
-            ? await api.put(`/offers/${offerId}/from-config`, payload)
-            : await api.post('/offers/from-config', payload);
+            ? await api.put(`/offers/${offerId}/from-config?lang=${language}`, payload)
+            : await api.post(`/offers/from-config?lang=${language}`, payload);
         try {
             await api.post('/configurator-drafts/current/complete', { offerId: response.data.data?.id || null });
         } catch {
@@ -142,6 +162,32 @@ export const updateOfferStatus = createAsyncThunk('offers/updateStatus', async (
         return response.data.data;
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to update status');
+    }
+});
+
+export const updateOfferColor = createAsyncThunk('offers/updateColor', async ({ id, colorId }, { getState, dispatch, rejectWithValue }) => {
+    try {
+        const { currentOffer } = getState().offers;
+        if (!currentOffer) throw new Error('No offer loaded');
+        const snapshot = currentOffer.calculationSnapshot || {};
+        const language = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en';
+
+        const payload = {
+            projectId: snapshot.projectInfo?.id || currentOffer.projectId || null,
+            projectInfo: snapshot.projectInfo || {},
+            levels: snapshot.levels || [],
+            rangeId: snapshot.selectedRangeId ?? snapshot.rangeId ?? null,
+            colorId: colorId || null,
+            selectedServiceIds: snapshot.selectedServiceIds ?? snapshot.serviceIds ?? [],
+            customerComments: currentOffer.customerComments || snapshot.customerComments || null,
+            language,
+        };
+
+        const response = await api.put(`/offers/${id}/from-config`, payload);
+        await dispatch(fetchOfferById(id));
+        return response.data.data;
+    } catch (error) {
+        return rejectWithValue(error.response?.data?.message || 'Failed to update offer color');
     }
 });
 
@@ -218,9 +264,22 @@ const offersSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
             })
+            .addCase(fetchAdminOffers.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchAdminOffers.fulfilled, (state, action) => {
+                state.loading = false;
+                state.offersList = action.payload;
+            })
+            .addCase(fetchAdminOffers.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
             .addCase(fetchOfferById.pending, (state) => {
                 state.loading = true;
                 state.error = null;
+                state.currentOffer = null;
             })
             .addCase(fetchOfferById.fulfilled, (state, action) => {
                 state.loading = false;
@@ -229,6 +288,27 @@ const offersSlice = createSlice({
             .addCase(fetchOfferById.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+                state.currentOffer = null;
+            })
+            .addCase(updateOfferStatus.fulfilled, (state, action) => {
+                const updatedOffer = action.payload;
+                if (!updatedOffer?.id) return;
+
+                if (state.currentOffer?.id === updatedOffer.id) {
+                    state.currentOffer = {
+                        ...state.currentOffer,
+                        ...updatedOffer,
+                        status: normalizeOfferStatus(updatedOffer.status),
+                    };
+                }
+
+                const listIndex = state.offersList.findIndex((offer) => offer.id === updatedOffer.id);
+                if (listIndex !== -1) {
+                    state.offersList[listIndex] = {
+                        ...state.offersList[listIndex],
+                        ...buildOfferListItem(updatedOffer),
+                    };
+                }
             })
             .addCase(generateOffer.pending, (state) => {
                 state.isGenerating = true;
@@ -236,61 +316,15 @@ const offersSlice = createSlice({
             })
             .addCase(generateOffer.fulfilled, (state, action) => {
                 state.isGenerating = false;
-                const offer = action.payload ? { ...action.payload, status: normalizeOfferStatus(action.payload.status) } : action.payload;
-                state.generatedOffer = offer;
-                state.currentOffer = offer;
-                const listItem = buildOfferListItem(offer);
-                const index = state.offersList.findIndex((offer) => offer.id === listItem.id);
-                if (index >= 0) state.offersList[index] = listItem;
-                else state.offersList.unshift(listItem);
+                state.generatedOffer = action.payload;
+                state.currentOffer = action.payload;
             })
             .addCase(generateOffer.rejected, (state, action) => {
                 state.isGenerating = false;
                 state.generationError = action.payload;
-            })
-            .addCase(updateOfferStatus.fulfilled, (state, action) => {
-                const payload = buildOfferListItem(action.payload);
-                const index = state.offersList.findIndex((offer) => offer.id === payload.id);
-                if (index !== -1) state.offersList[index] = payload;
-                if (state.currentOffer?.id === payload.id) {
-                    state.currentOffer = { ...state.currentOffer, status: payload.status };
-                }
-            })
-            .addCase(deleteOffer.fulfilled, (state, action) => {
-                state.offersList = state.offersList.filter((offer) => offer.id !== action.payload);
-                if (state.currentOffer?.id === action.payload) {
-                    state.currentOffer = null;
-                }
-            })
-            .addCase(duplicateOffer.fulfilled, (state, action) => {
-                const listItem = buildOfferListItem(action.payload);
-                state.offersList.unshift(listItem);
-            })
-            .addCase(updateFollowUpSettings.fulfilled, (state, action) => {
-                const follow = action.payload;
-                const offerId = follow?.offerId;
-                if (!offerId) return;
-
-                const followUp = {
-                    enabled: !!follow.enabled,
-                    status: follow.status || 'pending',
-                    nextReminderAt: follow.nextReminderAt || null,
-                    reason: follow.reason || null,
-                    channels: { email: !!follow.channelEmail, sms: !!follow.channelSms },
-                };
-
-                const index = state.offersList.findIndex((offer) => offer.id === offerId);
-                if (index !== -1) state.offersList[index].followUp = followUp;
-                if (state.currentOffer?.id === offerId) {
-                    state.currentOffer = { ...state.currentOffer, followUp };
-                }
             });
     },
 });
 
-export const {
-    clearGeneratedOffer,
-} = offersSlice.actions;
-
+export const { clearGeneratedOffer } = offersSlice.actions;
 export default offersSlice.reducer;
-

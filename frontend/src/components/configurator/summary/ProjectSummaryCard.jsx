@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { Card } from '../../common/UIComponents';
-import { Building, MapPin, Hash, Layers, FileText, Tag, User, Briefcase, Gauge } from 'lucide-react';
+import { Building, MapPin, Hash, Layers, FileText, Tag, User, Briefcase } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const Row = ({ icon: Icon, label, value }) => {
@@ -31,7 +31,6 @@ export default function ProjectSummaryCard({ projectInfo, levelsCount }) {
         description,
         clientType,
         companyName,
-        projectComplexity,
     } = projectInfo;
 
     const selectedBuildingType = admin.buildingTypes?.find((item) => item.id === buildingType) || null;
@@ -42,36 +41,35 @@ export default function ProjectSummaryCard({ projectInfo, levelsCount }) {
         : '—';
 
     return (
-        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] sm:p-6">
-            <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
-                    <FileText className="w-4 h-4" />
+        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+            <div className="flex items-center gap-2.5 mb-5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
+                    <FileText className="h-4 w-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">{t('configurator.summary.project')}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.summary.project', { defaultValue: 'Project' })}</h3>
             </div>
 
-            <div>
-                <Row icon={Tag} label={t('offers.detail.projectNameLabel')} value={name || '—'} />
-                {clientType === 'company' && <Row icon={Briefcase} label={t('offers.detail.companyNameLabel')} value={companyName || '—'} />}
-                <Row icon={User} label={t('offers.detail.clientTypeLabel')} value={clientType === 'company' ? t('offers.detail.companyClient') : t('offers.detail.privateClient')} />
-                <Row icon={Building} label={t('offers.detail.buildingTypeLabel')} value={normalizedBuildingTypeName} />
-                <Row icon={Layers} label={t('offers.detail.levelsLabel')} value={levelsCount ? `${levelsCount}` : '—'} />
-                <Row icon={MapPin} label={t('offers.detail.areaLabel')} value={area ? `${area} m²` : '—'} />
-                <Row icon={Gauge} label={t('offers.detail.complexityLabel')} value={projectComplexity || '—'} />
-                <Row icon={Hash} label={t('offers.detail.multiplierLabel')} value={projectMultiplicationIndex || 1} />
+            <div className="divide-y divide-slate-100">
+                <Row icon={Tag} label={t('offers.detail.projectNameLabel', { defaultValue: 'Project Name' })} value={name || '—'} />
+                {clientType === 'company' && <Row icon={Briefcase} label={t('offers.detail.companyNameLabel', { defaultValue: 'Company Name' })} value={companyName || '—'} />}
+                <Row icon={User} label={t('offers.detail.clientTypeLabel', { defaultValue: 'Client Type' })} value={clientType === 'company' ? t('offers.detail.companyClient', { defaultValue: 'Business / Company' }) : t('offers.detail.privateClient', { defaultValue: 'Private Individual' })} />
+                <Row icon={Building} label={t('offers.detail.buildingTypeLabel', { defaultValue: 'Building Type' })} value={normalizedBuildingTypeName} />
+                <Row icon={Layers} label={t('offers.detail.levelsLabel', { defaultValue: 'Levels' })} value={levelsCount ? `${levelsCount}` : '—'} />
+                <Row icon={MapPin} label={t('offers.detail.areaLabel', { defaultValue: 'Built-up Area' })} value={area ? `${area} m²` : '—'} />
+                <Row icon={Hash} label={t('offers.detail.multiplierLabel', { defaultValue: 'Multiplication Index' })} value={projectMultiplicationIndex || 1} />
             </div>
 
             {buildingTypeDescription && (
-                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">{t('offers.detail.buildingDescriptionLabel')}</p>
-                    <p className="text-sm text-slate-600 leading-relaxed">{buildingTypeDescription}</p>
+                <div className="mt-4 p-3.5 bg-[#f9faf6] rounded-xl border border-slate-200/80">
+                    <p className="text-[10px] text-textSecondary font-bold uppercase tracking-wider mb-1">{t('offers.detail.buildingDescriptionLabel', { defaultValue: 'Building Description' })}</p>
+                    <p className="text-xs sm:text-sm text-textPrimary leading-relaxed">{buildingTypeDescription}</p>
                 </div>
             )}
 
             {description && (
-                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">{t('offers.detail.projectNotesLabel')}</p>
-                    <p className="text-sm text-slate-600 leading-relaxed">{description}</p>
+                <div className="mt-4 p-3.5 bg-[#f9faf6] rounded-xl border border-slate-200/80">
+                    <p className="text-[10px] text-textSecondary font-bold uppercase tracking-wider mb-1">{t('offers.detail.projectNotesLabel', { defaultValue: 'Project Notes' })}</p>
+                    <p className="text-xs sm:text-sm text-textPrimary leading-relaxed">{description}</p>
                 </div>
             )}
         </Card>

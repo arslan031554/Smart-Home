@@ -23,18 +23,6 @@ const ICON_MAP = {
     Activity,
 };
 
-const CHANNEL_LABEL_KEYS = {
-    IN: 'configurator.functions.scope.room',
-    OUT: 'configurator.functions.scope.level',
-    GENERAL: 'configurator.functions.scope.project',
-};
-
-const CHANNEL_COLORS = {
-    IN: 'bg-blue-50 text-blue-600 border-blue-100',
-    OUT: 'bg-violet-50 text-violet-600 border-violet-100',
-    GENERAL: 'bg-amber-50 text-amber-600 border-amber-100',
-};
-
 function FunctionIcon({ iconName }) {
     const Icon = ICON_MAP[iconName] || Box;
     return <Icon className="w-5 h-5" />;
@@ -54,63 +42,64 @@ export default function FunctionsSummary({ levels }) {
             const master = smartFunctions.find((fn) => fn.id === item.id) || {};
             return {
                 ...item,
-                name: master.name || item.name || t('configurator.summary.configuredFunction'),
+                name: master.name || item.name || t('configurator.summary.configuredFunction', { defaultValue: 'Configured Function' }),
                 description: master.description || item.description || '',
                 icon: master.icon || item.icon || null,
-                channelType: master.channelType || item.channelType || 'GENERAL',
             };
         })
         .filter((item) => Number(item.totalQty) > 0), [aggregatedFunctions, smartFunctions, t]);
 
     if (functions.length === 0) {
         return (
-            <Card className="p-6 border-none shadow-premium-sm rounded-2xl bg-white">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary-600" /> {t('offers.detail.functionsChapter')}
+            <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-textSecondary mb-2">
+                    <Activity className="h-4 w-4 text-primary-700" /> {t('offers.detail.functionsChapter', { defaultValue: 'Functions' })}
                 </h3>
-                <p className="text-sm text-slate-400 italic">{t('offers.detail.noFunctions')}</p>
+                <p className="text-xs sm:text-sm text-textSecondary italic">{t('offers.detail.noFunctions', { defaultValue: 'No smart functions currently selected.' })}</p>
             </Card>
         );
     }
 
     return (
-        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6">
-            <div className="flex items-center justify-between mb-8 gap-4">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary-600" /> {t('offers.detail.functionsChapter')}
-                </h3>
-                <Badge variant="neutral" className="bg-slate-50 border-none text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1.5">
-                    {t('configurator.summary.usedFunctions', { count: functions.length })}
+        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+            <div className="flex items-center justify-between mb-6 gap-4">
+                <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
+                        <Activity className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">
+                        {t('offers.detail.functionsChapter', { defaultValue: 'Functions' })}
+                    </h3>
+                </div>
+                <Badge variant="neutral" className="border-none bg-slate-100 text-[10px] font-bold text-textSecondary uppercase tracking-wider px-3 py-1">
+                    {t('configurator.summary.usedFunctions', { count: functions.length, defaultValue: '{{count}} Used Functions' })}
                 </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {functions.map((fn) => (
-                    <div key={fn.id} className="rounded-3xl border border-slate-100 bg-slate-50/40 p-5 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
+                    <div key={fn.id} className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-[#f9faf6] p-4 space-y-3 hover:border-primary-200 transition-all">
+                        <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 min-w-0">
-                                <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-primary-600 shadow-sm shrink-0">
+                                <div className="h-11 w-11 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center text-primary-700 shadow-xs shrink-0">
                                     <FunctionIcon iconName={fn.icon} />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{fn.name}</p>
+                                    <p className="text-sm sm:text-[15px] font-bold text-textPrimary leading-snug">{fn.name}</p>
                                     {fn.description && (
-                                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">{fn.description}</p>
+                                        <p className="text-xs text-textSecondary mt-0.5 leading-relaxed line-clamp-2">{fn.description}</p>
                                     )}
                                 </div>
                             </div>
                             <div className="text-right shrink-0">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('configurator.summary.quantity')}</p>
-                                <p className="text-xl font-black text-slate-900 tabular-nums">× {fn.totalQty}</p>
+                                <p className="text-[9px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.quantity', { defaultValue: 'Quantity' })}</p>
+                                <p className="text-lg font-black text-textPrimary tabular-nums">× {fn.totalQty}</p>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between gap-3">
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${CHANNEL_COLORS[fn.channelType] || CHANNEL_COLORS.GENERAL}`}>
-                                {t(CHANNEL_LABEL_KEYS[fn.channelType] || CHANNEL_LABEL_KEYS.GENERAL)}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {t('configurator.summary.activeRooms', { count: fn.rooms?.length || 0 })}
+                        <div className="flex items-center justify-end pt-2 border-t border-slate-200/60">
+                            <span className="text-[10px] font-semibold text-textSecondary uppercase tracking-wider">
+                                {t('configurator.summary.activeRooms', { count: fn.rooms?.length || 0, defaultValue: 'Active in {{count}} room' })}
                             </span>
                         </div>
                     </div>
@@ -119,3 +108,4 @@ export default function FunctionsSummary({ levels }) {
         </Card>
     );
 }
+

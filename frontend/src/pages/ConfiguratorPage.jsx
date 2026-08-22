@@ -20,7 +20,6 @@ import ProjectDefinitionStep from '@/components/configurator/ProjectDefinitionSt
 import RoomsLevelsStep from '@/components/configurator/RoomsLevelsStep';
 import FunctionsStep from '@/components/configurator/FunctionsStep';
 import RangeSelectionStep from '@/components/configurator/RangeSelectionStep';
-import ColorSelectionStep from '@/components/configurator/ColorSelectionStep';
 import ServicesStep from '@/components/configurator/ServicesStep';
 import SummaryStep from '@/components/configurator/SummaryStep';
 import GenerateOfferStep from '@/components/configurator/GenerateOfferStep';
@@ -36,8 +35,6 @@ function validateProjectStep(projectInfo = {}) {
 
     const area = Number(projectInfo.area);
     if (!Number.isFinite(area) || area <= 0) errors.area = 'Built-up area must be greater than 0';
-
-    if (!String(projectInfo.projectComplexity || '').trim()) errors.projectComplexity = 'Project complexity is required';
 
     const multiplicationIndex = Number(projectInfo.projectMultiplicationIndex);
     if (!Number.isFinite(multiplicationIndex) || multiplicationIndex < 1) {
@@ -57,7 +54,6 @@ function hasMeaningfulConfiguratorProgress(configuratorState = {}) {
         levels.some((level) => Array.isArray(level.rooms) && level.rooms.length > 0) ||
         (Array.isArray(configuratorState.services) && configuratorState.services.length > 0) ||
         configuratorState.range ||
-        configuratorState.color ||
         String(configuratorState.customerComments || '').trim()
     );
 }
@@ -88,6 +84,7 @@ export default function ConfiguratorPage() {
     const [isSavingDraft, setIsSavingDraft] = useState(false);
     const [hasBootstrappedDraft, setHasBootstrappedDraft] = useState(false);
     const hasResolvedInitialDraftRef = useRef(false);
+    const preserveLoadedWorkspaceRef = useRef(false);
     const processedFreshStartRef = useRef(false);
     const stepContentRef = useRef(null);
     const masterDataStatus = adminState.masterDataStatus || {};
@@ -103,11 +100,20 @@ export default function ConfiguratorPage() {
         if (location.state?.freshConfigurator !== true || processedFreshStartRef.current) return;
         processedFreshStartRef.current = true;
         hasResolvedInitialDraftRef.current = true;
+        preserveLoadedWorkspaceRef.current = true;
         clearStoredConfiguratorSnapshot({ keepGuestSession: true });
         dispatch(resetConfigurator());
         setHasBootstrappedDraft(true);
         navigate(location.pathname, { replace: true, state: {} });
     }, [dispatch, location.pathname, location.state?.freshConfigurator, navigate]);
+
+    useEffect(() => {
+        if (location.state?.workspaceLoaded !== true || hasResolvedInitialDraftRef.current) return;
+        hasResolvedInitialDraftRef.current = true;
+        preserveLoadedWorkspaceRef.current = true;
+        setHasBootstrappedDraft(true);
+        navigate(location.pathname, { replace: true, state: {} });
+    }, [location.pathname, location.state?.workspaceLoaded, navigate]);
 
     useEffect(() => {
         if (hasCalculationInputs || !configuratorState.calculation) return;
@@ -122,13 +128,13 @@ export default function ConfiguratorPage() {
     }, [location.state?.returnStep, location.pathname, dispatch, navigate]);
 
     useEffect(() => {
-        if (!isAuthenticated && currentStep > 7) {
-            dispatch(setStep(7));
+        if (!isAuthenticated && currentStep > 6) {
+            dispatch(setStep(6));
         }
     }, [currentStep, dispatch, isAuthenticated]);
 
     useEffect(() => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated || location.state?.workspaceLoaded === true || preserveLoadedWorkspaceRef.current) return;
         dispatch(attachGuestDraftToAccount())
             .unwrap()
             .then((draft) => {
@@ -140,11 +146,11 @@ export default function ConfiguratorPage() {
             .catch(() => {
                 // Ignore attach failures and keep the current local snapshot.
             });
-    }, [dispatch, isAuthenticated]);
+    }, [dispatch, isAuthenticated, location.state?.workspaceLoaded]);
 
     useEffect(() => {
         if (!isReady) return;
-        if (currentStep >= 8) return;
+        if (currentStep >= 7) return;
 
         const hasAnyFunctions = (configuratorState.levels || []).some((l) =>
             (l.rooms || []).some((r) => Array.isArray(r.functions) && r.functions.some((fn) => Number(fn?.quantity || 0) > 0))
@@ -161,7 +167,6 @@ export default function ConfiguratorPage() {
         isReady,
         currentStep,
         configuratorState.range,
-        configuratorState.color,
         configuratorState.services,
         configuratorState.levels,
         configuratorState.projectInfo?.projectMultiplicationIndex,
@@ -232,7 +237,7 @@ export default function ConfiguratorPage() {
 
     useEffect(() => {
         if (!hasBootstrappedDraft) return;
-        if (currentStep >= 9) return;
+        if (currentStep >= 8) return;
 
         if (!hasMeaningfulConfiguratorProgress(configuratorState)) {
             clearStoredConfiguratorSnapshot({ keepGuestSession: true });
@@ -262,15 +267,14 @@ export default function ConfiguratorPage() {
         { id: 2, name: t('configurator.steps.rooms'), icon: Layout, component: RoomsLevelsStep },
         { id: 3, name: t('configurator.steps.functions'), icon: Zap, component: FunctionsStep },
         { id: 4, name: t('configurator.steps.productRange'), icon: Star, component: RangeSelectionStep },
-        { id: 5, name: t('configurator.steps.color'), icon: Palette, component: ColorSelectionStep },
-        { id: 6, name: t('configurator.steps.services'), icon: Settings, component: ServicesStep },
-        { id: 7, name: t('configurator.steps.summary'), icon: Monitor, component: SummaryStep },
-        { id: 8, name: t('configurator.steps.generating'), icon: Activity, component: GenerateOfferStep },
-        { id: 9, name: t('configurator.steps.offerReady'), icon: ShieldCheck, component: OfferSuccessScreen },
+        { id: 5, name: t('configurator.steps.services'), icon: Settings, component: ServicesStep },
+        { id: 6, name: t('configurator.steps.summary'), icon: Monitor, component: SummaryStep },
+        { id: 7, name: t('configurator.steps.generating'), icon: Activity, component: GenerateOfferStep },
+        { id: 8, name: t('configurator.steps.offerReady'), icon: ShieldCheck, component: OfferSuccessScreen },
     ];
 
-    const visibleSteps = steps.filter((step) => step.id !== 8);
-    const visibleCurrentStepId = currentStep === 8 ? 9 : currentStep;
+    const visibleSteps = steps.filter((step) => step.id !== 7);
+    const visibleCurrentStepId = currentStep === 7 ? 8 : currentStep;
     const currentVisibleIndex = Math.max(0, visibleSteps.findIndex((step) => step.id === visibleCurrentStepId));
     const currentVisibleStep = visibleSteps[currentVisibleIndex] || visibleSteps[0];
     const CurrentStepComponent = steps.find((s) => s.id === currentStep)?.component || ProjectDefinitionStep;
@@ -304,7 +308,7 @@ export default function ConfiguratorPage() {
     };
 
     const handleNext = () => {
-        const { projectInfo, range, color } = configuratorState;
+        const { projectInfo, range } = configuratorState;
 
         if (currentStep === 1) {
             const errors = validateProjectStep(projectInfo);
@@ -315,28 +319,31 @@ export default function ConfiguratorPage() {
         if (currentStep === 2 && !hasAnyRooms) return;
         if (currentStep === 3 && !hasAnyFunctions) return;
         if (currentStep === 4 && !range) return;
-        if (currentStep === 5 && !color) return;
 
-        if (currentStep === 6) {
-            advanceToStep(7);
+        if (currentStep === 5) {
+            advanceToStep(6);
             return;
         }
 
-        if (currentStep === 7) {
+        if (currentStep === 6) {
             if (!isAuthenticated) {
-                const activationTarget = typeof document !== 'undefined'
-                    ? document.getElementById('summary-account-activation')
-                    : null;
-
-                if (activationTarget) {
-                    activationTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    scrollToStepContent();
-                }
+                const guestSessionId = getOrCreateGuestSessionId();
+                saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({
+                    ...configuratorState,
+                    currentStep: 6,
+                    guestSessionId,
+                }));
+                dispatch(syncGuestConfiguratorDraft()).catch(() => null);
+                navigate('/auth/login', {
+                    state: {
+                        returnTo: '/configurator',
+                        returnStep: 6,
+                    },
+                });
                 return;
             }
 
-            advanceToStep(8);
+            advanceToStep(7);
             return;
         }
 
@@ -385,16 +392,14 @@ export default function ConfiguratorPage() {
     const noCompatibleProducts = Boolean(calculation?.noCompatibleProducts);
     const calcError = configuratorState.calcError;
     const isComplete = currentStep === steps.length;
-    const progressPct = currentStep === 8
+    const progressPct = currentStep === 7
         ? 92
         : (currentVisibleIndex / Math.max(visibleSteps.length - 1, 1)) * 100;
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
-    const primaryActionLabel = currentStep === 6
+    const primaryActionLabel = currentStep === 5
         ? t('configurator.reviewSummary')
-        : currentStep === 7
-            ? isAuthenticated
-                ? t('configurator.generateFinalOffer')
-                : t('configurator.activateAccountToContinue', { defaultValue: 'Activate Account to Continue' })
+        : currentStep === 6
+            ? t('configurator.generateFinalOffer')
             : t('configurator.continue');
     const formatCurrency = (value) => new Intl.NumberFormat(locale, {
         style: 'currency',
@@ -533,133 +538,133 @@ export default function ConfiguratorPage() {
         <>
             <AnimatedPageWrapper className="configurator-theme min-h-screen overflow-x-hidden pb-32 text-textPrimary">
                 <section className="w-full px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-                <div className="mx-auto max-w-7xl space-y-5 sm:space-y-6 lg:space-y-8">
-                {!isReady && (isLoading || isFailed) ? (
-                    <Card className="rounded-[1.5rem] p-8 sm:p-10">
-                        <div className="space-y-4 text-center">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300">
-                                {t('configurator.loadingMasterData')}
-                            </p>
-                            {isFailed ? (
-                                <>
-                                    <p className="text-sm font-medium text-textPrimary">
-                                        {masterDataError || 'Failed to load required master data.'}
+                    <div className="mx-auto max-w-7xl space-y-5 sm:space-y-6 lg:space-y-8">
+                        {!isReady && (isLoading || isFailed) ? (
+                            <Card className="rounded-[1.5rem] p-8 sm:p-10">
+                                <div className="space-y-4 text-center">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-300">
+                                        {t('configurator.loadingMasterData')}
                                     </p>
-                                    <div className="flex justify-center">
-                                        <Button
-                                            onClick={() => REQUIRED_MASTER_DATA_KEYS.forEach((k) => dispatch(fetchPublicMasterData(k)))}
-                                        >
-                                            {t('configurator.retry')}
-                                        </Button>
+                                    {isFailed ? (
+                                        <>
+                                            <p className="text-sm font-medium text-textPrimary">
+                                                {masterDataError || 'Failed to load required master data.'}
+                                            </p>
+                                            <div className="flex justify-center">
+                                                <Button
+                                                    onClick={() => REQUIRED_MASTER_DATA_KEYS.forEach((k) => dispatch(fetchPublicMasterData(k)))}
+                                                >
+                                                    {t('configurator.retry')}
+                                                </Button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-textSecondary">{t('configurator.preparingOptions')}</p>
+                                    )}
+                                </div>
+                            </Card>
+                        ) : null}
+
+                        <div className="hero-frame relative overflow-hidden rounded-[1.25rem] border border-primary-100/70 bg-white/85 px-4 py-5 shadow-soft sm:rounded-[1.5rem] sm:px-6 sm:py-6 lg:px-8">
+                            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
+                            <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="space-y-4">
+                                    <Badge variant={isComplete ? 'success' : 'info'} className="gap-2 px-3.5 py-1.5">
+                                        {isComplete ? <ShieldCheck className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
+                                        {isComplete ? t('configurator.badgeComplete') : t('configurator.badgeActive')}
+                                    </Badge>
+                                    <div className="space-y-3">
+                                        <h1 className="font-heading text-4xl font-black uppercase leading-tight text-textPrimary sm:text-5xl lg:text-6xl">
+                                            {t('configurator.title')}
+                                        </h1>
+                                        <p className="max-w-2xl text-sm leading-relaxed text-textSecondary sm:text-base">
+                                            {isComplete ? t('configurator.completeSubtitle') : t('configurator.activeSubtitle')}
+                                        </p>
                                     </div>
-                                </>
-                            ) : (
-                                <p className="text-sm text-textSecondary">{t('configurator.preparingOptions')}</p>
-                            )}
-                        </div>
-                    </Card>
-                ) : null}
-
-                <div className="hero-frame relative overflow-hidden rounded-[1.25rem] border border-primary-100/70 bg-white/85 px-4 py-5 shadow-soft sm:rounded-[1.5rem] sm:px-6 sm:py-6 lg:px-8">
-                    <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                    <div className="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="space-y-4">
-                            <Badge variant={isComplete ? 'success' : 'info'} className="gap-2 px-3.5 py-1.5">
-                                {isComplete ? <ShieldCheck className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
-                                {isComplete ? t('configurator.badgeComplete') : t('configurator.badgeActive')}
-                            </Badge>
-                            <div className="space-y-3">
-                                <h1 className="font-heading text-4xl font-black uppercase leading-tight text-textPrimary sm:text-5xl lg:text-6xl">
-                                    {t('configurator.title')}
-                                </h1>
-                                <p className="max-w-2xl text-sm leading-relaxed text-textSecondary sm:text-base">
-                                    {isComplete ? t('configurator.completeSubtitle') : t('configurator.activeSubtitle')}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[27rem]">
-                            <button
-                                className="premium-card-muted flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:border-primary-500/18 disabled:cursor-wait disabled:opacity-60"
-                                onClick={handleSaveDraft}
-                                disabled={isSavingDraft}
-                            >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500/18 bg-primary-500/10 text-primary-700">
-                                    <Save className="h-4.5 w-4.5" />
                                 </div>
-                                <div className="min-w-0">
-                                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.saveDraft')}</p>
-                                    <p className="truncate text-sm font-medium text-textPrimary">{isSavingDraft ? `${t('configurator.saveDraft')}...` : t('configurator.module')}</p>
+
+                                <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[27rem]">
+                                    <button
+                                        className="premium-card-muted flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all hover:border-primary-500/18 disabled:cursor-wait disabled:opacity-60"
+                                        onClick={handleSaveDraft}
+                                        disabled={isSavingDraft}
+                                    >
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-500/18 bg-primary-500/10 text-primary-700">
+                                            <Save className="h-4.5 w-4.5" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.saveDraft')}</p>
+                                            <p className="truncate text-sm font-medium text-textPrimary">{isSavingDraft ? `${t('configurator.saveDraft')}...` : t('configurator.module')}</p>
+                                        </div>
+                                    </button>
+
+                                    <div className="premium-card-muted rounded-2xl px-5 py-4">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.workflowProgress')}</p>
+                                        <p className="mt-1 font-heading text-4xl font-black leading-none text-textPrimary">
+                                            {String(currentVisibleIndex + 1).padStart(2, '0')}
+                                            <span className="mx-1 text-xl text-textSecondary">/</span>
+                                            {String(visibleSteps.length).padStart(2, '0')}
+                                        </p>
+                                        <p className="mt-2 truncate text-xs font-semibold text-primary-700">{currentDisplayStep?.name}</p>
+                                    </div>
                                 </div>
-                            </button>
-
-                            <div className="premium-card-muted rounded-2xl px-5 py-4">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.workflowProgress')}</p>
-                                <p className="mt-1 font-heading text-4xl font-black leading-none text-textPrimary">
-                                    {String(currentVisibleIndex + 1).padStart(2, '0')}
-                                    <span className="mx-1 text-xl text-textSecondary">/</span>
-                                    {String(visibleSteps.length).padStart(2, '0')}
-                                </p>
-                                <p className="mt-2 truncate text-xs font-semibold text-primary-700">{currentDisplayStep?.name}</p>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <Card className="rounded-[1.25rem] p-3 sm:p-4 lg:p-5">
-                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary-700">
-                                {t('configurator.workflowProgress')}
-                            </p>
-                            <p className="mt-1 text-sm text-textSecondary">
-                                {t('configurator.stepStatus.current', { defaultValue: 'Current' })}: <span className="font-semibold text-textPrimary">{currentDisplayStep?.name}</span>
-                            </p>
-                        </div>
-                        <div className="w-full space-y-2 sm:max-w-xs">
-                            <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                <span>{Math.round(progressPct)}%</span>
-                                <span>{currentVisibleIndex + 1}/{visibleSteps.length}</span>
+                        <Card className="rounded-[1.25rem] p-3 sm:p-4 lg:p-5">
+                            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary-700">
+                                        {t('configurator.workflowProgress')}
+                                    </p>
+                                    <p className="mt-1 text-sm text-textSecondary">
+                                        {t('configurator.stepStatus.current', { defaultValue: 'Current' })}: <span className="font-semibold text-textPrimary">{currentDisplayStep?.name}</span>
+                                    </p>
+                                </div>
+                                <div className="w-full space-y-2 sm:max-w-xs">
+                                    <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
+                                        <span>{Math.round(progressPct)}%</span>
+                                        <span>{currentVisibleIndex + 1}/{visibleSteps.length}</span>
+                                    </div>
+                                    <div className="h-2 w-full overflow-hidden rounded-md bg-primary-500/10">
+                                        <div
+                                            className="h-full rounded-md bg-gradient-brand transition-all duration-1000 ease-out"
+                                            style={{ width: `${progressPct}%` }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded-md bg-primary-500/10">
-                                <div
-                                    className="h-full rounded-md bg-gradient-brand transition-all duration-1000 ease-out"
-                                    style={{ width: `${progressPct}%` }}
-                                />
+
+                            <div className="-mx-4 overflow-x-auto px-4 pb-2 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <div className="flex gap-3">
+                                    {visibleSteps.map((step, index) => renderStepButton(step, index, true))}
+                                </div>
                             </div>
+
+                            <div className="hidden gap-3 lg:grid lg:grid-cols-8">
+                                {visibleSteps.map((step, index) => renderStepButton(step, index))}
+                            </div>
+                        </Card>
+
+                        <div ref={stepContentRef} className="relative min-h-[500px] rounded-[1.25rem] border border-primary-100/70 bg-[#f7f8f2] p-2 sm:p-3 lg:p-4">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={currentStep}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                    className="w-full"
+                                >
+                                    {isReady ? (
+                                        <CurrentStepComponent
+                                            validationErrors={currentStep === 1 ? projectValidationErrors : {}}
+                                        />
+                                    ) : null}
+                                </motion.div>
+                            </AnimatePresence>
                         </div>
                     </div>
-
-                    <div className="-mx-4 overflow-x-auto px-4 pb-2 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <div className="flex gap-3">
-                            {visibleSteps.map((step, index) => renderStepButton(step, index, true))}
-                        </div>
-                    </div>
-
-                    <div className="hidden gap-3 lg:grid lg:grid-cols-8">
-                        {visibleSteps.map((step, index) => renderStepButton(step, index))}
-                    </div>
-                </Card>
-
-                <div ref={stepContentRef} className="relative min-h-[500px] rounded-[1.25rem] border border-primary-100/70 bg-[#f7f8f2] p-2 sm:p-3 lg:p-4">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={currentStep}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="w-full"
-                        >
-                            {isReady ? (
-                                <CurrentStepComponent
-                                    validationErrors={currentStep === 1 ? projectValidationErrors : {}}
-                                />
-                            ) : null}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-                </div>
                 </section>
             </AnimatedPageWrapper>
             {currentStep < 8 && typeof document !== 'undefined' ? createPortal(bottomActionBar, document.body) : null}

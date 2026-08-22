@@ -1,7 +1,10 @@
-function getCurrentBusinessLanguage() {
+function getCurrentBusinessLanguage(candidate = null) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim().toLowerCase().startsWith('ro') ? 'ro' : 'en';
+    }
     if (typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem('hsc_lang');
-        if (stored === 'ro' || stored === 'en') return stored;
+        const stored = localStorage.getItem('hsc_lang') || localStorage.getItem('i18nextLng');
+        if (typeof stored === 'string' && (stored.startsWith('ro') || stored === 'ro')) return 'ro';
     }
     return 'en';
 }
@@ -51,6 +54,6 @@ export function buildNormalizedOfferPayload(configuratorState = {}) {
         selectedServiceIds: Array.isArray(configuratorState.services) ? configuratorState.services : [],
         multiplicationIndex: configuratorState.projectInfo?.projectMultiplicationIndex ?? 1,
         customerComments: configuratorState.customerComments || null,
-        language: getCurrentBusinessLanguage(),
+        language: getCurrentBusinessLanguage(configuratorState.language),
     };
 }

@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchPortfolioProjects } from '../../features/portfolio/portfolioSlice';
 import { AnimatePresence, motion as Motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -64,11 +66,25 @@ export default function PortfolioPage() {
     : greenElectricDeck.portfolio;
   const reduceMotion = useReducedMotion();
   const [filter, setFilter] = useState('All');
+  
+  const dispatch = useDispatch();
+  const { projects: dynamicProjects = [] } = useSelector((state) => state.portfolio || {});
+
+  useEffect(() => {
+    dispatch(fetchPortfolioProjects());
+  }, [dispatch]);
+
+  const allProjects = useMemo(() => {
+    const staticProjects = portfolio.projects || [];
+    // Dynamic projects take precedence, or we just append them. We'll append dynamic projects first.
+    return [...dynamicProjects, ...staticProjects];
+  }, [portfolio.projects, dynamicProjects]);
+
   const filteredProjects = useMemo(
     () => filter === 'All' || filter === 'Toate'
-      ? portfolio.projects
-      : portfolio.projects.filter((project) => projectCategories[project.type] === filter),
-    [filter, portfolio.projects],
+      ? allProjects
+      : allProjects.filter((project) => projectCategories[project.type] === filter || project.type === filter),
+    [filter, allProjects],
   );
 
   return (
@@ -138,7 +154,7 @@ export default function PortfolioPage() {
                   >
                     <div className="relative overflow-hidden">
                       <PresentationImage
-                        src={projectImages[originalIndex % projectImages.length]}
+                        src={project.images?.[0] || projectImages[originalIndex % projectImages.length]}
                         alt={`${project.title} smart building project in ${project.location}`}
                         className="aspect-[16/10] w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 92vw"
@@ -147,7 +163,15 @@ export default function PortfolioPage() {
                     </div>
                     <div className="p-6">
                       <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald">{project.type}</p>
-                      <h3 className="mt-3 text-2xl font-black text-graphite">{project.title}</h3>
+                      <h3 className="mt-3 text-2xl font-black text-graphite">
+                        {project.id ? (
+                            <Link to={`/portofoliu/${project.id}`} className="hover:text-emerald transition-colors before:absolute before:inset-0">
+                                {project.title}
+                            </Link>
+                        ) : (
+                            project.title
+                        )}
+                      </h3>
                       <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-600"><MapPin size={16} className="text-emerald" />{project.location}</p>
                       <p className="mt-5 border-t border-emerald/10 pt-5 text-lg font-extrabold text-graphite">{project.result}</p>
                     </div>

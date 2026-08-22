@@ -5,6 +5,7 @@ import offersReducer from '../features/offers/offersSlice';
 import adminReducer from '../features/admin/adminSlice';
 import uiReducer from '../features/ui/uiSlice';
 import dashboardReducer from '../features/dashboard/dashboardSlice';
+import portfolioReducer from '../features/portfolio/portfolioSlice';
 
 const SCHEMA_VERSION = '1.2.6'; // Increment to force significant slice resets (like admin master data & UI)
 
@@ -78,6 +79,7 @@ const saveState = (state) => {
             auth: state.auth,
             offers: state.offers,
             ui: state.ui,
+            portfolio: state.portfolio,
         });
         localStorage.setItem('hsc_state', serializedState);
         localStorage.setItem('hsc_schema_version', SCHEMA_VERSION);
@@ -95,6 +97,7 @@ const appReducer = combineReducers({
     admin: adminReducer,
     ui: uiReducer,
     dashboard: dashboardReducer,
+    portfolio: portfolioReducer,
 });
 
 const rootReducer = (state, action) => {
@@ -121,4 +124,3 @@ store.subscribe(() => {
         saveState(store.getState());
     }, 50); // Aggressive 50ms pulse for real-time persistence
 });
-

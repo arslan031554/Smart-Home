@@ -2,12 +2,12 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import ExcelJS from 'exceljs';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import * as offerService from './offerservice.js';
 import * as followupService from './followupservice.js';
 import models from '../../models/index.js';
 import { getLocalizedValue, normalizeBusinessLanguage, serializeLocalizedEntity } from '../utils/localization.js';
 import { getOfferStatusLabel, normalizeOfferStatus } from '../constants/offerStatus.js';
+import { generateBrandedPdf } from './pdfexportservice.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,9 +63,19 @@ function createExportError(message, statusCode = 400) {
     return error;
 }
 
-function assertExcelExportAccess(actor) {
-    if (!actor || actor.role !== 'admin') {
-        throw createExportError('Excel exports are available to admins only', 403);
+function assertExcelExportAccess(actor, offer = null) {
+    if (!actor) {
+        throw createExportError('Authentication required to export Excel', 401);
+    }
+    if (actor.role === 'admin') return;
+    const offerPlain = offer?.toJSON ? offer.toJSON() : offer;
+    const isOwner = offerPlain && (
+        offerPlain.userId === actor.id ||
+        offerPlain.project?.userId === actor.id ||
+        offerPlain.project?.user?.id === actor.id
+    );
+    if (!isOwner) {
+        throw createExportError('Excel exports are available to project owners and admins only', 403);
     }
 }
 
@@ -77,10 +87,11 @@ function sanitizeFilenamePart(value, fallback = 'offer') {
         .slice(0, 80) || fallback;
 }
 
-function buildGeneratedFilename(offer, fileType) {
+function buildGeneratedFilename(offer, fileType, lang = null) {
     const offerNumber = sanitizeFilenamePart(offer?.offerNumber || offer?.id);
+    const effectiveLang = normalizeBusinessLanguage(lang || offer?.calculationSnapshot?.language);
     const suffix = fileType === 'pdf' ? 'Client-Offer' : 'Internal-Export';
-    return `${offerNumber}-${suffix}.${FILE_EXTENSIONS[fileType]}`;
+    return `${offerNumber}-${suffix}-${effectiveLang}.${FILE_EXTENSIONS[fileType]}`;
 }
 
 function buildDownloadUrl(offerId, fileType) {
@@ -145,6 +156,7 @@ function t(lang, key) {
             relatedProduct: 'Related Product',
             code: 'Code',
             name: 'Name',
+            description: 'Description',
             range: 'Range',
             color: 'Color',
             unitPrice: 'Unit Price',
@@ -207,6 +219,7 @@ function t(lang, key) {
             relatedProduct: 'Produs conex',
             code: 'Cod',
             name: 'Denumire',
+            description: 'Descriere',
             range: 'Gama',
             color: 'Culoare',
             unitPrice: 'Pret unitar',
@@ -253,115 +266,10 @@ function t(lang, key) {
     return (dict[lang] && dict[lang][key]) ? dict[lang][key] : (dict.en[key] || key);
 }
 
-function splitTextIntoLines(text, maxWidth, fontSize, font) {
-    const words = String(text || '').split(/\s+/).filter(Boolean);
-    if (!words.length) return [''];
-
-    const lines = [];
-    let currentLine = '';
-
-    words.forEach((word) => {
-        const testLine = currentLine ? `${currentLine} ${word}` : word;
-        const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-        if (textWidth > maxWidth && currentLine) {
-            lines.push(currentLine);
-            currentLine = word;
-        } else {
-            currentLine = testLine;
-        }
-    });
-
-    if (currentLine) lines.push(currentLine);
-    return lines;
-}
-
-function aggregateUsedFunctions(levels, smartFunctionMap) {
-    const aggregated = new Map();
-
-    (Array.isArray(levels) ? levels : []).forEach((level) => {
-        (Array.isArray(level.rooms) ? level.rooms : []).forEach((room) => {
-            const roomCount = Math.max(1, safeNum(room.roomCount ?? room.count, 1));
-            const selections = Array.isArray(room.functionSelections)
-                ? room.functionSelections
-                : (Array.isArray(room.functions) ? room.functions : []);
-
-            selections.forEach((selection) => {
-                const functionId = selection?.smartFunctionId || selection?.id;
-                const quantity = Math.max(0, safeNum(selection?.quantity, 0)) * roomCount;
-                if (!functionId || quantity <= 0) return;
-
-                const master = smartFunctionMap.get(functionId) || {};
-                const existing = aggregated.get(functionId) || {
-                    id: functionId,
-                    name: master.name || selection.name || 'Configured Function',
-                    description: master.description || selection.description || '',
-                    icon: master.icon || selection.icon || null,
-                    quantity: 0,
-                };
-
-                existing.quantity += quantity;
-                aggregated.set(functionId, existing);
-            });
-        });
-    });
-
-    return Array.from(aggregated.values()).sort((a, b) => a.name.localeCompare(b.name));
-}
-
-async function loadImageBytes(imageUrl) {
-    if (!imageUrl) return null;
-
-    if (imageUrl.startsWith('data:image/')) {
-        const parts = imageUrl.split(',');
-        if (parts.length !== 2) return null;
-        return { bytes: Buffer.from(parts[1], 'base64'), type: parts[0].toLowerCase() };
-    }
-
-    if (/^https?:\/\//i.test(imageUrl)) {
-        const response = await fetch(imageUrl);
-        if (!response.ok) return null;
-        const buffer = Buffer.from(await response.arrayBuffer());
-        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-        return { bytes: buffer, type: contentType || imageUrl.toLowerCase() };
-    }
-
-    const absolutePath = path.isAbsolute(imageUrl) ? imageUrl : path.resolve(process.cwd(), imageUrl);
-    const bytes = await fs.readFile(absolutePath);
-    return { bytes, type: imageUrl.toLowerCase() };
-}
-
-async function embedProductImages(pdfDoc, products, productImageMap) {
-    const result = new Map();
-
-    for (const product of products) {
-        const imageUrl = productImageMap.get(product.productId) || product.imageUrl || null;
-        if (!imageUrl || result.has(product.productId)) continue;
-
-        try {
-            const loaded = await loadImageBytes(imageUrl);
-            if (!loaded) continue;
-            const type = String(loaded.type || '').toLowerCase();
-            let embedded = null;
-
-            if (type.includes('png') || imageUrl.toLowerCase().endsWith('.png')) {
-                embedded = await pdfDoc.embedPng(loaded.bytes);
-            } else if (type.includes('jpeg') || type.includes('jpg') || imageUrl.toLowerCase().endsWith('.jpg') || imageUrl.toLowerCase().endsWith('.jpeg')) {
-                embedded = await pdfDoc.embedJpg(loaded.bytes);
-            }
-
-            if (embedded) result.set(product.productId, embedded);
-        } catch {
-            // Ignore image fetch/embed failures and keep rendering the offer.
-        }
-    }
-
-    return result;
-}
-
-export const generateExcel = async (offerId, actor = null) => {
+export const generateExcel = async (offerId, actor = null, requestedLang = null) => {
     const offer = await offerService.getOfferById(offerId, actor);
     if (!offer) throw new Error('Offer not found');
-    const lang = getOfferLanguage(offer);
+    const lang = normalizeBusinessLanguage(requestedLang || getOfferLanguage(offer));
     const financials = getOfferFinancialBreakdown(offer);
 
     const workbook = new ExcelJS.Workbook();
@@ -385,7 +293,7 @@ export const generateExcel = async (offerId, actor = null) => {
     projectSheet.getRow(1).eachCell((cell) => { cell.fill = headerFill; cell.font = headerFont; });
     const projectRows = [
         [t(lang, 'offerNumber'), offer.offerNumber],
-        [t(lang, 'date'), offerDate(offer).toLocaleDateString(BRAND.locale)],
+        [t(lang, 'date'), offerDate(offer).toLocaleDateString(lang === 'ro' ? 'ro-RO' : BRAND.locale)],
         [t(lang, 'status'), getOfferStatusLabel(offer.status || 'draft')],
         [t(lang, 'customer'), offer.project?.user?.fullName || '-'],
         [t(lang, 'email'), offer.project?.user?.email || '-'],
@@ -485,318 +393,14 @@ export const generateExcel = async (offerId, actor = null) => {
     return await workbook.xlsx.writeBuffer();
 };
 
-export const generatePdf = async (offerId, actor = null) => {
-    const offerRecord = await offerService.getOfferById(offerId, actor);
-    if (!offerRecord) throw new Error('Offer not found');
-
-    const offer = offerRecord.toJSON ? offerRecord.toJSON() : offerRecord;
-    const lang = getOfferLanguage(offer);
-    const snapshot = offer.calculationSnapshot || {};
-    const project = offer.project || {};
-    const projectInfo = snapshot.projectInfo || {};
-    const levels = Array.isArray(snapshot.levels) ? snapshot.levels : [];
-    const products = Array.isArray(offer.products) ? offer.products : [];
-    const services = Array.isArray(offer.services) ? offer.services : [];
-    const financials = getOfferFinancialBreakdown(offer);
-    const localizedBuildingType = projectInfo.buildingTypeName || (project.buildingType ? getLocalizedValue(project.buildingType, 'name', lang, project.buildingType?.name || '-') : (projectInfo.buildingType || '-'));
-
-    const [conditions, disclaimers, smartFunctions, productRecords, serviceRecords] = await Promise.all([
-        models.OfferCondition.findAll({ where: { isActive: true }, order: [['order', 'ASC']] }),
-        models.Disclaimer.findAll({ where: { isActive: true }, order: [['order', 'ASC']] }),
-        models.SmartFunction.findAll({ where: { isActive: true } }),
-        products.length
-            ? models.Product.findAll({ where: { id: products.map((product) => product.productId).filter(Boolean) } })
-            : Promise.resolve([]),
-        services.length
-            ? models.Service.findAll({ where: { id: services.map((service) => service.serviceId).filter(Boolean) } })
-            : Promise.resolve([]),
-    ]);
-
-    const conditionTexts = (conditions || []).map((item) => getLocalizedValue(item, 'text', lang, item?.text)).filter(Boolean);
-    const disclaimerTexts = (disclaimers || []).map((item) => getLocalizedValue(item, 'text', lang, item?.text)).filter(Boolean);
-    const smartFunctionMap = new Map((smartFunctions || []).map((item) => {
-        const plain = serializeLocalizedEntity(item, { language: lang, fields: ['name', 'description'] });
-        return [plain.id, plain];
-    }));
-    const productImageMap = new Map((productRecords || []).map((item) => {
-        const plain = item.toJSON ? item.toJSON() : item;
-        return [plain.id, plain.imageUrl || null];
-    }));
-    const serviceDescriptionMap = new Map((serviceRecords || []).map((item) => {
-        const plain = serializeLocalizedEntity(item, { language: lang, fields: ['name', 'description'] });
-        return [plain.id, plain.description || ''];
-    }));
-    const usedFunctions = aggregateUsedFunctions(levels, smartFunctionMap);
-
-    const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const primaryColor = rgb(0.18, 0.33, 0.59);
-    const mutedColor = rgb(0.45, 0.48, 0.55);
-    const lineColor = rgb(0.88, 0.9, 0.94);
-    const pageSize = [595.28, 841.89];
-    let page = pdfDoc.addPage(pageSize);
-    let { width, height } = page.getSize();
-    const margin = 48;
-    const contentWidth = width - (margin * 2);
-    let y = height - 50;
-
-    const productImages = await embedProductImages(pdfDoc, products, productImageMap);
-
-    const addPage = () => {
-        page = pdfDoc.addPage(pageSize);
-        ({ width, height } = page.getSize());
-        y = height - 50;
-    };
-
-    const ensureSpace = (requiredHeight = 60) => {
-        if (y - requiredHeight < 40) addPage();
-    };
-
-    const drawWrappedText = (text, options = {}) => {
-        const {
-            x = margin,
-            size = 10,
-            bold = false,
-            color = rgb(0, 0, 0),
-            maxWidth = contentWidth,
-            lineGap = 13,
-        } = options;
-
-        const lines = splitTextIntoLines(text || '', maxWidth, size, bold ? fontBold : font);
-        lines.forEach((line) => {
-            ensureSpace(lineGap + 2);
-            page.drawText(line || ' ', { x, y, size, font: bold ? fontBold : font, color });
-            y -= lineGap;
-        });
-        return lines.length;
-    };
-
-    const drawSectionTitle = (title) => {
-        ensureSpace(38);
-        page.drawText(title, { x: margin, y, size: 12, font: fontBold, color: primaryColor });
-        y -= 8;
-        page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 1, color: lineColor });
-        y -= 18;
-    };
-
-    const drawKeyValue = (label, value) => {
-        const safeValue = value == null || value === '' ? '-' : String(value);
-        ensureSpace(22);
-        page.drawText(`${label}:`, { x: margin, y, size: 10, font: fontBold, color: rgb(0.2, 0.2, 0.2) });
-        const labelWidth = fontBold.widthOfTextAtSize(`${label}:`, 10);
-        const lines = splitTextIntoLines(safeValue, contentWidth - labelWidth - 12, 10, font);
-        lines.forEach((line, index) => {
-            ensureSpace(14);
-            page.drawText(line, { x: margin + labelWidth + 8, y, size: 10, font, color: rgb(0.1, 0.1, 0.1) });
-            if (index !== lines.length - 1) y -= 13;
-        });
-        y -= 16;
-    };
-
-    const drawEmptyValue = (text) => {
-        ensureSpace(18);
-        page.drawText(text, { x: margin, y, size: 10, font, color: mutedColor });
-        y -= 16;
-    };
-
-    page.drawText(BRAND.name.toUpperCase(), { x: margin, y, size: 20, font: fontBold, color: primaryColor });
-    y -= 24;
-    page.drawText(t(lang, 'officialQuotation'), { x: margin, y, size: 11, font, color: mutedColor });
-    y -= 28;
-
-    const infoLine = (label, value, x) => {
-        page.drawText(`${label}:`, { x, y, size: 10, font: fontBold });
-        page.drawText(String(value ?? '-'), { x: x + 82, y, size: 10, font });
-    };
-
-    infoLine(t(lang, 'offerNumber'), offer.offerNumber, margin);
-    infoLine(t(lang, 'customer'), project.user?.fullName || '-', 300);
-    y -= 15;
-    infoLine(t(lang, 'date'), offerDate(offer).toLocaleDateString(BRAND.locale), margin);
-    infoLine(t(lang, 'email'), project.user?.email || '-', 300);
-    y -= 15;
-    infoLine(t(lang, 'projectName'), project.name || projectInfo.name || '-', margin);
-    infoLine(t(lang, 'buildingType'), localizedBuildingType, 300);
-    y -= 28;
-
-    drawSectionTitle(t(lang, 'projectChapter'));
-    drawKeyValue(t(lang, 'projectName'), project.name || projectInfo.name || '-');
-    drawKeyValue(t(lang, 'buildingType'), localizedBuildingType);
-    drawKeyValue(t(lang, 'levels'), project.levelsCount || projectInfo.levelsCount || levels.length || '-');
-    drawKeyValue(t(lang, 'builtUpArea'), project.builtUpArea ? `${project.builtUpArea} m2` : (projectInfo.area ? `${projectInfo.area} m2` : '-'));
-    drawKeyValue(t(lang, 'projectComplexity'), project.projectComplexity || projectInfo.projectComplexity || '-');
-    drawKeyValue(t(lang, 'multiplier'), financials.projectMultiplier);
-
-    const buildingDescription = projectInfo.buildingTypeDescription || (project.buildingType ? getLocalizedValue(project.buildingType, 'description', lang, project.buildingType?.description || '') : '');
-    if (buildingDescription) {
-        drawKeyValue(t(lang, 'buildingDescription'), buildingDescription);
-    }
-
-    if (project.description || projectInfo.description) {
-        drawKeyValue(t(lang, 'projectNotes'), project.description || projectInfo.description);
-    }
-
-    drawSectionTitle(t(lang, 'selectedFunctions'));
-    if (usedFunctions.length === 0) {
-        drawEmptyValue(t(lang, 'noConfiguredFunctions'));
-    } else {
-        usedFunctions.forEach((item) => {
-            ensureSpace(38);
-            page.drawText(`${item.name}  x ${item.quantity}`, { x: margin, y, size: 10, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
-            y -= 14;
-            if (item.description) {
-                drawWrappedText(item.description, { x: margin + 12, size: 9, maxWidth: contentWidth - 12, color: mutedColor, lineGap: 11 });
-            }
-            y -= 4;
-        });
-    }
-
-    drawSectionTitle(t(lang, 'productsChapter'));
-    ensureSpace(22);
-    page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 18, color: rgb(0.95, 0.96, 0.98) });
-    page.drawText(t(lang, 'productSpec'), { x: margin + 6, y, size: 9, font: fontBold });
-    page.drawText(t(lang, 'quantity'), { x: 370, y, size: 9, font: fontBold });
-    page.drawText(t(lang, 'unitPrice'), { x: 430, y, size: 9, font: fontBold });
-    page.drawText(t(lang, 'subtotal'), { x: 510, y, size: 9, font: fontBold });
-    y -= 24;
-
-    if (products.length === 0) {
-        drawEmptyValue(t(lang, 'noProducts'));
-    } else {
-        const orderedProducts = products.slice().sort((a, b) => (a.lineType === 'RELATED' ? 1 : 0) - (b.lineType === 'RELATED' ? 1 : 0));
-        let relatedDividerDrawn = false;
-        for (const product of orderedProducts) {
-            if (product.lineType === 'RELATED' && !relatedDividerDrawn) {
-                ensureSpace(24);
-                page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 18, color: rgb(0.9, 0.97, 0.94) });
-                page.drawText(t(lang, 'relatedProducts'), { x: margin + 6, y, size: 9, font: fontBold, color: accentColor });
-                y -= 24;
-                relatedDividerDrawn = true;
-            }
-            const productName = product.productName || 'Product';
-            const productDescription = product.productDescription || '';
-            const productCode = product.productCode || '';
-            const image = productImages.get(product.productId);
-            const descriptionLines = productDescription
-                ? splitTextIntoLines(productDescription, image ? 240 : 280, 8, font)
-                : [];
-            const rowHeight = Math.max(image ? 52 : 0, 22 + (descriptionLines.length * 10) + (productCode ? 10 : 0));
-            ensureSpace(rowHeight + 10);
-
-            const topY = y;
-            if (image) {
-                const dims = image.scale(1);
-                const ratio = dims.width && dims.height ? Math.min(42 / dims.width, 42 / dims.height) : 1;
-                const imgWidth = dims.width * ratio;
-                const imgHeight = dims.height * ratio;
-                page.drawImage(image, {
-                    x: margin + 4,
-                    y: topY - imgHeight + 2,
-                    width: imgWidth,
-                    height: imgHeight,
-                });
-            }
-
-            const textX = margin + (image ? 54 : 6);
-            page.drawText(productName, { x: textX, y: topY, size: 9, font: fontBold });
-            let textY = topY - 11;
-            descriptionLines.forEach((line) => {
-                page.drawText(line, { x: textX, y: textY, size: 8, font, color: mutedColor });
-                textY -= 10;
-            });
-            if (productCode) {
-                page.drawText(productCode, { x: textX, y: textY, size: 7, font, color: mutedColor });
-            }
-
-            page.drawText(String(safeNum(product.quantity)), { x: 375, y: topY, size: 9, font });
-            page.drawText(safeNum(product.unitPrice).toFixed(2), { x: 435, y: topY, size: 9, font });
-            page.drawText(safeNum(product.subtotal).toFixed(2), { x: 510, y: topY, size: 9, font });
-            y -= rowHeight + 8;
-        }
-    }
-
-    drawSectionTitle(t(lang, 'servicesChapter'));
-    ensureSpace(22);
-    page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 18, color: rgb(0.95, 0.96, 0.98) });
-    page.drawText(t(lang, 'serviceName'), { x: margin + 6, y, size: 9, font: fontBold });
-    page.drawText(t(lang, 'quantity'), { x: 370, y, size: 9, font: fontBold });
-    page.drawText(t(lang, 'unitPrice'), { x: 430, y, size: 9, font: fontBold });
-    page.drawText(t(lang, 'subtotal'), { x: 510, y, size: 9, font: fontBold });
-    y -= 24;
-
-    if (services.length === 0) {
-        drawEmptyValue(t(lang, 'noServices'));
-    } else {
-        services.forEach((service) => {
-            const serviceName = service.serviceName || service.name || 'Service';
-            const description = service.description || serviceDescriptionMap.get(service.serviceId) || '';
-            const lines = description ? splitTextIntoLines(description, 300, 8, font) : [];
-            const rowHeight = 18 + (lines.length * 10);
-            ensureSpace(rowHeight + 8);
-            const topY = y;
-
-            page.drawText(serviceName, { x: margin + 6, y: topY, size: 9, font: fontBold });
-            let textY = topY - 11;
-            lines.forEach((line) => {
-                page.drawText(line, { x: margin + 6, y: textY, size: 8, font, color: mutedColor });
-                textY -= 10;
-            });
-
-            page.drawText(String(safeNum(service.calcQty, 1)), { x: 375, y: topY, size: 9, font });
-            page.drawText(safeNum(service.unitPrice).toFixed(2), { x: 435, y: topY, size: 9, font });
-            page.drawText(safeNum(service.subtotal).toFixed(2), { x: 510, y: topY, size: 9, font });
-            y -= rowHeight + 8;
-        });
-    }
-
-    drawSectionTitle(t(lang, 'grandTotalChapter'));
-    drawKeyValue(t(lang, 'productsTotalPerProject'), `${financials.productsSubtotalPerProject.toFixed(2)} ${BRAND.currency}`);
-    drawKeyValue(t(lang, 'servicesTotalPerProject'), `${financials.servicesSubtotalPerProject.toFixed(2)} ${BRAND.currency}`);
-    drawKeyValue(t(lang, 'totalPerProject'), `${financials.totalPerProject.toFixed(2)} ${BRAND.currency}`);
-    drawKeyValue(t(lang, 'multiplier'), financials.projectMultiplier);
-    drawKeyValue(t(lang, 'grossTotal'), `${financials.grossTotal.toFixed(2)} ${BRAND.currency}`);
-    drawKeyValue(t(lang, 'discountPct'), `${financials.discountPercent.toFixed(2)}%`);
-    drawKeyValue(t(lang, 'discountAmount'), `${financials.discountAmount.toFixed(2)} ${BRAND.currency}`);
-    drawKeyValue(t(lang, 'grandTotal'), `${financials.grandTotal.toFixed(2)} ${BRAND.currency}`);
-
-    drawSectionTitle(t(lang, 'offerConditions'));
-    if (conditionTexts.length === 0) {
-        drawEmptyValue('-');
-    } else {
-        conditionTexts.forEach((text) => {
-            drawWrappedText(`- ${text}`, { size: 9, maxWidth: contentWidth, color: rgb(0.15, 0.15, 0.15), lineGap: 12 });
-            y -= 2;
-        });
-    }
-
-    drawSectionTitle(t(lang, 'disclaimer'));
-    if (disclaimerTexts.length === 0) {
-        drawEmptyValue('-');
-    } else {
-        disclaimerTexts.forEach((text) => {
-            drawWrappedText(`- ${text}`, { size: 9, maxWidth: contentWidth, color: rgb(0.15, 0.15, 0.15), lineGap: 12 });
-            y -= 2;
-        });
-    }
-
-    drawSectionTitle(t(lang, 'customerComments'));
-    if (offer.customerComments && String(offer.customerComments).trim()) {
-        drawWrappedText(String(offer.customerComments).trim(), { size: 9, maxWidth: contentWidth, color: rgb(0.15, 0.15, 0.15), lineGap: 12 });
-    } else {
-        drawEmptyValue(t(lang, 'noCustomerComments'));
-    }
-
-    return await pdfDoc.save();
-};
+export const generatePdf = async (offerId, actor = null, requestedLang = null) => generateBrandedPdf(offerId, actor, requestedLang);
 
 export const getStoredOfferFile = async (offerId, fileType, actor = null) => {
     if (!['pdf', 'excel'].includes(fileType)) {
         throw createExportError('Unsupported export file type', 400);
     }
-    if (fileType === 'excel') assertExcelExportAccess(actor);
-
     const offer = await offerService.getOfferById(offerId, actor);
+    if (fileType === 'excel') assertExcelExportAccess(actor, offer);
     const offerPlain = offer?.toJSON ? offer.toJSON() : offer;
     const columns = OFFER_FILE_COLUMN_BY_TYPE[fileType];
     const currentFileId = offerPlain?.[columns.id] || null;
@@ -831,12 +435,12 @@ export const persistOfferFile = async (offerId, fileType, actor = null, options 
     if (!['pdf', 'excel'].includes(fileType)) {
         throw createExportError('Unsupported export file type', 400);
     }
-    if (fileType === 'excel') assertExcelExportAccess(actor);
-
     const regenerate = Boolean(options.regenerate);
+    const requestedLang = options.language || options.lang || null;
     const offer = await offerService.getOfferById(offerId, actor);
+    if (fileType === 'excel') assertExcelExportAccess(actor, offer);
     const offerPlain = offer?.toJSON ? offer.toJSON() : offer;
-    if (!regenerate) {
+    if (!regenerate && !requestedLang) {
         const existing = await getStoredOfferFile(offerPlain.id, fileType, actor).catch((error) => {
             if (error?.code === 'ENOENT') return null;
             throw error;
@@ -849,11 +453,12 @@ export const persistOfferFile = async (offerId, fileType, actor = null, options 
         throw createExportError('Offer must be linked to a project and user before files can be generated', 409);
     }
 
+    const effectiveLang = normalizeBusinessLanguage(requestedLang || getOfferLanguage(offerPlain));
     const buffer = fileType === 'pdf'
-        ? Buffer.from(await generatePdf(offerPlain.id, actor))
-        : Buffer.from(await generateExcel(offerPlain.id, actor));
+        ? Buffer.from(await generatePdf(offerPlain.id, actor, effectiveLang))
+        : Buffer.from(await generateExcel(offerPlain.id, actor, effectiveLang));
 
-    const generatedFilename = buildGeneratedFilename(offerPlain, fileType);
+    const generatedFilename = buildGeneratedFilename(offerPlain, fileType, effectiveLang);
     const relativeStoragePath = normalizeRelativeStoragePath(path.join(
         sanitizeFilenamePart(userId, 'user'),
         sanitizeFilenamePart(offerPlain.projectId, 'project'),
@@ -908,5 +513,3 @@ export const readStoredOfferFile = async (offerId, fileType, actor = null, optio
         buffer,
     };
 };
-
-

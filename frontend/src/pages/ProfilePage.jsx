@@ -111,10 +111,10 @@ export default function ProfilePage() {
     const displayName = formData.fullName || user?.fullName || user?.email || t('nav.profile');
 
     return (
-        <AnimatedPageWrapper className="mx-auto max-w-6xl space-y-10 pb-24">
-            <div className="hero-frame overflow-hidden rounded-[2.25rem] px-6 py-8 sm:px-8">
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
+        <AnimatedPageWrapper className="mx-auto max-w-7xl pb-12 px-2 sm:px-4 lg:px-6 mt-4">
+            <div className="bg-white border border-gray-200 shadow-sm hover:shadow-md relative rounded-sm p-4 sm:p-5 lg:p-6 transition-all duration-700 group/bg space-y-8">
+            <div className="bg-primary-600/5 border border-primary-500/10 overflow-hidden rounded-sm px-5 py-6 sm:px-6 relative">
+                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="space-y-5">
@@ -138,17 +138,17 @@ export default function ProfilePage() {
                         />
 
                         <div className="flex flex-wrap gap-3">
-                            {user?.phone ? <Badge variant="neutral">{user.phone}</Badge> : null}
-                            {formData.companyName ? <Badge variant="neutral">{formData.companyName}</Badge> : null}
+                            {user?.phone ? <Badge variant="neutral" className="!rounded-sm !py-1 !px-2.5 shadow-sm">{user.phone}</Badge> : null}
+                            {formData.companyName ? <Badge variant="neutral" className="!rounded-sm !py-1 !px-2.5 shadow-sm">{formData.companyName}</Badge> : null}
                         </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <Button variant="secondary" size="lg" className="gap-2" onClick={handleBack}>
+                        <Button variant="secondary" size="lg" className="gap-2 !rounded-sm" onClick={handleBack}>
                             <ArrowLeft className="h-4.5 w-4.5" />
                             {t('configurator.goBack')}
                         </Button>
-                        <Button size="lg" className="gap-2" onClick={handleSave} loading={loading}>
+                        <Button size="lg" className="gap-2 !rounded-sm" onClick={handleSave} loading={loading}>
                             <Save className="h-4.5 w-4.5" />
                             {t('adminPages.masterData.modal.save')}
                         </Button>
@@ -164,10 +164,10 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.3fr_0.85fr]">
                 <div className="space-y-8">
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex items-center gap-3 rounded-sm bg-primary-600 px-4 py-3 text-white shadow-sm [&_h3]:!text-white [&_p]:!text-primary-100">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
                                     <User className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -205,10 +205,10 @@ export default function ProfilePage() {
                         </div>
                     </Card>
 
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex items-center gap-3 rounded-sm bg-primary-600 px-4 py-3 text-white shadow-sm [&_h3]:!text-white [&_p]:!text-primary-100">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
                                     <Building2 className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -228,10 +228,10 @@ export default function ProfilePage() {
                         </div>
                     </Card>
 
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex items-center gap-3 rounded-sm bg-primary-600 px-4 py-3 text-white shadow-sm [&_h3]:!text-white [&_p]:!text-primary-100">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
                                     <FileText className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -273,10 +273,10 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-8">
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-5">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex items-center gap-3 rounded-sm bg-primary-600 px-4 py-3 text-white shadow-sm [&_h3]:!text-white [&_p]:!text-primary-100">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
                                     <Mail className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -291,7 +291,7 @@ export default function ProfilePage() {
                                     { label: t('auth.phone'), value: formData.phone || '-' },
                                     { label: t('auth.company'), value: formData.companyName || '-' },
                                 ].map((item) => (
-                                    <div key={item.label} className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
+                                    <div key={item.label} className="rounded-sm border border-gray-100 bg-gray-50 px-4 py-4">
                                         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{item.label}</p>
                                         <p className="mt-2 text-sm font-medium text-textPrimary">{item.value}</p>
                                     </div>
@@ -300,10 +300,10 @@ export default function ProfilePage() {
                         </div>
                     </Card>
 
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex items-center gap-3 rounded-sm bg-primary-600 px-4 py-3 text-white shadow-sm [&_h3]:!text-white [&_p]:!text-primary-100">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
                                     <Shield className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -312,7 +312,7 @@ export default function ProfilePage() {
                                 </div>
                             </div>
 
-                            <label className="flex items-center justify-between gap-4 rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-4">
+                            <label className="flex items-center justify-between gap-4 rounded-sm border border-gray-100 bg-gray-50 px-5 py-4">
                                 <div>
                                     <p className="text-sm font-medium text-textPrimary">{t('auth.newsletter')}</p>
                                     <p className="mt-1 text-xs text-textSecondary">{t('auth.newsletterDesc', 'Choose whether you want to receive product and offer updates by email.')}</p>
@@ -322,18 +322,18 @@ export default function ProfilePage() {
                                     name="newsletterSubscribed"
                                     checked={formData.newsletterSubscribed}
                                     onChange={handleChange}
-                                    className="h-5 w-5 rounded border-white/15 bg-[#1f1f1f] text-primary-500 focus:ring-primary-500/30"
+                                    className="h-5 w-5 rounded border-gray-200 bg-white text-primary-500 focus:ring-primary-500/30"
                                 />
                             </label>
 
                             <div className="grid grid-cols-1 gap-3">
-                                <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
+                                <div className="flex items-center justify-between rounded-sm border border-gray-100 bg-gray-50 px-4 py-4">
                                     <span className="text-sm font-medium text-textPrimary">{t('footer.termsOfService')}</span>
                                     <Badge variant={user?.termsAccepted ? 'success' : 'neutral'}>
                                         {user?.termsAccepted ? t('auth.accepted', 'Accepted') : t('auth.notAccepted', 'Not accepted')}
                                     </Badge>
                                 </div>
-                                <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
+                                <div className="flex items-center justify-between rounded-sm border border-gray-100 bg-gray-50 px-4 py-4">
                                     <span className="text-sm font-medium text-textPrimary">{t('cookies.title')}</span>
                                     <Badge variant={user?.cookiesAccepted ? 'success' : 'neutral'}>
                                         {user?.cookiesAccepted ? t('auth.accepted', 'Accepted') : t('auth.notAccepted', 'Not accepted')}
@@ -343,10 +343,10 @@ export default function ProfilePage() {
                         </div>
                     </Card>
 
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-5">
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                            <div className="flex items-center gap-3 rounded-sm bg-primary-600 px-4 py-3 text-white shadow-sm [&_h3]:!text-white [&_p]:!text-primary-100">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
                                     <Shield className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -377,16 +377,17 @@ export default function ProfilePage() {
                         </div>
                     </Card>
 
-                    <Card className="rounded-[2rem] p-8">
+                    <Card hover className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-4">
                             <h3 className="text-lg font-medium text-textPrimary">{t('auth.accountActions', 'Account Actions')}</h3>
-                            <Button variant="secondary" className="w-full justify-center gap-2 border border-red-500/20 text-red-300 hover:bg-red-500/10 hover:text-red-200" onClick={handleSignOut}>
+                            <Button variant="secondary" className="w-full justify-center gap-2 border border-red-500/20 text-red-500 hover:bg-red-50 hover:text-red-600 bg-white" onClick={handleSignOut}>
                                 <LogOut className="h-4 w-4" />
                                 {t('nav.logout')}
                             </Button>
                         </div>
                     </Card>
                 </div>
+            </div>
             </div>
         </AnimatedPageWrapper>
     );

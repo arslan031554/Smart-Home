@@ -12,14 +12,15 @@ import { useTranslation } from 'react-i18next';
 export default function OfferActions({ offerId }) {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [exporting, setExporting] = useState(null);
 
     const downloadExport = async (format) => {
         if (!offerId) return;
         setExporting(format);
         try {
-            const res = await api.get(`/offers/${offerId}/export/${format}`, { responseType: 'blob' });
+            const lang = (i18n?.resolvedLanguage || i18n?.language || 'en').startsWith('ro') ? 'ro' : 'en';
+            const res = await api.get(`/offers/${offerId}/export/${format}?lang=${lang}`, { responseType: 'blob' });
             const blob = new Blob([res.data], { type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');

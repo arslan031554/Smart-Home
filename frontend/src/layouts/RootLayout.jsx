@@ -20,7 +20,7 @@ function cn(...inputs) {
 }
 
 export default function RootLayout() {
-  const appHomePath = '/smart-home';
+  const appHomePath = '/';
   const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);

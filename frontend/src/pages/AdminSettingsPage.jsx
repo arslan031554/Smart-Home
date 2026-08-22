@@ -62,125 +62,132 @@ export default function AdminSettingsPage() {
         }, 1500);
     };
 
-    return (
-        <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-10 pb-20">
-            <div className="hero-frame overflow-hidden rounded-[2.25rem] px-6 py-8 sm:px-8">
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
+return (
+    <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-10 pb-20">
+        <div className="bg-white border border-gray-200 shadow-sm relative rounded-sm p-5 sm:p-6 mb-6">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                <div className="space-y-6">
+                    <div>
+                        <div className="inline-flex items-center gap-2 mb-2">
+                            <Badge variant="neutral" className="!rounded-sm !text-[10px] !py-1 !px-2.5 uppercase font-bold tracking-widest text-primary-600 bg-primary-50">
+                                {t('adminSettings.badge', { defaultValue: 'Infrastructure Console' })}
+                            </Badge>
+                        </div>
+                        <h1 className="text-2xl font-bold leading-tight text-textPrimary sm:text-3xl">
+                            {t('adminSettings.title', { defaultValue: 'Global System Settings' })}
+                        </h1>
+                        <p className="text-sm leading-relaxed text-textSecondary mt-1.5">
+                            {t('adminSettings.subtitle', { defaultValue: 'Centralized configuration for the calculation engine, platform identity, and security protocols across the smart-home backoffice.' })}
+                        </p>
+                    </div>
 
-                <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {[
+                            { icon: Database, label: t('adminSettings.registry', { defaultValue: 'System Registry' }), value: t('adminSettings.live', { defaultValue: 'Live' }), color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.22)' },
+                            { icon: Activity, label: t('adminSettings.updateState', { defaultValue: 'Update State' }), value: t('adminSettings.synced', { defaultValue: 'Synced' }), color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.22)' },
+                        ].map((item, idx) => (
+                            <div key={idx} className="bg-white border shadow-sm rounded-sm p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderColor: item.border }}>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-lg shadow-sm" style={{ backgroundColor: item.bg, color: item.color }}>
+                                        <item.icon className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-snug">{item.label}</h3>
+                                        <span className="text-2xl font-black block mt-0.5 leading-none" style={{ color: item.color }}>{item.value}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:w-auto xl:self-start">
+                    <Button size="md" onClick={handleSave} className="!rounded-sm justify-center h-10 px-6 text-[11px] font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto flex-1 sm:flex-none">
+                        {isSaving ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {isSaving ? t('adminSettings.synchronising', { defaultValue: 'Synchronising Settings' }) : t('adminSettings.synchronise', { defaultValue: 'Synchronise Settings' })}
+                    </Button>
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[0.9fr_1.35fr]">
+            <div className="space-y-6">
+                <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-6">
                     <div className="space-y-6">
-                        <SectionTitle
-                            title={t('adminSettings.title', { defaultValue: 'Global System Settings' })}
-                            subtitle={t('adminSettings.subtitle', { defaultValue: 'Centralized configuration for the calculation engine, platform identity, and security protocols across the smart-home backoffice.' })}
-                            badge={t('adminSettings.badge', { defaultValue: 'Infrastructure Console' })}
-                            className="mb-0"
-                        />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50 text-primary-600 shadow-sm">
+                            <Database className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="font-heading text-2xl font-bold leading-tight text-gray-800 sm:text-3xl">{t('adminSettings.registry', { defaultValue: 'System Registry' })}</h3>
+                            <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                                {t('adminSettings.registryHelp', { defaultValue: 'Changes made here influence hardware pricing, proposal generation logic, branding outputs, and platform-wide security behavior.' })}
+                            </p>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between rounded-sm border border-gray-200 bg-gray-50 px-4 py-4 shadow-sm">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">{t('adminSettings.engineStatus', { defaultValue: 'Engine Status' })}</span>
+                                <Badge variant="success" className="!rounded-sm shadow-sm">{t('adminSettings.operational', { defaultValue: 'Operational' })}</Badge>
+                            </div>
+                            <div className="flex items-center justify-between rounded-sm border border-gray-200 bg-gray-50 px-4 py-4 shadow-sm">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">{t('adminSettings.lastSync', { defaultValue: 'Last Sync' })}</span>
+                                <span className="text-sm font-bold text-gray-800">{t('adminSettings.todayAt', { time: '14:24', defaultValue: 'Today, {{time}}' })}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            {[
-                                { icon: Database, label: t('adminSettings.registry', { defaultValue: 'System Registry' }), value: t('adminSettings.live', { defaultValue: 'Live' }) },
-                                { icon: Activity, label: t('adminSettings.updateState', { defaultValue: 'Update State' }), value: t('adminSettings.synced', { defaultValue: 'Synced' }) },
-                            ].map((item) => (
-                                <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                            <item.icon className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.label}</p>
-                                            <p className="mt-1 font-heading text-3xl font-semibold leading-none text-textPrimary">{item.value}</p>
-                                        </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-sm p-4 flex gap-3 text-blue-800 shadow-sm">
+                    <Server className="h-5 w-5 shrink-0 text-blue-600" />
+                    <div className="space-y-1">
+                        <p className="font-bold">{t('adminSettings.cloudSync', { defaultValue: 'Cloud Synchronisation' })}</p>
+                        <p className="text-sm font-medium">{t('adminSettings.cloudSyncHelp', { defaultValue: 'Master data backups are automatically generated every 24 hours.' })}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-6">
+                {settingsGroups.map((group) => (
+                    <div key={group.id} className="bg-white border border-gray-200 shadow-sm rounded-sm p-0 overflow-hidden">
+                        <div className="border-b border-gray-200 bg-gray-50 px-6 py-5">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50 text-primary-600 shadow-sm">
+                                    <group.icon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-800">{group.title}</h3>
+                                    <p className="text-sm font-medium text-gray-500">{t('adminSettings.groupSubtitle', { defaultValue: 'Global configuration set' })}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="divide-y divide-gray-100">
+                            {group.settings.map((setting) => (
+                                <div key={setting.name} className="flex flex-col gap-5 px-6 py-6 sm:flex-row sm:items-center sm:justify-between hover:bg-gray-50 transition-colors">
+                                    <div className="max-w-xl">
+                                        <h4 className="text-sm font-bold text-gray-800">{setting.name}</h4>
+                                        <p className="mt-1 text-sm leading-relaxed text-gray-600 font-medium">{setting.description}</p>
+                                    </div>
+                                    <div className="w-full sm:w-56">
+                                        {setting.type === 'toggle' ? (
+                                            <button className="relative inline-flex h-7 w-12 items-center rounded-full border border-gray-300 bg-gray-200 transition-colors focus:outline-none shadow-inner">
+                                                <span className="sr-only">{t('adminSettings.toggle', { defaultValue: 'Toggle setting' })}</span>
+                                                <span className="translate-x-1 inline-block h-5 w-5 rounded-full bg-white transition-transform shadow-sm" />
+                                            </button>
+                                        ) : (
+                                            <input
+                                                type={setting.type}
+                                                defaultValue={setting.value}
+                                                className="w-full rounded-sm border border-gray-200 bg-white px-3.5 py-2.5 text-sm font-bold text-gray-900 shadow-sm transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-
-                    <Button size="md" onClick={handleSave} className="gap-2">
-                        {isSaving ? <RefreshCw className="h-4.5 w-4.5 animate-spin" /> : <Save className="h-4.5 w-4.5" />}
-                        {isSaving ? t('adminSettings.synchronising', { defaultValue: 'Synchronising Settings' }) : t('adminSettings.synchronise', { defaultValue: 'Synchronise Settings' })}
-                    </Button>
-                </div>
+                ))}
             </div>
-
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[0.9fr_1.35fr]">
-                <div className="space-y-6">
-                    <div className="hero-frame rounded-[2rem] p-8">
-                        <div className="space-y-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                <Database className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-heading text-2xl font-semibold leading-tight text-textPrimary sm:text-3xl">{t('adminSettings.registry', { defaultValue: 'System Registry' })}</h3>
-                                <p className="mt-3 text-sm leading-relaxed text-textSecondary">
-                                    {t('adminSettings.registryHelp', { defaultValue: 'Changes made here influence hardware pricing, proposal generation logic, branding outputs, and platform-wide security behavior.' })}
-                                </p>
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminSettings.engineStatus', { defaultValue: 'Engine Status' })}</span>
-                                    <Badge variant="success">{t('adminSettings.operational', { defaultValue: 'Operational' })}</Badge>
-                                </div>
-                                <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminSettings.lastSync', { defaultValue: 'Last Sync' })}</span>
-                                    <span className="text-sm font-medium text-textPrimary">{t('adminSettings.todayAt', { time: '14:24', defaultValue: 'Today, {{time}}' })}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <Alert variant="info" icon={Server}>
-                        <div className="space-y-1">
-                            <p className="font-medium text-textPrimary">{t('adminSettings.cloudSync', { defaultValue: 'Cloud Synchronisation' })}</p>
-                            <p>{t('adminSettings.cloudSyncHelp', { defaultValue: 'Master data backups are automatically generated every 24 hours.' })}</p>
-                        </div>
-                    </Alert>
-                </div>
-
-                <div className="space-y-6">
-                    {settingsGroups.map((group) => (
-                        <Card key={group.id} className="rounded-[2rem] p-0 overflow-hidden">
-                            <div className="border-b border-white/8 bg-white/5 px-6 py-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                        <group.icon className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-medium text-textPrimary">{group.title}</h3>
-                                        <p className="text-sm text-textSecondary">{t('adminSettings.groupSubtitle', { defaultValue: 'Global configuration set' })}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="divide-y divide-white/8">
-                                {group.settings.map((setting) => (
-                                    <div key={setting.name} className="flex flex-col gap-5 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="max-w-xl">
-                                            <h4 className="text-sm font-medium text-textPrimary">{setting.name}</h4>
-                                            <p className="mt-1 text-sm leading-relaxed text-textSecondary">{setting.description}</p>
-                                        </div>
-                                        <div className="w-full sm:w-56">
-                                            {setting.type === 'toggle' ? (
-                                                <button className="relative inline-flex h-7 w-12 items-center rounded-full border border-primary-500/20 bg-primary-500/15 transition-colors focus:outline-none">
-                                                    <span className="sr-only">{t('adminSettings.toggle', { defaultValue: 'Toggle setting' })}</span>
-                                                    <span className="translate-x-6 inline-block h-5 w-5 rounded-full bg-textPrimary transition-transform" />
-                                                </button>
-                                            ) : (
-                                                <input
-                                                    type={setting.type}
-                                                    defaultValue={setting.value}
-                                                    className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-3.5 py-2.5 text-sm font-medium text-textPrimary shadow-inner transition-all focus:border-primary-500/40 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-        </AnimatedPageWrapper>
-    );
+        </div>
+    </AnimatedPageWrapper>
+);
 }

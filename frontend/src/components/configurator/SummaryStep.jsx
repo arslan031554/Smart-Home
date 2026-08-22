@@ -10,9 +10,8 @@ import ProductsTable from './summary/ProductsTable';
 import ServicesTable from './summary/ServicesTable';
 import FinancialSummary from './summary/FinancialSummary';
 import OfferConditions from './summary/OfferConditions';
-import DisclaimerSection from './summary/DisclaimerSection';
+import OfferReviewNotes from './summary/OfferReviewNotes';
 import CustomerComments from './summary/CustomerComments';
-import GenerateOfferSection from './summary/GenerateOfferSection';
 import { useTranslation } from 'react-i18next';
 
 export default function SummaryStep() {
@@ -25,7 +24,7 @@ export default function SummaryStep() {
             <SectionTitle
                 title={t('configurator.summary.title', 'Project Summary')}
                 subtitle={t('configurator.summary.subtitle', 'Review the final project, functions, calculated products, services, totals, and offer notes before generating the offer.')}
-                badge={t('configurator.summary.badge', 'Step 07: Summary')}
+                badge={t('configurator.summary.badge', 'Step 06: Summary')}
             />
 
             <ProjectSummaryCard projectInfo={projectInfo} levelsCount={levelsCount} />
@@ -37,10 +36,8 @@ export default function SummaryStep() {
             <ServicesTable />
             <FinancialSummary />
             <OfferConditions />
-            <DisclaimerSection />
             <CustomerComments comments={customerComments} />
-
-            <GenerateOfferSection />
+            <OfferReviewNotes />
         </AnimatedPageWrapper>
     );
 }

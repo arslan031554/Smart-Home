@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateProjectInfo } from '../../features/configurator/configuratorSlice';
-import { Building, Home, Briefcase, Store, Hotel, FileText, MapPin, Hash, Layers, Target, Info, PencilLine, Gauge, ShieldCheck, UserPlus, LogIn } from 'lucide-react';
+import { Building, Home, Briefcase, Store, Hotel, FileText, MapPin, Hash, Layers, Target, Info, PencilLine, ShieldCheck, UserPlus, LogIn } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Card, SectionTitle, Input, Badge, Button } from '../common/UIComponents';
 import { useTranslation } from 'react-i18next';
@@ -73,8 +73,8 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                         <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-primary-200 bg-white text-primary-700 shadow-soft">
                             <ShieldCheck className="h-5 w-5" />
                         </div>
-                            <div className="space-y-2">
-                                <div className="flex flex-wrap items-center gap-3">
+                        <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-3">
                                 <h4 className="text-lg font-semibold text-textPrimary">
                                     {t('configurator.projectDefinition.accountAccess.title', { defaultValue: 'Account & Offer Access' })}
                                 </h4>
@@ -124,7 +124,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <Card className="rounded-md p-5 sm:rounded-md sm:p-6">
                     <div className="mb-6 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
                             <Briefcase className="h-5 w-5" />
                         </div>
                         <div>
@@ -173,7 +173,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
 
                 <Card className="rounded-[1.25rem] p-5 sm:rounded-md sm:p-6">
                     <div className="mb-6 flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700">
                             <FileText className="h-5 w-5" />
                         </div>
                         <div>
@@ -283,7 +283,7 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                 ) : null}
             </div>
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
                 {[
                     {
                         icon: Layers,
@@ -299,14 +299,6 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                         subtitle: t('configurator.projectDefinition.area.subtitle'),
                         field: (
                             <LocalInput type="number" min="1" name="area" value={projectInfo.area} onChange={handleChange} label={t('configurator.projectDefinition.area.inputLabel')} placeholder={t('configurator.projectDefinition.area.placeholder')} error={validationErrors.area} />
-                        ),
-                    },
-                    {
-                        icon: Gauge,
-                        title: t('configurator.projectDefinition.complexity.title'),
-                        subtitle: t('configurator.projectDefinition.complexity.subtitle'),
-                        field: (
-                            <LocalInput name="projectComplexity" value={projectInfo.projectComplexity} onChange={handleChange} label={t('configurator.projectDefinition.complexity.inputLabel')} placeholder={t('configurator.projectDefinition.complexity.placeholder')} error={validationErrors.projectComplexity} />
                         ),
                     },
                     {

@@ -12,40 +12,40 @@ export default function RoomsSummary({ levels }) {
     if (!levels || levels.length === 0) return null;
 
     return (
-        <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6">
-            <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
+        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+            <div className="flex items-center gap-2.5 mb-5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
                     <Layout className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">{t('configurator.summary.roomsInventory')}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.summary.roomsInventory', { defaultValue: 'Spaces & Room Inventory' })}</h3>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
                 {levels.map((level) => (
-                    <div key={level.id} className="space-y-3">
+                    <div key={level.id} className="space-y-2.5">
                         <div className="flex items-center gap-2">
-                            <Layers className="w-3.5 h-3.5 text-slate-400" />
-                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest italic">{level.name}</h4>
+                            <Layers className="w-3.5 h-3.5 text-textSecondary" />
+                            <h4 className="text-xs font-bold text-textSecondary uppercase tracking-wider">{level.name}</h4>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             {level.rooms && level.rooms.length > 0 ? (
                                 level.rooms.map((room) => {
                                     const typeName = roomTypes.find((roomType) => roomType.id === room.type)?.name || room.type;
                                     const roomCount = normalizeRoomCount(room.roomCount ?? room.count);
                                     return (
-                                        <div key={room.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl group hover:bg-white hover:shadow-sm transition-all">
+                                        <div key={room.id} className="flex items-center justify-between p-3 bg-[#f9faf6] border border-slate-200/80 rounded-xl group hover:bg-white hover:border-primary-200 hover:shadow-xs transition-all">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-6 h-6 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-primary-500 transition-colors">
-                                                    <Box className="w-3 h-3" />
+                                                <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center text-textSecondary group-hover:text-primary-700 transition-colors">
+                                                    <Box className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-slate-900 leading-none mb-1">{room.name}</p>
-                                                    <p className="text-[10px] font-semibold text-slate-400 uppercase">{typeName}</p>
+                                                    <p className="text-xs sm:text-sm font-bold text-textPrimary leading-none mb-1">{room.name}</p>
+                                                    <p className="text-[10px] font-semibold text-textSecondary uppercase tracking-wider">{typeName}</p>
                                                 </div>
                                             </div>
                                             {roomCount > 1 && (
-                                                <span className="text-[11px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-lg border border-primary-100">
+                                                <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-200">
                                                     × {roomCount}
                                                 </span>
                                             )}
@@ -53,7 +53,7 @@ export default function RoomsSummary({ levels }) {
                                     );
                                 })
                             ) : (
-                                <p className="text-xs text-slate-400 font-medium italic">{t('configurator.summary.noRoomsOnLevel')}</p>
+                                <p className="text-xs text-textSecondary italic">{t('configurator.summary.noRoomsOnLevel', { defaultValue: 'No rooms defined on this level.' })}</p>
                             )}
                         </div>
                     </div>

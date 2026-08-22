@@ -5,6 +5,7 @@ import * as exportService from "../services/exportservice.js";
 import * as followupService from "../services/followupservice.js";
 import * as configuratorDraftService from "../services/configuratordraftservice.js";
 import * as notificationService from "../services/notificationservice.js";
+import { normalizeBusinessLanguage } from "../utils/localization.js";
 import { sendResponse, sendError } from "../utils/apiResponse.js";
 import RoomType from "../../models/RoomType.js";
 import BuildingType from "../../models/BuildingType.js";
@@ -63,8 +64,8 @@ function normalizeLevelsPayload(levels) {
 }
 
 function buildCalculationPayload(body) {
-    return {
-        levels: normalizeLevelsPayload(body?.levels),
+  return {
+    levels: normalizeLevelsPayload(body?.levels),
     selectedRangeId: normalizeUuid(body?.selectedRangeId || body?.rangeId || body?.range),
     selectedColorId: normalizeUuid(body?.selectedColorId || body?.colorId || body?.color),
     multiplicationIndex:
@@ -80,7 +81,7 @@ function buildCalculationPayload(body) {
         ? body.services
         : []
     ),
-    language: body?.language === 'ro' || body?.language === 'en' ? body.language : 'en',
+    language: normalizeBusinessLanguage(body?.language),
   };
 }
 
@@ -112,7 +113,7 @@ function normalizeOfferPayload(body) {
         : undefined,
     customerComments: body?.customerComments || null,
     status: body?.status || body?.offerStatus || undefined,
-    language: body?.language === 'ro' || body?.language === 'en' ? body.language : 'en',
+    language: normalizeBusinessLanguage(body?.language || normalized?.language),
   };
 }
 
@@ -128,7 +129,10 @@ export const createOffer = async (req, res, next) => {
     // Creating an offer implies the proposal document has been generated unless explicitly passed.
     if (!offerData.status) offerData.status = 'offer_generated';
     let offer = await offerService.createOffer(projectId, offerData, req.user);
-    const storedPdf = await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, { regenerate: true });
+    const storedPdf = await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, {
+      regenerate: true,
+      language: offerData.language,
+    });
     offer = await offerService.getOfferById(offer.id, req.user);
 
     // Auto-email PDF to customer (requirement). Fire-and-forget.
@@ -160,6 +164,7 @@ export const createOffer = async (req, res, next) => {
 export const createOfferFromConfig = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const projectScopeUserId = req.user.role === 'admin' ? null : userId;
     const body = req.body || {};
     const requestedProjectId = normalizeUuid(body.projectId);
     const projectInfo = body.projectInfo || {};
@@ -173,28 +178,36 @@ export const createOfferFromConfig = async (req, res, next) => {
       return sendError(
         res,
         400,
-        "At least one level is required. Please add a floor in the configurator."
+        "Cannot generate offer: at least one level is required"
       );
     }
 
     const projectName =
-      (projectInfo.name && String(projectInfo.name).trim()) ||
-      "Untitled Project";
+      projectInfo.name?.trim() ||
+      projectInfo.projectName?.trim() ||
+      `Smart Home Configuration - ${new Date().toLocaleDateString()}`;
+
     const rawBuildingTypeId =
-      (projectInfo.buildingType && String(projectInfo.buildingType).trim()) ||
-      null;
-    const buildingTypeId = normalizeUuid(rawBuildingTypeId);
-    const selectedRangeId = normalizeUuid(rangeId);
-    const selectedColorId = normalizeUuid(colorId);
-    const validBuildingTypeId = buildingTypeId
-      ? await resolveExistingUuidOrNull({ model: BuildingType, value: buildingTypeId })
-      : null;
-    const validSelectedRangeId = selectedRangeId
-      ? await resolveExistingUuidOrNull({ model: ProductRange, value: selectedRangeId })
-      : null;
-    const validSelectedColorId = selectedColorId
-      ? await resolveExistingUuidOrNull({ model: Color, value: selectedColorId })
-      : null;
+      projectInfo.buildingType || projectInfo.buildingTypeId;
+    const rawRangeId = rangeId || projectInfo.selectedRangeId;
+    const rawColorId = colorId || projectInfo.selectedColorId;
+
+    const [validBuildingTypeId, validSelectedRangeId, validSelectedColorId] =
+      await Promise.all([
+        resolveExistingUuidOrNull({
+          model: BuildingType,
+          value: rawBuildingTypeId,
+        }),
+        resolveExistingUuidOrNull({
+          model: ProductRange,
+          value: rawRangeId,
+        }),
+        resolveExistingUuidOrNull({
+          model: Color,
+          value: rawColorId,
+        }),
+      ]);
+
     const validServiceIds = await resolveExistingUuidArray({
       model: Service,
       values: body.selectedServiceIds || body.serviceIds || body.services,
@@ -225,7 +238,7 @@ export const createOfferFromConfig = async (req, res, next) => {
 
     let projectId = requestedProjectId;
     if (projectId) {
-      const existingProject = await projectService.getProjectDetails(userId, projectId);
+      const existingProject = await projectService.getProjectDetails(projectScopeUserId, projectId);
       if (!existingProject) projectId = null;
     }
 
@@ -284,7 +297,7 @@ export const createOfferFromConfig = async (req, res, next) => {
           rangeId: validSelectedRangeId,
           colorId: validSelectedColorId,
         },
-        userId
+        projectScopeUserId
       );
     } else {
       let defaultRoomTypeId = null;
@@ -319,22 +332,26 @@ export const createOfferFromConfig = async (req, res, next) => {
           const room = await projectService.addRoom(
             level.id,
             {
-              name: roomData.name || "Room",
+              name: roomData.name || `Room ${roomData.roomOrder || 1}`,
               roomTypeId,
               roomCount: normalizeRoomCount(roomData.roomCount ?? roomData.count),
             },
             userId
           );
-          const funcs = roomData.functions || roomData.functionSelections || [];
-          for (const f of funcs) {
-            const rawFuncId = f.smartFunctionId || f.id;
-            const normalizedFuncId = await resolveExistingUuidOrNull({ model: SmartFunction, value: rawFuncId });
-            if (!normalizedFuncId) continue;
-            await projectService.addFunctionSelection(
+          const selections = Array.isArray(roomData.functionSelections)
+            ? roomData.functionSelections
+            : Array.isArray(roomData.functions)
+            ? roomData.functions
+            : [];
+          for (const fn of selections) {
+            const rawFunctionId = fn?.smartFunctionId || fn?.id;
+            const functionId = await resolveExistingUuidOrNull({ model: SmartFunction, value: rawFunctionId });
+            if (!functionId) continue;
+            await projectService.addFunctionToRoom(
               room.id,
               {
-                smartFunctionId: normalizedFuncId,
-                quantity: Math.max(1, parseInt(f.quantity, 10) || 1),
+                smartFunctionId: functionId,
+                quantity: normalizeRoomCount(fn.quantity),
               },
               userId
             );
@@ -352,10 +369,14 @@ export const createOfferFromConfig = async (req, res, next) => {
       selectedServiceIds: validServiceIds,
       services: validServiceIds,
       customerComments: body.customerComments,
+      language: normalizeBusinessLanguage(body.language || req.query.lang || req.query.language),
     });
     offerData.status = 'offer_generated';
     let offer = await offerService.createOffer(projectId, offerData, req.user);
-    const storedPdf = await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, { regenerate: true });
+    const storedPdf = await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, {
+      regenerate: true,
+      language: offerData.language,
+    });
     offer = await offerService.getOfferById(offer.id, req.user);
     await configuratorDraftService.completeCurrentDraft({ userId, offerId: offer.id });
 
@@ -389,11 +410,15 @@ export const updateOfferFromConfig = async (req, res, next) => {
     const offerData = normalizeOfferPayload({
       ...(req.body || {}),
       levels: req.body?.levels || [],
+      language: normalizeBusinessLanguage(req.body?.language || req.query?.lang || req.query?.language),
     });
     if (!offerData.status) offerData.status = 'offer_generated';
 
     let offer = await offerService.updateOfferFromConfig(req.params.id, offerData, req.user);
-    await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, { regenerate: true });
+    await exportService.readStoredOfferFile(offer.id, 'pdf', req.user, {
+      regenerate: true,
+      language: offerData.language,
+    });
     offer = await offerService.getOfferById(offer.id, req.user);
     await configuratorDraftService.completeCurrentDraft({ userId: req.user.id, offerId: offer.id });
     sendResponse(res, 200, true, "Offer updated successfully", offer);
@@ -410,6 +435,7 @@ export const deleteOffer = async (req, res, next) => {
     next(error);
   }
 };
+
 export const getOfferDetails = async (req, res, next) => {
   try {
     const offer = await offerService.getOfferById(req.params.id, req.user);
@@ -435,8 +461,7 @@ export const getOfferDetails = async (req, res, next) => {
 export const listOffers = async (req, res, next) => {
   try {
     const { projectId } = req.query;
-    const userId = req.user.id;
-    const offers = await offerService.listOffers(projectId || null, userId);
+    const offers = await offerService.listOffers(projectId || null, req.user.id);
     sendResponse(res, 200, true, "Offers fetched", offers);
   } catch (error) {
     next(error);
@@ -511,6 +536,7 @@ export const sendReminderEmail = async (req, res, next) => {
     next(error);
   }
 };
+
 export const duplicateOffer = async (req, res, next) => {
   try {
     const offer = await offerService.duplicateOffer(req.params.id, req.user);
@@ -522,8 +548,10 @@ export const duplicateOffer = async (req, res, next) => {
 
 export const exportExcel = async (req, res, next) => {
   try {
+    const lang = req.query.lang || req.query.language || null;
     const file = await exportService.readStoredOfferFile(req.params.id, 'excel', req.user, {
-      regenerate: shouldRegenerateExport(req),
+      regenerate: shouldRegenerateExport(req) || Boolean(lang),
+      language: lang,
     });
     res.setHeader(
       "Content-Type",
@@ -541,8 +569,10 @@ export const exportExcel = async (req, res, next) => {
 
 export const exportPdf = async (req, res, next) => {
   try {
+    const lang = req.query.lang || req.query.language || null;
     const file = await exportService.readStoredOfferFile(req.params.id, 'pdf', req.user, {
-      regenerate: shouldRegenerateExport(req),
+      regenerate: true,
+      language: lang,
     });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -554,4 +584,3 @@ export const exportPdf = async (req, res, next) => {
     next(error);
   }
 };
-

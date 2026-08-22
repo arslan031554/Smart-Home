@@ -11,22 +11,22 @@ export default function OfferConditions() {
     if (conditions.length === 0) return null;
 
     return (
-        <Card className="p-6 border-none shadow-premium-sm">
-            <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
+        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+            <div className="flex items-center gap-2.5 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
                     <FileText className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">{t('offers.detail.offerConditionsTitle')}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('offers.detail.offerConditionsTitle', { defaultValue: 'Offer Conditions' })}</h3>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {conditions.map((condition, idx) => (
-                    <div key={condition.id} className="flex gap-4">
-                        <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div key={condition.id} className="flex items-start gap-3 p-3 bg-[#f9faf6] rounded-xl border border-slate-200/80">
+                        <div className="w-6 h-6 rounded-md bg-primary-50 text-primary-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5 border border-primary-200">
                             {idx + 1}
                         </div>
                         <div>
-                            <p className="text-xs text-slate-500 leading-relaxed">{condition.text}</p>
+                            <p className="text-xs sm:text-[13px] text-textSecondary leading-relaxed">{condition.text}</p>
                         </div>
                     </div>
                 ))}

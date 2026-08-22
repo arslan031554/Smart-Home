@@ -14,8 +14,8 @@ export const LEGACY_OFFER_STATUS_MAP = Object.freeze({
 export const OFFER_STATUS_TRANSLATION_KEYS = Object.freeze({
     draft: 'offers.statuses.draft',
     in_progress: 'offers.statuses.inProgress',
-    offer_generated: 'offers.statuses.offerGenerated',
-    ordered: 'offers.statuses.ordered',
+    offer_generated: 'offers.statuses.offerNotOrdered',
+    ordered: 'offers.statuses.offerAccepted',
     cancelled: 'offers.statuses.cancelled',
 });
 

@@ -3,6 +3,7 @@ import * as projectController from '../controllers/projectcontroller.js';
 import protect from '../middlewares/authmiddleware.js';
 import {
     projectValidator,
+    projectUpdateValidator,
     levelValidator,
     roomValidator,
     functionSelectionValidator
@@ -16,7 +17,7 @@ router.use(protect);
 router.post('/', projectValidator, projectController.createProject);
 router.get('/', projectController.getMyProjects);
 router.get('/:id', projectController.getProjectDetails);
-router.put('/:id', projectValidator, projectController.updateProject);
+router.put('/:id', projectUpdateValidator, projectController.updateProject);
 router.delete('/:id', projectController.deleteProject);
 
 // Level Routes

@@ -1,4 +1,4 @@
-﻿import { body } from 'express-validator';
+import { body } from 'express-validator';
 import { validate } from '../middlewares/validatemiddleware.js';
 
 const getAliasedValue = (req, primaryKey, aliases = []) => {
@@ -33,7 +33,7 @@ export const projectValidator = [
         if (!Number.isFinite(parsed) || parsed <= 0) throw new Error('Built-up area must be greater than 0');
         return true;
     }),
-    body('projectComplexity').trim().notEmpty().withMessage('Project complexity is required'),
+    body('projectComplexity').optional({ values: 'null' }).isString().trim(),
     body('multiplicationIndex').custom((value, { req }) => {
         const candidate = value ?? getAliasedValue(req, 'multiplicationIndex', ['projectMultiplicationIndex']);
         const parsed = Number(candidate);
@@ -41,6 +41,23 @@ export const projectValidator = [
         return true;
     }),
     body('description').optional({ values: 'null' }).isString().trim(),
+    body('status').optional().isIn(['draft', 'active', 'archived']).withMessage('Invalid project status'),
+    validate
+];
+
+export const projectUpdateValidator = [
+    body('name').optional().trim().notEmpty().withMessage('Project name must be non-empty'),
+    body('buildingTypeId').optional({ values: 'null' }).isUUID().withMessage('Building Type ID must be a valid UUID'),
+    body('levelsCount').optional().isInt({ min: 1 }).withMessage('Levels count must be at least 1'),
+    body('builtUpArea').optional().isFloat({ gt: 0 }).withMessage('Built-up area must be greater than 0'),
+    body('projectComplexity').optional({ values: 'null' }).isString().trim(),
+    body('multiplicationIndex').optional().isFloat({ min: 1 }).withMessage('Multiplication index must be at least 1'),
+    body('description').optional({ values: 'null' }).isString().trim(),
+    body('status').optional().isIn(['draft', 'active', 'archived']).withMessage('Invalid project status'),
+    body().custom((value) => {
+        if (!value || !Object.keys(value).length) throw new Error('At least one project field is required');
+        return true;
+    }),
     validate
 ];
 

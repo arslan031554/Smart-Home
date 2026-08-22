@@ -6,6 +6,7 @@ import offerRoutes from './offerroutes.js';
 import dashboardRoutes from './dashboardroutes.js';
 import masterDataRoutes from './masterdataroutes.js';
 import configuratorDraftRoutes from './configuratordraftroutes.js';
+import portfolioRoutes from './portfolioroutes.js';
 import * as notificationController from '../controllers/notificationcontroller.js';
 import { testEmailValidator } from '../validators/notificationvalidator.js';
 
@@ -19,6 +20,7 @@ router.get('/health', (req, res) => {
 });
 
 router.post('/test-email', testEmailValidator, notificationController.testEmail);
+router.post('/public/contact', notificationController.contactMessage);
 
 router.use('/auth', authRoutes);
 router.use('/master-data', masterDataRoutes);
@@ -27,5 +29,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/projects', projectRoutes);
 router.use('/offers', offerRoutes);
 router.use('/configurator-drafts', configuratorDraftRoutes);
+router.use('/portfolio-projects', portfolioRoutes);
 
 export default router;

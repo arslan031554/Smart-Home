@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { col, fn, where } from 'sequelize';
 import User from '../../models/User.js';
 import NewsletterSubscriber from '../../models/NewsletterSubscriber.js';
 import * as notificationService from './notificationservice.js';
@@ -15,6 +16,25 @@ const normalizeNullableString = (value) => {
 };
 
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+const findUserByEmail = async (emailInput, options = {}) => {
+    const email = normalizeEmail(emailInput);
+    if (!email) return null;
+
+    return User.findOne({
+        ...options,
+        where: where(fn('LOWER', col('email')), email),
+        order: options.order || [['isVerified', 'DESC'], ['createdAt', 'ASC']],
+    });
+};
+
+const createAccountExistsError = () => {
+    const error = new Error('An account with this email already exists. Please log in instead.');
+    error.statusCode = 409;
+    error.code = 'ACCOUNT_EXISTS';
+    error.errors = { email: 'An account with this email already exists. Please log in instead.' };
+    return error;
+};
 
 let newsletterTableReady = false;
 
@@ -172,6 +192,7 @@ export const register = async (userData, context = {}) => {
         newsletter,
         cookiesAccepted,
         preferredLanguage,
+        verificationChannel,
     } = userData || {};
 
     await verifyRecaptchaToken({
@@ -179,16 +200,20 @@ export const register = async (userData, context = {}) => {
         remoteIp: context.remoteIp,
     });
 
-    const normalizedEmail = String(email || '').trim().toLowerCase();
-    const existingUser = await User.findOne({ where: { email: normalizedEmail } });
-    if (existingUser) {
-        throw new Error('User already exists');
-    }
+    const normalizedEmail = normalizeEmail(email);
+    const existingUser = await findUserByEmail(normalizedEmail);
+    const canResumeRegistration = existingUser
+        && existingUser.role === 'customer'
+        && existingUser.isActive !== false
+        && existingUser.isVerified !== true;
+
+    if (existingUser && !canResumeRegistration) throw createAccountExistsError();
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
+    const requestedVerificationChannel = verificationChannel === 'sms' ? 'sms' : REGISTRATION_VERIFICATION_CHANNEL;
 
-    const user = await User.create({
+    const registrationValues = {
         email: normalizedEmail,
         passwordHash,
         role: 'customer',
@@ -202,14 +227,26 @@ export const register = async (userData, context = {}) => {
         newsletterSubscribed: Boolean(newsletter),
         cookiesAccepted: Boolean(cookiesAccepted),
         preferredLanguage: normalizeLanguage(preferredLanguage),
-        preferredVerificationChannel: REGISTRATION_VERIFICATION_CHANNEL,
-    });
+        preferredVerificationChannel: requestedVerificationChannel,
+    };
+
+    let user;
+    if (canResumeRegistration) {
+        user = await existingUser.update(registrationValues);
+    } else {
+        try {
+            user = await User.create(registrationValues);
+        } catch (error) {
+            if (error?.name === 'SequelizeUniqueConstraintError') throw createAccountExistsError();
+            throw error;
+        }
+    }
 
     let otpDelivery = null;
     let deliveryError = null;
 
     try {
-        otpDelivery = await issueVerificationOtpForUser(user, REGISTRATION_VERIFICATION_CHANNEL, {
+        otpDelivery = await issueVerificationOtpForUser(user, requestedVerificationChannel, {
             allowVerified: false,
             reason: 'account_verification',
         });
@@ -220,7 +257,7 @@ export const register = async (userData, context = {}) => {
     return {
         user,
         verification: {
-            channel: otpDelivery?.channel || REGISTRATION_VERIFICATION_CHANNEL,
+            channel: otpDelivery?.channel || requestedVerificationChannel,
             delivery: otpDelivery?.delivery || null,
             error: deliveryError,
         },
@@ -228,20 +265,24 @@ export const register = async (userData, context = {}) => {
 };
 
 export const login = async (email, password) => {
-    const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase() } });
+    const user = await findUserByEmail(email);
     if (!user) {
         throw new Error('Invalid credentials');
     }
-
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
         throw new Error('Invalid credentials');
+    }
+    if (user.isActive === false) {
+        const error = new Error('This account has been deactivated. Please contact an administrator.');
+        error.statusCode = 403;
+        throw error;
     }
 
     const availableChannels = [];
     if (user.phone) availableChannels.push('sms');
     if (user.email) availableChannels.push('email');
-    const preferredVerificationChannel = normalizeVerificationChannel(user.preferredVerificationChannel, user);
+    const preferredVerificationChannel = 'email';
 
     if (!user.isVerified) {
         let otpDelivery = null;
@@ -287,6 +328,7 @@ export const login = async (email, password) => {
                 delivered: otpDelivery.delivery.delivered,
             } : null,
             deliveryError, // Include error message if any
+            sentChannel: otpDelivery?.channel || null,
             user: {
                 id: user.id,
                 email: user.email,
@@ -340,6 +382,7 @@ export const login = async (email, password) => {
             delivered: otpDelivery.delivery.delivered,
         } : null,
         deliveryError, // Include error message if any
+        sentChannel: otpDelivery?.channel || null,
         user: {
             id: user.id,
             email: user.email,
@@ -411,7 +454,7 @@ export const subscribeNewsletter = async (emailInput) => {
         throw error;
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await findUserByEmail(email);
     const userWasSubscribed = Boolean(user?.newsletterSubscribed);
     let alreadySubscribed = userWasSubscribed;
 
@@ -436,7 +479,7 @@ export const subscribeNewsletter = async (emailInput) => {
 };
 
 export const verifyOtp = async (email, otpCode) => {
-    const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase() } });
+    const user = await findUserByEmail(email);
     const submittedCode = String(otpCode || '');
     const submittedHash = hashSecret(submittedCode);
     const storedCode = String(user?.otpCode || '');
@@ -461,7 +504,7 @@ export const verifyOtp = async (email, otpCode) => {
 };
 
 export const forgotPassword = async (email) => {
-    const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase() } });
+    const user = await findUserByEmail(email);
     if (!user) {
         throw new Error('User not found');
     }
@@ -512,7 +555,7 @@ export const resetPassword = async (token, newPassword) => {
 };
 
 export const sendVerificationOtp = async (email, channel) => {
-    const user = await User.findOne({ where: { email: String(email || '').trim().toLowerCase() } });
+    const user = await findUserByEmail(email);
     if (!user) throw new Error('User not found');
     return issueVerificationOtpForUser(user, channel, {
         allowVerified: true,

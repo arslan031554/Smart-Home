@@ -30,6 +30,7 @@ import ServiceSmartFunction from './ServiceSmartFunction.js';
 import FollowupTemplate from './FollowupTemplate.js';
 import FollowupLog from './FollowupLog.js';
 import NewsletterSubscriber from './NewsletterSubscriber.js';
+import PortfolioProject from './PortfolioProject.js';
 
 const models = {
     User,
@@ -63,7 +64,8 @@ const models = {
     ServiceSmartFunction,
     FollowupTemplate,
     FollowupLog,
-    NewsletterSubscriber
+    NewsletterSubscriber,
+    PortfolioProject
 };
 
 Object.values(models).forEach((model) => {
@@ -104,7 +106,8 @@ export {
     ServiceSmartFunction,
     FollowupTemplate,
     FollowupLog,
-    NewsletterSubscriber
+    NewsletterSubscriber,
+    PortfolioProject
 };
 
 export default models;

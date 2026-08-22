@@ -82,6 +82,59 @@ export default function ProductsManagement() {
     const [formErrors, setFormErrors] = useState({});
     const [apiError, setApiError] = useState(null);
 
+    // Excel template and import state
+    const [importing, setImporting] = useState(false);
+    const [importError, setImportError] = useState(null);
+    const [importSuccess, setImportSuccess] = useState(null);
+
+    const handleDownloadTemplate = async () => {
+        try {
+            const response = await api.get('/admin/import/templates/devices', { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'devices_template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            console.error('Failed to download devices template:', err);
+            setApiError('Failed to download template file');
+        }
+    };
+
+    const handleImportExcel = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        setImportError(null);
+        setImportSuccess(null);
+
+        try {
+            const uploadData = new FormData();
+            uploadData.append('file', file);
+
+            const response = await api.post('/admin/import/devices', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            setImportSuccess({
+                created: response.data?.data?.createdCount || 0,
+                updated: response.data?.data?.updatedCount || 0
+            });
+
+            dispatch(fetchProducts());
+        } catch (err) {
+            console.error('Failed to import devices Excel:', err);
+            const ne = normalizeApiError(err);
+            setImportError(ne.message || 'Failed to import Excel file. Please check formatting.');
+        } finally {
+            setImporting(false);
+            e.target.value = null;
+        }
+    };
+
     const [formData, setFormData] = useState({
         code: '',
         name: '',
@@ -336,32 +389,36 @@ export default function ProductsManagement() {
 
     return (
         <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-10 pb-20 font-sans">
-            <div className="hero-frame overflow-hidden rounded-[2.25rem] px-6 py-8 sm:px-8">
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
-
-                <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+            <div className="bg-white border border-gray-200 shadow-sm relative rounded-sm p-5 sm:p-6 mb-6">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                     <div className="space-y-6">
-                        <SectionTitle
-                            title={t('adminPages.products.title')}
-                            subtitle={t('adminPages.products.subtitle')}
-                            badge={t('adminPages.products.badge')}
-                            className="mb-0"
-                        />
+                        <div>
+                            <div className="inline-flex items-center gap-2 mb-2">
+                                <Badge variant="neutral" className="!rounded-sm !text-[10px] !py-1 !px-2.5 uppercase font-bold tracking-widest text-primary-600 bg-primary-50">
+                                    {t('adminPages.products.badge', { defaultValue: 'Products Management' })}
+                                </Badge>
+                            </div>
+                            <h1 className="text-2xl font-bold leading-tight text-textPrimary sm:text-3xl">
+                                {t('adminPages.products.title')}
+                            </h1>
+                            <p className="text-sm leading-relaxed text-textSecondary mt-1.5">
+                                {t('adminPages.products.subtitle')}
+                            </p>
+                        </div>
 
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             {[
-                                { icon: Package, label: t('adminPages.products.count', { count: products.length }), value: products.length },
-                                { icon: ShieldCheck, label: t('adminPages.products.modal.features'), value: products.filter((product) => Array.isArray(product.mappings) && product.mappings.length).length },
-                            ].map((item) => (
-                                <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                { icon: Package, label: t('adminPages.products.count', { count: products.length }), value: products.length, color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.22)' },
+                                { icon: ShieldCheck, label: t('adminPages.products.modal.features'), value: products.filter((product) => Array.isArray(product.mappings) && product.mappings.length).length, color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.22)' },
+                            ].map((item, idx) => (
+                                <div key={idx} className="bg-white border shadow-sm rounded-sm p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderColor: item.border }}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm text-lg shadow-sm" style={{ backgroundColor: item.bg, color: item.color }}>
                                             <item.icon className="h-5 w-5" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.label}</p>
-                                            <p className="mt-1 font-heading text-3xl font-semibold leading-none text-textPrimary">{item.value}</p>
+                                            <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 leading-snug">{item.label}</h3>
+                                            <span className="text-2xl font-black block mt-0.5 leading-none" style={{ color: item.color }}>{item.value}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -369,90 +426,149 @@ export default function ProductsManagement() {
                         </div>
                     </div>
 
-                    <Button size="md" onClick={() => handleOpenForm()} className="gap-2">
-                        <Plus className="h-4.5 w-4.5" />
-                        {t('adminPages.products.addNew')}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:w-auto xl:self-start">
+                        <Button
+                            variant="outline"
+                            size="md"
+                            onClick={handleDownloadTemplate}
+                            className="!rounded-sm flex-1 sm:flex-none justify-center h-10 px-5 text-[11px] font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all duration-300 border-gray-200 text-gray-600 hover:text-primary-600 hover:border-primary-500/40 bg-white hover:bg-primary-50/50 w-full sm:w-auto"
+                        >
+                            <Layers className="mr-2 h-4 w-4" />
+                            {t('adminPages.products.bulkImport.downloadTemplate', { defaultValue: 'Download Template' })}
+                        </Button>
+                        
+                        <label className="inline-block w-full sm:w-auto flex-1 sm:flex-none">
+                            <input
+                                type="file"
+                                accept=".xlsx"
+                                onChange={handleImportExcel}
+                                className="hidden"
+                                disabled={importing}
+                            />
+                            <span className={clsx(
+                                "flex items-center justify-center rounded-sm bg-white border border-gray-200 hover:text-primary-600 hover:border-primary-500/40 hover:bg-primary-50/50 px-5 text-[11px] font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer select-none h-10 text-gray-600 w-full",
+                                importing && "opacity-50 pointer-events-none"
+                            )}>
+                                {importing ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        {t('adminPages.products.bulkImport.importing', { defaultValue: 'Importing...' })}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="mr-2 h-4 w-4" />
+                                        {t('adminPages.products.bulkImport.uploadExcel', { defaultValue: 'Import Excel' })}
+                                    </>
+                                )}
+                            </span>
+                        </label>
+                        <Button size="md" onClick={() => handleOpenForm()} className="!rounded-sm justify-center h-10 px-6 text-[11px] font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto flex-1 sm:flex-none">
+                            <Plus className="mr-2 h-4 w-4" />
+                            {t('adminPages.products.addNew')}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
+            {importError && (
+                <div className="bg-white border border-red-200 shadow-sm rounded-sm p-4 text-xs font-medium text-red-600">
+                    {importError}
+                </div>
+            )}
+
+            {importSuccess && (
+                <div className="bg-white border border-green-200 shadow-sm rounded-sm p-4 text-xs font-medium text-green-600 flex items-center justify-between">
+                    <span>
+                        {t('adminPages.products.bulkImport.success', {
+                            defaultValue: `Successfully processed file: created ${importSuccess.created} new devices and updated ${importSuccess.updated} existing devices.`
+                        })}
+                    </span>
+                    <button
+                        onClick={() => setImportSuccess(null)}
+                        className="text-[10px] uppercase font-bold text-green-600 hover:text-green-700 ml-4 cursor-pointer"
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            )}
+
             {/* Filters */}
-            <Card className="rounded-[1.9rem] p-4">
+            <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-4 mb-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="relative w-full xl:w-[32rem]">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
-                    <input
-                        type="text"
-                        placeholder={t('adminPages.products.searchPlaceholder')}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-                    />
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={t('adminPages.products.searchPlaceholder')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full rounded-sm border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors duration-200 shadow-sm"
+                        />
                     </div>
 
-                    <Badge variant="neutral">
+                    <Badge variant="neutral" className="!rounded-sm bg-gray-100 border-gray-200 text-gray-700 shadow-sm">
                         {t('adminPages.products.count', { count: filteredProducts.length })}
                     </Badge>
                 </div>
-            </Card>
+            </div>
 
             {/* Product Table */}
-            <Card className="overflow-hidden rounded-[2rem] p-0">
+            <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-sm mb-6">
                 {adminLoading && !products.length ? (
                     <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
-                        <Loader2 className="w-12 h-12 text-primary-300 animate-spin" />
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-textSecondary">{t('adminPages.products.syncing')}</p>
+                        <Loader2 className="w-12 h-12 text-primary-500 animate-spin" />
+                        <p className="text-sm font-bold uppercase tracking-[0.2em] text-textSecondary">{t('adminPages.products.syncing')}</p>
                         <div className="p-10 space-y-6 w-full opacity-50">
-                            <Skeleton className="h-20 w-full rounded-2xl" repeat={3} />
+                            <Skeleton className="h-20 w-full rounded-sm" repeat={3} />
                         </div>
                     </div>
                 ) : filteredProducts.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b border-white/8 bg-white/5">
-                                    <th className="px-8 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.code')}</th>
-                                    <th className="px-8 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.productName')}</th>
-                                    <th className="px-8 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.ranges')}</th>
-                                    <th className="px-8 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.price')}</th>
-                                    <th className="px-8 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.status')}</th>
-                                    <th className="px-8 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.actions')}</th>
+                                <tr className="border-b border-gray-200 bg-gray-50">
+                                    <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.code')}</th>
+                                    <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.productName')}</th>
+                                    <th className="px-8 py-4 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.ranges')}</th>
+                                    <th className="px-8 py-4 text-right text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.price')}</th>
+                                    <th className="px-8 py-4 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.status')}</th>
+                                    <th className="px-8 py-4 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.actions')}</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/8">
+                            <tbody className="divide-y divide-gray-100">
                                 {filteredProducts.map((p) => (
-                                    <tr key={p.id} className="transition-colors hover:bg-white/5 group">
+                                    <tr key={p.id} className="transition-colors hover:bg-gray-50 group">
                                         <td className="px-8 py-6">
-                                            <div className="text-[10px] font-semibold text-textSecondary tracking-[0.2em] font-mono group-hover:text-primary-300 transition-colors">#{p.code}</div>
+                                            <div className="text-[10px] font-bold text-textSecondary tracking-[0.2em] font-mono group-hover:text-primary-600 transition-colors">#{p.code}</div>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <div className="text-sm font-medium text-textPrimary tracking-tight uppercase">{p.name}</div>
+                                            <div className="text-sm font-bold text-gray-800 tracking-tight uppercase">{p.name}</div>
                                             <div className="mt-1.5 line-clamp-1 text-[10px] font-medium italic text-textSecondary">{p.description}</div>
                                         </td>
                                         <td className="px-8 py-6 text-center">
                                             <div className="flex flex-wrap justify-center gap-1 max-w-[120px] mx-auto">
                                                 {p.allowedRanges?.map(rId => (
-                                                    <Badge key={rId} variant="neutral" className="px-2 py-0.5 text-[8px]">
+                                                    <Badge key={rId} variant="neutral" className="!rounded-sm bg-gray-100 border-gray-200 text-gray-700 shadow-sm px-2 py-0.5 text-[8px]">
                                                         {productRanges.find(r => r.id === rId)?.name}
                                                     </Badge>
                                                 ))}
                                             </div>
                                         </td>
-                                        <td className="px-8 py-6 text-right font-heading text-3xl font-semibold text-primary-300 tabular-nums">
+                                        <td className="px-8 py-6 text-right font-heading text-3xl font-semibold text-primary-600 tabular-nums">
                                             {Number.isFinite(Number(p.price)) ? formatCurrency(p.price) : '-'}
                                         </td>
                                         <td className="px-8 py-6 text-center">
-                                            <Badge variant={p.status === 'Active' ? 'success' : 'neutral'} className="text-[9px] px-4 py-1">
+                                            <Badge variant={p.status === 'Active' ? 'success' : 'neutral'} className="text-[9px] px-4 py-1 !rounded-sm shadow-sm">
                                                 {p.status}
                                             </Badge>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <div className="flex items-center justify-center gap-3">
-                                                <button onClick={() => handleOpenForm(p)} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
-                                                    <Edit className="w-4.5 h-4.5" />
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button onClick={() => handleOpenForm(p)} className="flex h-9 w-9 items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-400 transition-colors hover:border-primary-500/30 hover:text-primary-600 shadow-sm hover:shadow-md">
+                                                    <Edit className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => setDeleteModal({ isOpen: true, productId: p.id })} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
-                                                    <Trash2 className="w-4.5 h-4.5" />
+                                                <button onClick={() => setDeleteModal({ isOpen: true, productId: p.id })} className="flex h-9 w-9 items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-400 transition-colors hover:border-red-500/30 hover:text-red-600 shadow-sm hover:shadow-md">
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </td>
@@ -469,7 +585,7 @@ export default function ProductsManagement() {
                         action={<Button variant="outline" size="sm" onClick={() => setSearchTerm('')}>{t('adminPages.products.reset')}</Button>}
                     />
                 )}
-            </Card>
+            </div>
 
             {/* Form Modal */}
             <Modal

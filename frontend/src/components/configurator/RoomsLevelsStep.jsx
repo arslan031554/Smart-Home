@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addRoomToLevel, removeRoomFromLevel, updateRoom } from '../../features/configurator/configuratorSlice';
-import { Plus, Trash2, Layers, Info, ChevronDown, ChevronUp, Home, Copy, Box, PencilLine } from 'lucide-react';
+import { Plus, Trash2, Layers, Info, ChevronDown, ChevronUp, Home, Copy, PencilLine } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button, Card, SectionTitle, Badge, Modal } from '../common/UIComponents';
 import { normalizeRoomCount } from '../../utils/configuratorNormalization';
@@ -77,28 +77,6 @@ const RoomCard = React.memo(({ room, idx, levelId, roomType, onRemove, onUpdate 
                             placeholder={roomType?.name || t('configurator.roomsLevels.roomCard.newRoomName')}
                             className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-3 text-sm font-medium text-textPrimary outline-none transition-all focus:border-primary-700 focus:ring-4 focus:ring-primary-500/10"
                         />
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
-                        {t('configurator.roomsLevels.roomCard.roomType')}
-                    </label>
-                    <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500">
-                                <Box className="h-4 w-4" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-textPrimary">{roomType?.name || t('configurator.roomsLevels.roomCard.unset')}</p>
-                                <p className="text-[11px] text-textSecondary">
-                                    {t('configurator.roomsLevels.roomCard.roomTypeLocked', { defaultValue: 'Room type is fixed after creation.' })}
-                                </p>
-                            </div>
-                        </div>
-                        <Badge variant="neutral" className="border-slate-200 bg-white text-slate-500">
-                            {t('configurator.roomsLevels.roomCard.fixedLabel', { defaultValue: 'Fixed' })}
-                        </Badge>
                     </div>
                 </div>
 

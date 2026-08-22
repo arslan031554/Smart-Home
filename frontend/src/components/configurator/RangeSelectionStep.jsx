@@ -62,11 +62,9 @@ export default function RangeSelectionStep() {
 
     return (
         <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto sm:space-y-8 sm:pb-20">
-            <SectionTitle
-                title={t('configurator.range.title', { defaultValue: 'Choose Product Range' })}
-                subtitle={t('configurator.range.subtitle', { defaultValue: 'Select the product range for your entire project. This choice affects which products are eligible in the automatic calculation.' })}
-                badge={t('configurator.range.badge', { defaultValue: 'Step 04: Product Range' })}
-            />
+            
+
+            
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {RANGES.filter(r => r?.isVisible !== false).map((r, index) => {
@@ -78,7 +76,7 @@ export default function RangeSelectionStep() {
                     );
                     const resolvedImage = resolveRangeImageUrl(r.imageUrl || r.image);
                     const imageSrc = resolvedImage || fallbackImage;
-                    
+
                     return (
                         <Card
                             key={r.id}
@@ -100,7 +98,7 @@ export default function RangeSelectionStep() {
                                     className={`w-full h-full object-cover transition-transform duration-1000 ${isActive ? 'scale-105' : 'group-hover:scale-105 brightness-95 group-hover:brightness-100'}`}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
-                                
+
                                 {isActive && (
                                     <div className="absolute top-6 left-6 w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl animate-in fade-in zoom-in duration-300">
                                         <CheckCircle2 className="w-7 h-7" />
@@ -113,7 +111,7 @@ export default function RangeSelectionStep() {
                                     </h3>
                                     <div className="flex items-center gap-2 mt-2">
                                         <Badge className="bg-white/20 backdrop-blur-md border-none text-[8px] font-bold text-white uppercase tracking-[0.2em] px-3 py-1">
-                                            {r.code || 'SERIES_' + r.id.slice(0,3).toUpperCase()}
+                                            {r.code || 'SERIES_' + r.id.slice(0, 3).toUpperCase()}
                                         </Badge>
                                     </div>
                                 </div>
@@ -167,6 +165,31 @@ export default function RangeSelectionStep() {
                     </div>
                 </div>
             </Alert>
+            <SectionTitle
+                title={t('configurator.range.projectWideTitle', { defaultValue: 'One range, consistent products throughout the project.' })}
+                subtitle={t('configurator.range.projectWideSubtitle', { defaultValue: 'The selected range is applied at project level and used to filter compatible products in every room. You can change the choice before the offer is generated.' })}
+                badge={t('configurator.range.projectWideBadge', { defaultValue: 'PROJECT-WIDE RANGE SELECTION' })}
+            />
+
+            {/* Three-step workflow cards placed at bottom */}
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-sm font-black text-white">1</div>
+                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.range.stepOneTitle', { defaultValue: 'Consistent specification' })}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.range.stepOneDescription', { defaultValue: 'The same product family is used across all selected rooms.' })}</p>
+                </div>
+                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white">2</div>
+                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.range.stepTwoTitle', { defaultValue: 'Automatic compatibility' })}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.range.stepTwoDescription', { defaultValue: 'Only products supported by the chosen range remain available.' })}</p>
+                </div>
+                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-violet-600 text-sm font-black text-white">3</div>
+                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.range.stepThreeTitle', { defaultValue: 'Editable before offer' })}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.range.stepThreeDescription', { defaultValue: 'Change the project range without rebuilding the room structure.' })}</p>
+                </div>
+            </div>
+            
         </div>
     );
 }

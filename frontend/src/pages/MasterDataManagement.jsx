@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
+import {
     fetchBuildingTypes, addBuildingType, updateBuildingType, deleteBuildingType,
     fetchRoomTypes, addRoomType, updateRoomType, deleteRoomType,
     fetchSmartFunctions, addSmartFunction, updateSmartFunction, deleteSmartFunction,
@@ -139,7 +139,7 @@ function getRelationshipLabels(item, fieldName) {
 export default function MasterDataManagement({
     title,
     entityName,
-    storeKey, 
+    storeKey,
     icon: Icon,
     extraFields = [],
     formFields = null
@@ -189,11 +189,83 @@ export default function MasterDataManagement({
     const [apiError, setApiError] = useState(null);
     const [imageUploadingField, setImageUploadingField] = useState(null);
 
+    // Excel template and import state
+    const [importing, setImporting] = useState(false);
+    const [importError, setImportError] = useState(null);
+    const [importSuccess, setImportSuccess] = useState(null);
+
+    const IMPORT_TYPE_MAP = {
+        buildingTypes: 'buildings',
+        roomTypes: 'rooms',
+        smartFunctions: 'functions'
+    };
+
+    const handleDownloadTemplate = async () => {
+        const importType = IMPORT_TYPE_MAP[storeKey];
+        if (!importType) return;
+        try {
+            const response = await api.get(`/admin/import/templates/${importType}`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${importType}_template.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            console.error('Failed to download template:', err);
+            setApiError('Failed to download template file');
+        }
+    };
+
+    const handleImportExcel = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const importType = IMPORT_TYPE_MAP[storeKey];
+        if (!importType) return;
+
+        setImporting(true);
+        setImportError(null);
+        setImportSuccess(null);
+
+        try {
+            const uploadData = new FormData();
+            uploadData.append('file', file);
+
+            const response = await api.post(`/admin/import/${importType}`, uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            setImportSuccess({
+                created: response.data?.data?.createdCount || 0,
+                updated: response.data?.data?.updatedCount || 0
+            });
+
+            if (config?.fetch) {
+                dispatch(config.fetch());
+            }
+        } catch (err) {
+            console.error('Failed to import Excel:', err);
+            const ne = normalizeApiError(err);
+            setImportError(ne.message || 'Failed to import Excel file. Please check formatting.');
+        } finally {
+            setImporting(false);
+            e.target.value = null;
+        }
+    };
+
     useEffect(() => {
         if (config?.fetch) {
             dispatch(config.fetch());
         }
     }, [dispatch, config]);
+
+    useEffect(() => {
+        setImportSuccess(null);
+        setImportError(null);
+        setImporting(false);
+    }, [storeKey]);
 
     useEffect(() => {
         extraFields.forEach((field) => {
@@ -211,11 +283,11 @@ export default function MasterDataManagement({
         if (item) {
             // Start with defaults to ensure all fields have values
             const normalized = { ...defaultFormState, ...item };
-            
+
             // Override with localized translation fields extracted from translations object
             const localizedFields = buildLocalizedFormState(localizedFieldConfig, item.translations || {});
             Object.assign(normalized, localizedFields);
-            
+
             // Handle relationship/multiselect fields - convert objects to IDs
             if (storeKey === 'smartFunctions' && (item.roomTypes || []).length) {
                 normalized.roomTypes = (item.roomTypes || []).map((r) => (typeof r === 'object' && r?.id ? r.id : r));
@@ -223,12 +295,12 @@ export default function MasterDataManagement({
             if (storeKey === 'roomTypes' && (item.buildingTypes || []).length) {
                 normalized.buildingTypes = (item.buildingTypes || []).map((b) => (typeof b === 'object' && b?.id ? b.id : b));
             }
-            
+
             // Map all extraFields with proper handling for different types
             extraFields.forEach((field) => {
                 if (field.type === 'multiselect' && item[field.name]) {
                     // If multiselect from item is array of objects, extract IDs
-                    normalized[field.name] = (item[field.name] || []).map((obj) => 
+                    normalized[field.name] = (item[field.name] || []).map((obj) =>
                         typeof obj === 'object' && obj?.id ? obj.id : obj
                     );
                 } else if (field.type === 'toggle' && Object.prototype.hasOwnProperty.call(item, field.name)) {
@@ -242,7 +314,7 @@ export default function MasterDataManagement({
                     normalized[field.name] = item[field.name];
                 }
             });
-            
+
             setFormData(normalized);
             setEditingId(item.id);
         } else {
@@ -376,32 +448,30 @@ export default function MasterDataManagement({
 
     return (
         <AnimatedPageWrapper className="space-y-10 pb-20">
-            <div className="hero-frame overflow-hidden rounded-[2.25rem] px-6 py-8 sm:px-8">
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
-
-                <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+            <div className="bg-white border border-gray-200 shadow-sm relative rounded-sm p-5 sm:p-6 mb-6">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                     <div className="space-y-6">
-                        <SectionTitle
-                            title={localizedTitle}
-                            subtitle={t('adminPages.masterData.subtitle', { entity: localizedEntity })}
-                            badge={t('adminPages.masterData.badge')}
-                            className="mb-0"
-                        />
+                        <div>
+                            <div className="inline-flex items-center gap-2 mb-2">
+                                <Badge variant="neutral" className="!rounded-sm !text-[10px] !py-1 !px-2.5 uppercase font-bold tracking-widest">{t('adminPages.masterData.badge')}</Badge>
+                            </div>
+                            <h1 className="text-2xl font-bold leading-tight text-textPrimary sm:text-3xl">{localizedTitle}</h1>
+                            <p className="text-sm leading-relaxed text-textSecondary mt-1.5">{t('adminPages.masterData.subtitle', { entity: localizedEntity })}</p>
+                        </div>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 max-w-lg">
                             {[
-                                { icon: Icon || Layers, label: t('adminPages.masterData.registered', { count: items.length }), value: items.length },
-                                { icon: Zap, label: t('adminPages.masterData.syncing'), value: filteredItems.length },
+                                { icon: Icon || Layers, label: t('adminPages.masterData.registered', { count: items.length }), value: items.length, color: '#60b93f', bg: 'rgba(96,185,63,0.10)', border: 'rgba(96,185,63,0.22)' },
+                                { icon: Zap, label: t('adminPages.masterData.syncing'), value: filteredItems.length, color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.22)' },
                             ].map((item) => (
-                                <div key={item.label} className="rounded-[1.5rem] border border-white/8 bg-white/5 px-5 py-5">
+                                <div key={item.label} className="bg-white border shadow-sm rounded-sm p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderColor: item.border }}>
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                            <item.icon className="h-5 w-5" />
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-sm" style={{ backgroundColor: item.bg, color: item.color, border: `1px solid ${item.border}` }}>
+                                            <item.icon className="h-4.5 w-4.5" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.label}</p>
-                                            <p className="mt-1 font-heading text-3xl font-semibold leading-none text-textPrimary">{item.value}</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary leading-none mb-1.5">{item.label}</p>
+                                            <p className="font-heading text-2xl font-black leading-none" style={{ color: item.color }}>{item.value}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -409,31 +479,94 @@ export default function MasterDataManagement({
                         </div>
                     </div>
 
-                    <Button size="md" onClick={() => handleOpenForm()} className="gap-2">
-                        <Plus className="h-4.5 w-4.5" />
-                        {t('adminPages.masterData.newEntity', { entity: localizedEntity })}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:w-auto xl:self-start">
+                        {IMPORT_TYPE_MAP[storeKey] && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="md"
+                                    onClick={handleDownloadTemplate}
+                                    className="!rounded-sm flex-1 sm:flex-none justify-center h-10 px-5 text-[11px] font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all duration-300 border-gray-200 text-gray-600 hover:text-primary-600 hover:border-primary-500/40 bg-white hover:bg-primary-50/50"
+                                >
+                                    <Layers className="mr-2 h-4 w-4" />
+                                    {t('adminPages.masterData.bulkImport.downloadTemplate', { defaultValue: 'Download Template' })}
+                                </Button>
+
+                                <label className="inline-block flex-1 sm:flex-none w-full sm:w-auto">
+                                    <input
+                                        type="file"
+                                        accept=".xlsx"
+                                        onChange={handleImportExcel}
+                                        className="hidden"
+                                        disabled={importing}
+                                    />
+                                    <span className={clsx(
+                                        "flex w-full items-center justify-center rounded-sm border border-primary-500/30 bg-primary-50 text-primary-700 hover:bg-primary-100 hover:border-primary-500/50 px-5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer select-none h-10 shadow-sm hover:shadow-md duration-300",
+                                        importing && "opacity-50 pointer-events-none"
+                                    )}>
+                                        {importing ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                {t('adminPages.masterData.bulkImport.importing', { defaultValue: 'Importing...' })}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="mr-2 h-4 w-4 text-primary-500" />
+                                                {t('adminPages.masterData.bulkImport.uploadExcel', { defaultValue: 'Import Excel' })}
+                                            </>
+                                        )}
+                                    </span>
+                                </label>
+                            </>
+                        )}
+                        <Button size="md" onClick={() => handleOpenForm()} className="!rounded-sm flex-1 sm:flex-none justify-center h-10 px-6 text-[11px] font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all duration-300 w-full sm:w-auto">
+                            <Plus className="mr-2 h-4 w-4" />
+                            {t('adminPages.masterData.newEntity', { entity: localizedEntity })}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
+            {importError && (
+                <Card className="rounded-[1.9rem] p-4 border border-red-500/18 bg-red-500/10 text-xs font-medium text-red-300">
+                    {importError}
+                </Card>
+            )}
+
+            {importSuccess && (
+                <Card className="rounded-[1.9rem] p-4 border border-green-500/18 bg-green-500/10 text-xs font-medium text-green-300 flex items-center justify-between">
+                    <span>
+                        {t('adminPages.masterData.bulkImport.success', {
+                            defaultValue: `Successfully processed file: created ${importSuccess.created} new records and updated ${importSuccess.updated} existing records.`
+                        })}
+                    </span>
+                    <button
+                        onClick={() => setImportSuccess(null)}
+                        className="text-[10px] uppercase font-bold text-green-400 hover:text-green-300 ml-4 cursor-pointer"
+                    >
+                        Dismiss
+                    </button>
+                </Card>
+            )}
+
             {/* Filters */}
-            <Card className="rounded-[1.9rem] p-4">
+            <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-4 mb-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="relative w-full xl:w-96">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
-                    <input
-                        type="text"
-                        placeholder={t('adminPages.masterData.searchPlaceholder', { entity: localizedEntity.toLowerCase() })}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-                    />
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={t('adminPages.masterData.searchPlaceholder', { entity: localizedEntity.toLowerCase() })}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full rounded-sm border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors duration-200"
+                        />
                     </div>
-                    <Badge variant="neutral">
+                    <Badge variant="neutral" className="!rounded-sm !px-3 !py-1.5 shadow-sm">
                         {t('adminPages.masterData.registered', { count: filteredItems.length })}
                     </Badge>
                 </div>
-            </Card>
+            </div>
 
             {/* Grid */}
             {loading && !items.length ? (
@@ -445,19 +578,19 @@ export default function MasterDataManagement({
                     </div>
                 </div>
             ) : filteredItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filteredItems.map((item) => (
-                        <Card key={item.id} className="p-8 group relative overflow-hidden flex flex-col h-full rounded-[2rem]">
-                            <div className="flex items-center justify-between mb-8 relative z-10">
-                                <div className="w-12 h-12 rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300 flex items-center justify-center transition-all duration-300">
+                        <div key={item.id} className="bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-500/30 hover:-translate-y-1 group relative overflow-hidden flex flex-col h-full rounded-sm p-6 transition-all duration-300">
+                            <div className="flex items-start justify-between mb-6 relative z-10">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-500/10 text-primary-500 transition-transform duration-300 group-hover:scale-105 shadow-sm">
                                     {Icon ? <Icon className="w-6 h-6" /> : <Layers className="w-6 h-6" />}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => handleOpenForm(item)} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300">
-                                        <Edit className="w-4 h-4" />
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <button onClick={() => handleOpenForm(item)} className="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-200 bg-gray-50 text-gray-500 transition-all hover:border-primary-500/30 hover:bg-primary-50 hover:text-primary-600 shadow-sm">
+                                        <Edit className="w-3.5 h-3.5" />
                                     </button>
-                                    <button onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
-                                        <Trash2 className="w-4 h-4" />
+                                    <button onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })} className="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-200 bg-gray-50 text-gray-500 transition-all hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 shadow-sm">
+                                        <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
                             </div>
@@ -525,7 +658,7 @@ export default function MasterDataManagement({
                                     </div>
                                 )}
                             </div>
-                        </Card>
+                        </div>
                     ))}
                 </div>
             ) : (
@@ -847,23 +980,23 @@ export default function MasterDataManagement({
                 title={t('adminPages.masterData.modal.deleteTitle')}
                 maxWidth="max-w-md"
                 footer={
-                    <div className="flex gap-3 justify-end w-full">
-                        <Button variant="ghost" onClick={() => setDeleteModal({ isOpen: false, itemId: null })}>{t('adminPages.masterData.modal.cancel')}</Button>
-                        <Button variant="danger" className="bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/10 px-8" onClick={confirmDelete}>{t('adminPages.masterData.modal.terminate')}</Button>
+                    <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <Button variant="ghost" className="w-full justify-center sm:w-auto" onClick={() => setDeleteModal({ isOpen: false, itemId: null })}>{t('adminPages.masterData.modal.cancel')}</Button>
+                        <Button variant="danger" className="w-full justify-center bg-red-600 px-8 shadow-lg shadow-red-500/10 hover:bg-red-700 sm:w-auto" onClick={confirmDelete}>{t('adminPages.masterData.modal.terminate')}</Button>
                     </div>
                 }
             >
-                <div className="space-y-4 text-center py-4">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/18 bg-red-500/10 text-red-300 shadow-sm">
-                        <AlertCircle className="w-8 h-8" />
+                <div className="mx-auto flex max-w-sm flex-col items-center gap-5 px-2 py-6 text-center sm:px-4 sm:py-8">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-sm border border-red-500/20 bg-red-50 text-red-600 shadow-sm">
+                        <AlertCircle className="h-8 w-8" />
                     </div>
-                    <div className="space-y-1">
-                        <h4 className="text-lg font-medium text-textPrimary">{t('adminPages.masterData.modal.areYouSure')}</h4>
-                        <p className="text-sm font-medium leading-relaxed text-textSecondary">
+                    <div className="space-y-2">
+                        <h4 className="text-xl font-bold text-textPrimary">{t('adminPages.masterData.modal.areYouSure')}</h4>
+                        <p className="text-sm font-medium leading-6 text-textSecondary">
                             {t('adminPages.masterData.modal.deleteDesc')}
                         </p>
                     </div>
-                    <Badge variant="error" className="px-4 py-1 border-none font-bold text-[9px]">{t('adminPages.masterData.modal.irreversible')}</Badge>
+                    <Badge variant="error" className="rounded-sm border-none px-4 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em]">{t('adminPages.masterData.modal.irreversible')}</Badge>
                 </div>
             </Modal>
         </AnimatedPageWrapper>

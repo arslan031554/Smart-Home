@@ -19,26 +19,26 @@ function mapProductLine(product, fallbackName) {
 
 function ProductRow({ item, formatMoney, isRelated = false, t }) {
     return (
-        <tr className={`group transition-colors align-top ${isRelated ? 'bg-slate-50/20 hover:bg-slate-50/50' : 'hover:bg-slate-50/30'}`}>
-            <td className="px-6 py-4">
-                <div className="w-16 h-16 rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden flex items-center justify-center text-slate-300 shadow-inner">
-                    {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" /> : <ImageOff className="w-5 h-5" />}
+        <tr className={`group transition-colors align-top ${isRelated ? 'bg-slate-50/40 hover:bg-slate-50/70' : 'hover:bg-slate-50/50'}`}>
+            <td className="px-5 py-3.5">
+                <div className="w-12 h-12 rounded-lg border border-slate-200/80 bg-slate-50 overflow-hidden flex items-center justify-center text-slate-300 shadow-inner">
+                    {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" /> : <ImageOff className="w-4 h-4" />}
                 </div>
             </td>
-            <td className="px-6 py-4">
-                <div className="flex flex-col gap-1.5 max-w-[420px]">
-                    <span className="text-sm font-black text-slate-900 leading-tight uppercase tracking-tight">{item.name}</span>
-                    {item.description ? <span className="text-[11px] text-slate-500 font-medium leading-relaxed">{item.description}</span> : null}
-                    <span className={`text-[9px] font-black uppercase tracking-[0.2em] mt-1 font-mono ${isRelated ? 'text-primary-500' : 'text-slate-300'}`}>
-                        {item.code}{isRelated ? ` � ${t('configurator.summary.products.autoCalculated', { defaultValue: 'Auto calculated' })}` : ''}
+            <td className="px-5 py-3.5">
+                <div className="flex flex-col gap-1 max-w-[420px]">
+                    <span className="text-xs sm:text-sm font-bold text-textPrimary leading-snug">{item.name}</span>
+                    {item.description ? <span className="text-[11px] text-textSecondary leading-relaxed line-clamp-2">{item.description}</span> : null}
+                    <span className={`text-[9px] font-bold uppercase tracking-wider font-mono ${isRelated ? 'text-primary-700' : 'text-slate-400'}`}>
+                        {item.code}{isRelated ? ` • ${t('configurator.summary.products.autoCalculated', { defaultValue: 'Auto calculated' })}` : ''}
                     </span>
                 </div>
             </td>
-            <td className="px-6 py-4 text-center">
-                <span className="inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-xl bg-slate-50 text-sm font-black text-slate-900 border border-slate-100 group-hover:bg-white transition-colors">{item.qty}</span>
+            <td className="px-5 py-3.5 text-center">
+                <span className="inline-flex items-center justify-center min-w-8 h-8 px-2.5 rounded-md bg-slate-50 text-xs font-bold text-textPrimary border border-slate-200/80">{item.qty}</span>
             </td>
-            <td className="px-6 py-4 text-right"><span className="text-sm font-bold text-slate-600 tabular-nums">{formatMoney(item.price)}</span></td>
-            <td className="px-6 py-4 text-right"><span className="text-sm font-black text-slate-900 tabular-nums">{formatMoney(item.subtotal)}</span></td>
+            <td className="px-5 py-3.5 text-right"><span className="text-xs sm:text-sm font-semibold text-textSecondary tabular-nums">{formatMoney(item.price)}</span></td>
+            <td className="px-5 py-3.5 text-right"><span className="text-xs sm:text-sm font-bold text-textPrimary tabular-nums">{formatMoney(item.subtotal)}</span></td>
         </tr>
     );
 }
@@ -58,37 +58,82 @@ export default function ProductsTable() {
     const lineCount = items.length + relatedItems.length;
 
     if (isCalculating && lineCount === 0) {
-        return <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6"><div className="flex items-center gap-3 text-primary-600"><Loader2 className="w-5 h-5 animate-spin" /><p className="text-sm font-bold">{t('configurator.summary.products.calculating', { defaultValue: 'Calculating products from the backend...' })}</p></div></Card>;
+        return (
+            <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+                <div className="flex items-center gap-3 text-primary-700">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <p className="text-xs sm:text-sm font-bold">{t('configurator.summary.products.calculating', { defaultValue: 'Calculating products from the backend...' })}</p>
+                </div>
+            </Card>
+        );
     }
 
     if (lineCount === 0) {
         return (
-            <Card className="p-5 border-none shadow-premium-sm rounded-[1.25rem] bg-white sm:p-6">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-2"><Package className="w-4 h-4 text-primary-600" /> {t('configurator.summary.products.title', { defaultValue: 'Products' })}</h3>
-                {unmetRequirements.length > 0 ? <p className="text-xs text-amber-700 font-semibold leading-relaxed">{t('configurator.summary.products.missingMappings', { defaultValue: 'The backend found required functions that do not have a complete product mapping yet. Update the master data before generating the offer.' })}</p> : <p className="text-xs text-slate-400 font-medium italic">{t('configurator.summary.products.waiting', { defaultValue: 'Backend-calculated products will appear here after the configuration is recalculated.' })}</p>}
+            <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary mb-2 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-primary-700" /> {t('configurator.summary.products.title', { defaultValue: 'Products' })}
+                </h3>
+                {unmetRequirements.length > 0 ? (
+                    <p className="text-xs text-amber-700 font-semibold leading-relaxed">{t('configurator.summary.products.missingMappings', { defaultValue: 'The backend found required functions that do not have a complete product mapping yet. Update the master data before generating the offer.' })}</p>
+                ) : (
+                    <p className="text-xs text-textSecondary italic">{t('configurator.summary.products.waiting', { defaultValue: 'Backend-calculated products will appear here after the configuration is recalculated.' })}</p>
+                )}
             </Card>
         );
     }
 
     return (
-        <Card className="overflow-hidden rounded-[1.25rem] border-none bg-white p-5 shadow-premium-sm sm:rounded-[1.5rem] sm:p-6">
-            <div className="flex items-center justify-between mb-6 gap-4">
-                <div className="flex items-center gap-3"><div className="p-2.5 bg-primary-50 rounded-xl text-primary-600"><Package className="w-5 h-5" /></div><h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">{t('configurator.summary.products.title', { defaultValue: 'Products' })}</h3></div>
-                <Badge variant="neutral" className="bg-slate-50 border-none text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1.5">{t('configurator.summary.products.count', { count: lineCount, defaultValue: '{{count}} line items' })}</Badge>
+        <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+            <div className="flex items-center justify-between mb-5 gap-4">
+                <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
+                        <Package className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.summary.products.title', { defaultValue: 'Products' })}</h3>
+                </div>
+                <Badge variant="neutral" className="bg-slate-100 border-none text-[10px] font-bold text-textSecondary uppercase tracking-wider px-3 py-1">
+                    {t('configurator.summary.products.count', { count: lineCount, defaultValue: '{{count}} line items' })}
+                </Badge>
             </div>
-            <div className="overflow-x-auto -mx-2">
-                <table className="w-full text-left min-w-[860px]">
-                    <thead><tr className="bg-slate-50/50"><th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('configurator.summary.products.columns.photo', { defaultValue: 'Photo' })}</th><th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('configurator.summary.products.columns.product', { defaultValue: 'Product' })}</th><th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">{t('configurator.summary.products.columns.quantity', { defaultValue: 'Quantity' })}</th><th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t('configurator.summary.products.columns.unitPrice', { defaultValue: 'Unit Price' })}</th><th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t('configurator.summary.products.columns.subtotal', { defaultValue: 'Subtotal' })}</th></tr></thead>
-                    <tbody className="divide-y divide-slate-50">
+            <div className="overflow-x-auto -mx-1">
+                <table className="w-full text-left min-w-[760px]">
+                    <thead>
+                        <tr className="bg-slate-50/80 border-b border-slate-100">
+                            <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.products.columns.photo', { defaultValue: 'Photo' })}</th>
+                            <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.products.columns.product', { defaultValue: 'Product' })}</th>
+                            <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-center">{t('configurator.summary.products.columns.quantity', { defaultValue: 'Quantity' })}</th>
+                            <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-right">{t('configurator.summary.products.columns.unitPrice', { defaultValue: 'Unit Price' })}</th>
+                            <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-right">{t('configurator.summary.products.columns.subtotal', { defaultValue: 'Subtotal' })}</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
                         {items.map((item) => <ProductRow key={item.key} item={item} formatMoney={formatMoney} t={t} />)}
-                        {relatedItems.length > 0 ? <tr><td colSpan={5} className="px-6 py-4"><div className="rounded-xl bg-primary-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary-700">{t('configurator.summary.products.relatedTitle', { defaultValue: 'Related Products' })}</div></td></tr> : null}
+                        {relatedItems.length > 0 ? (
+                            <tr>
+                                <td colSpan={5} className="px-5 py-2.5 bg-primary-50/50">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-primary-800">{t('configurator.summary.products.relatedTitle', { defaultValue: 'Related Products' })}</div>
+                                </td>
+                            </tr>
+                        ) : null}
                         {relatedItems.map((item) => <ProductRow key={`related-${item.key}`} item={item} formatMoney={formatMoney} isRelated t={t} />)}
                     </tbody>
-                    <tfoot><tr className="border-t-2 border-slate-100 bg-slate-50/30"><td colSpan={4} className="px-6 py-5"><span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('configurator.summary.products.footerLabel', { defaultValue: 'Products Subtotal / Project' })}</span></td><td className="px-6 py-5 text-right"><span className="text-xl font-black text-primary-600 tabular-nums">{formatMoney(total)}</span></td></tr></tfoot>
+                    <tfoot>
+                        <tr className="border-t-2 border-slate-200 bg-slate-50/50">
+                            <td colSpan={4} className="px-5 py-4">
+                                <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.products.footerLabel', { defaultValue: 'Products Subtotal / Project' })}</span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                                <span className="text-lg font-black text-primary-700 tabular-nums">{formatMoney(total)}</span>
+                            </td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
-            <div className="mt-6 flex items-center gap-3 p-4 bg-primary-50 rounded-2xl border border-primary-50"><Info className="w-4 h-4 text-primary-500 shrink-0" /><p className="text-[10px] font-bold text-primary-800/70 leading-relaxed italic">{t('configurator.summary.products.footer', { defaultValue: 'Products shown here come directly from the backend calculation and use the authoritative offer result.' })}</p></div>
-            {unmetRequirements.length > 0 ? <div className="mt-4 flex items-center gap-3 p-4 bg-amber-50 rounded-2xl border border-amber-100"><Info className="w-4 h-4 text-amber-600 shrink-0" /><p className="text-[10px] font-bold text-amber-900/80 leading-relaxed">{t('configurator.summary.products.footerWarning', { defaultValue: 'Some configured functions still have missing product mappings. The offer remains blocked until master data is completed.' })}</p></div> : null}
+            <div className="mt-4 flex items-center gap-2.5 p-3.5 bg-[#f9faf6] rounded-xl border border-slate-200/80">
+                <Info className="w-4 h-4 text-primary-700 shrink-0" />
+                <p className="text-[11px] text-textSecondary leading-relaxed">{t('configurator.summary.products.footer', { defaultValue: 'Products shown here come directly from the backend calculation and use the authoritative offer result.' })}</p>
+            </div>
         </Card>
     );
 }

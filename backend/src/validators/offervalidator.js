@@ -34,11 +34,25 @@ const SORT_OPTIONS = [
     'status_desc',
 ];
 
+const FOLLOWUP_STATUS_FILTERS = [
+    'pending',
+    'reminded',
+    'attempted',
+    'snoozed',
+    'completed',
+    'no_contact',
+];
+
 export const adminOfferListQueryValidator = [
     query('status').optional({ values: 'falsy' }).custom(isValidOfferStatus).withMessage('Invalid offer status'),
+    query('followup_status')
+        .optional({ values: 'falsy' })
+        .isIn(FOLLOWUP_STATUS_FILTERS)
+        .withMessage(`followup_status must be one of: ${FOLLOWUP_STATUS_FILTERS.join(', ')}`),
     query('date_from').optional({ values: 'falsy' }).isISO8601({ strict: true }).withMessage('date_from must be a valid ISO date'),
     query('date_to').optional({ values: 'falsy' }).isISO8601({ strict: true }).withMessage('date_to must be a valid ISO date'),
     query('client').optional({ values: 'falsy' }).trim().isLength({ max: 160 }).withMessage('client must be at most 160 characters'),
+    query('owner').optional({ values: 'falsy' }).trim().isLength({ max: 160 }).withMessage('owner must be at most 160 characters'),
     query('projectId').optional({ values: 'falsy' }).isUUID().withMessage('projectId must be a valid project ID'),
     query('min_value').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('min_value must be a non-negative number'),
     query('max_value').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('max_value must be a non-negative number'),

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearGeneratedOffer, generateOffer } from '../../features/offers/offersSlice';
 import { setStep, hydrateConfigurator, resetConfigurator } from '../../features/configurator/configuratorSlice';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Cpu, Database, Globe, Zap, Loader2, UserPlus, LogIn, ArrowRight, ShieldAlert, Fingerprint, Server, RotateCcw } from 'lucide-react';
+import { Activity, Cpu, Database, Globe, Zap, Loader2, UserPlus, LogIn, ArrowRight, ShieldAlert, Fingerprint, Server, RotateCcw, RefreshCcw, ArrowLeft } from 'lucide-react';
 import { Card, SectionTitle, Button, Alert, Badge } from '../common/UIComponents';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -20,20 +20,24 @@ function hasMeaningfulOfferState(configurator = {}) {
         levels.some((level) => Array.isArray(level.rooms) && level.rooms.length > 0)
     );
 }
+
 export default function GenerateOfferStep() {
     const dispatch = useDispatch();
     const configurator = useSelector((state) => state.configurator);
     const { isAuthenticated } = useSelector((state) => state.auth);
-    const { isGenerating } = useSelector((state) => state.offers);
-    const { t } = useTranslation();
-    const [progress, setProgress] = useState(0);
-    const [currentPhase, setCurrentPhase] = useState(t('configurator.generateOffer.title'));
-    const [showActivationPrompt, setShowActivationPrompt] = useState(false);
-    const [genError, setGenError] = useState(null);
+    const { isGenerating, generationError } = useSelector((state) => state.offers);
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const { generationError } = useSelector((state) => state.offers);
-    const finalizeOfferRef = useRef(null);
-    const finalizeTimeoutRef = useRef(null);
+
+    const [progress, setProgress] = useState(15);
+    const [currentPhase, setCurrentPhase] = useState(t('configurator.generateOffer.title'));
+    const [genError, setGenError] = useState(null);
+    const showActivationPrompt = !isAuthenticated;
+    const visibleProgress = showActivationPrompt ? 100 : progress;
+    const visibleCurrentPhase = showActivationPrompt
+        ? t('configurator.generateOffer.activationTitle', { defaultValue: 'Create account to finish' })
+        : currentPhase;
+
     const hasHydratedRef = useRef(false);
     const hasSubmittedRef = useRef(false);
     const cancelledRef = useRef(false);
@@ -55,67 +59,25 @@ export default function GenerateOfferStep() {
     }, [configurator, dispatch, isAuthenticated]);
 
     const generationPhases = useMemo(() => [
-        { progress: 10, label: `${t('configurator.generateOffer.nodes.configuration')}...` },
-        { progress: 25, label: `${t('configurator.generateOffer.nodes.configuration')}...` },
-        { progress: 40, label: `${t('configurator.generateOffer.nodes.hardware')}...` },
-        { progress: 55, label: `${t('configurator.generateOffer.nodes.services')}...` },
-        { progress: 70, label: `${t('configurator.generateOffer.nodes.services')}...` },
-        { progress: 85, label: `${t('configurator.generateOffer.nodes.documentation')}...` },
+        { progress: 15, label: `${t('configurator.generateOffer.nodes.validation')}...` },
+        { progress: 35, label: `${t('configurator.generateOffer.nodes.pricing')}...` },
+        { progress: 60, label: `${t('configurator.generateOffer.nodes.devices')}...` },
+        { progress: 80, label: `${t('configurator.generateOffer.nodes.services')}...` },
+        { progress: 90, label: `${t('configurator.generateOffer.nodes.documentation')}...` },
         { progress: 100, label: t('configurator.generateOffer.summaryComplete', { defaultValue: '{{summary}} complete', summary: t('configurator.steps.summary') }) },
     ], [t]);
-
-    useEffect(() => {
-        if (!isAuthenticated) {
-            const activationTimer = window.setTimeout(() => {
-                setProgress(100);
-                setCurrentPhase(t('configurator.generateOffer.activationTitle', { defaultValue: 'Create account to finish' }));
-                setShowActivationPrompt(true);
-            }, 0);
-            return () => window.clearTimeout(activationTimer);
-        }
-
-        const totalDuration = 4000;
-        const intervalTime = 100;
-        const stepsCount = totalDuration / intervalTime;
-        const increment = 100 / stepsCount;
-
-        const timer = setInterval(() => {
-            setProgress((prev) => {
-                const next = prev + increment;
-                const phase = generationPhases.find((p) => next <= p.progress) || generationPhases[generationPhases.length - 1];
-                setCurrentPhase(phase.label);
-
-                if (next >= 100) {
-                    clearInterval(timer);
-                    if (finalizeTimeoutRef.current) clearTimeout(finalizeTimeoutRef.current);
-                    finalizeTimeoutRef.current = setTimeout(() => {
-                        finalizeTimeoutRef.current = null;
-                        if (finalizeOfferRef.current) {
-                            finalizeOfferRef.current();
-                        }
-                    }, 800);
-                    return 100;
-                }
-                return next;
-            });
-        }, intervalTime);
-
-        return () => {
-            clearInterval(timer);
-            if (finalizeTimeoutRef.current) {
-                clearTimeout(finalizeTimeoutRef.current);
-                finalizeTimeoutRef.current = null;
-            }
-        };
-    }, [generationPhases, isAuthenticated, t]);
 
     const finalizeOffer = useCallback(async () => {
         if (cancelledRef.current || hasSubmittedRef.current || isGenerating) return;
         hasSubmittedRef.current = true;
         setGenError(null);
+
         const levels = Array.isArray(configurator.levels) && configurator.levels.length > 0
             ? configurator.levels
             : [{ id: 1, name: 'Ground Floor', rooms: [] }];
+
+        const currentLang = (i18n?.resolvedLanguage || i18n?.language || 'en').startsWith('ro') ? 'ro' : 'en';
+
         const payload = {
             projectId: configurator.currentProjectId || null,
             projectInfo: configurator.projectInfo || {},
@@ -125,39 +87,88 @@ export default function GenerateOfferStep() {
             serviceIds: Array.isArray(configurator.services) ? configurator.services : [],
             customerComments: configurator.customerComments || null,
             offerId: configurator.currentOfferId || null,
+            language: currentLang,
         };
+
         const resultAction = await dispatch(generateOffer(payload));
         if (cancelledRef.current) return;
+
         if (generateOffer.fulfilled.match(resultAction)) {
-            clearStoredConfiguratorSnapshot({ keepGuestSession: true });
-            dispatch(setStep(9));
+            setProgress(100);
+            const createdOffer = resultAction.payload;
+            const offerId = createdOffer?.id || null;
+
+            // Save snapshot with created offerId
+            const snapshot = buildStoredConfiguratorSnapshot({
+                ...configurator,
+                currentOfferId: offerId,
+                currentStep: 8,
+                guestSessionId: getOrCreateGuestSessionId(),
+            });
+            saveStoredConfiguratorSnapshot(snapshot);
+
+            setTimeout(() => {
+                dispatch(setStep(8));
+            }, 500);
         } else {
             hasSubmittedRef.current = false;
             setGenError(resultAction.payload || generationError || 'Offer generation failed');
         }
-    }, [configurator, dispatch, generationError, isGenerating]);
+    }, [configurator, dispatch, generationError, isGenerating, i18n]);
+
+    // Main trigger effect
     useEffect(() => {
-        finalizeOfferRef.current = finalizeOffer;
+        if (!isAuthenticated) return;
+
+        // Start after the effect has synchronized the authenticated render.
+        const timer = window.setTimeout(() => finalizeOffer(), 0);
+        return () => window.clearTimeout(timer);
+    }, [isAuthenticated, finalizeOffer]);
+
+    // Progress bar animation while processing
+    useEffect(() => {
+        if (!isGenerating) return;
+
+        const interval = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 90) return prev;
+                const next = prev + 5;
+                const phase = generationPhases.find((p) => next <= p.progress) || generationPhases[generationPhases.length - 1];
+                setCurrentPhase(phase.label);
+                return next;
+            });
+        }, 300);
+
+        return () => clearInterval(interval);
+    }, [isGenerating, generationPhases]);
+
+    const handleRetry = useCallback(() => {
+        hasSubmittedRef.current = false;
+        cancelledRef.current = false;
+        setProgress(15);
+        finalizeOffer();
     }, [finalizeOffer]);
 
     const handleStartNewConfigurator = useCallback(() => {
         cancelledRef.current = true;
         hasSubmittedRef.current = false;
-        if (finalizeTimeoutRef.current) {
-            clearTimeout(finalizeTimeoutRef.current);
-            finalizeTimeoutRef.current = null;
-        }
         clearStoredConfiguratorSnapshot({ keepGuestSession: true });
         dispatch(resetConfigurator());
         dispatch(clearGeneratedOffer());
         navigate('/configurator', { replace: true, state: { freshConfigurator: true } });
     }, [dispatch, navigate]);
 
+    const handleGoBackToSummary = useCallback(() => {
+        cancelledRef.current = true;
+        hasSubmittedRef.current = false;
+        dispatch(setStep(6));
+    }, [dispatch]);
+
     const systemNodes = [
-        { name: t('configurator.generateOffer.nodes.configuration'), icon: Cpu, status: progress > 20 ? 'Active' : 'Syncing' },
-        { name: t('configurator.generateOffer.nodes.hardware'), icon: Database, status: progress > 40 ? 'Active' : 'Syncing' },
-        { name: t('configurator.generateOffer.nodes.services'), icon: Globe, status: progress > 60 ? 'Active' : 'Syncing' },
-        { name: t('configurator.generateOffer.nodes.documentation'), icon: Zap, status: progress > 80 ? 'Active' : 'Syncing' },
+        { name: t('configurator.generateOffer.nodes.configuration'), icon: Cpu, status: visibleProgress > 20 ? 'Active' : 'Syncing' },
+        { name: t('configurator.generateOffer.nodes.hardware'), icon: Database, status: visibleProgress > 45 ? 'Active' : 'Syncing' },
+        { name: t('configurator.generateOffer.nodes.services'), icon: Globe, status: visibleProgress > 70 ? 'Active' : 'Syncing' },
+        { name: t('configurator.generateOffer.nodes.documentation'), icon: Zap, status: visibleProgress > 90 ? 'Active' : 'Syncing' },
     ];
 
     return (
@@ -176,17 +187,43 @@ export default function GenerateOfferStep() {
                 />
             </div>
 
-            {genError ? <Alert variant="error">{genError}</Alert> : null}
+            {genError ? (
+                <div className="w-full space-y-4">
+                    <Alert variant="error">{genError}</Alert>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                        <Button
+                            type="button"
+                            variant="primary"
+                            size="md"
+                            className="gap-2"
+                            onClick={handleRetry}
+                        >
+                            <RefreshCcw className="h-4 w-4" />
+                            {t('configurator.retry', { defaultValue: 'Retry Offer Generation' })}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="md"
+                            className="gap-2"
+                            onClick={handleGoBackToSummary}
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            {t('configurator.goBack', { defaultValue: 'Back to Summary' })}
+                        </Button>
+                    </div>
+                </div>
+            ) : null}
 
             <Card className="w-full rounded-[1.25rem] p-5 sm:rounded-[1.5rem] sm:p-7">
                 <div className="space-y-8">
                     <div className="space-y-2">
                         <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
                             <span>{t('configurator.generateOffer.status')}</span>
-                            <span>{Math.floor(progress)}%</span>
+                            <span>{Math.floor(visibleProgress)}%</span>
                         </div>
                         <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
-                            <div className="h-full rounded-full bg-gradient-brand transition-all duration-300" style={{ width: `${progress}%` }} />
+                            <div className="h-full rounded-full bg-gradient-brand transition-all duration-300" style={{ width: `${visibleProgress}%` }} />
                         </div>
                     </div>
 
@@ -197,7 +234,7 @@ export default function GenerateOfferStep() {
                             </div>
                             <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.generateOffer.status')}</p>
-                                <p className="mt-1 text-lg font-semibold text-textPrimary">{currentPhase}</p>
+                                <p className="mt-1 text-lg font-semibold text-textPrimary">{visibleCurrentPhase}</p>
                             </div>
                         </div>
                         <Badge variant="info">{isGenerating ? 'Processing' : 'Queued'}</Badge>
@@ -259,8 +296,8 @@ export default function GenerateOfferStep() {
                             size="lg"
                             className="gap-2"
                             onClick={() => {
-                                saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({ ...configurator, currentStep: 8, guestSessionId: getOrCreateGuestSessionId() }));
-                                navigate('/auth/register', { state: { returnTo: '/configurator', returnStep: 8 } });
+                                saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({ ...configurator, currentStep: 6, guestSessionId: getOrCreateGuestSessionId() }));
+                                navigate('/auth/register', { state: { returnTo: '/configurator', returnStep: 6 } });
                             }}
                         >
                             <UserPlus className="h-4.5 w-4.5" />
@@ -273,8 +310,8 @@ export default function GenerateOfferStep() {
                             size="lg"
                             className="gap-2"
                             onClick={() => {
-                                saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({ ...configurator, currentStep: 8, guestSessionId: getOrCreateGuestSessionId() }));
-                                navigate('/auth/login', { state: { returnTo: '/configurator', returnStep: 8 } });
+                                saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({ ...configurator, currentStep: 6, guestSessionId: getOrCreateGuestSessionId() }));
+                                navigate('/auth/login', { state: { returnTo: '/configurator', returnStep: 6 } });
                             }}
                         >
                             <LogIn className="h-4.5 w-4.5" />

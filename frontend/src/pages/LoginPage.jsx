@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Globe, UserCheck } from 'lucide-react';
-import { Button, Input, Checkbox, Badge, Alert } from '../components/common/UIComponents';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Button, Input, Alert } from '../components/common/UIComponents';
 import { useDispatch, useSelector } from 'react-redux';
-import { startGuestSession, login, clearError } from '../features/auth/authSlice';
-import { attachGuestDraftToAccount, resetConfigurator } from '../features/configurator/configuratorSlice';
+import { login, clearError } from '../features/auth/authSlice';
+import { attachGuestDraftToAccount } from '../features/configurator/configuratorSlice';
 import { useTranslation } from 'react-i18next';
 import { hasAdminAccess } from '../constants/adminPermissions';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
     const { t } = useTranslation();
@@ -20,13 +22,31 @@ export default function LoginPage() {
     const isReturningToConfigurator = location.state?.returnTo === '/configurator';
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
+
+    const clearFieldError = (field) => {
+        setFormErrors((prev) => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         dispatch(clearError());
 
-        const resultAction = await dispatch(login({ email, password }));
+        const trimmedEmail = email.trim();
+        const nextErrors = {};
+        if (!trimmedEmail) nextErrors.email = t('auth.errors.fieldRequired');
+        else if (!EMAIL_PATTERN.test(trimmedEmail)) nextErrors.email = t('auth.errors.invalidEmail');
+        if (!password) nextErrors.password = t('auth.errors.fieldRequired');
+        setFormErrors(nextErrors);
+        if (Object.keys(nextErrors).length) return;
+
+        const resultAction = await dispatch(login({ email: trimmedEmail, password }));
         if (login.fulfilled.match(resultAction)) {
             const user = resultAction.payload.data.user;
             await dispatch(attachGuestDraftToAccount()).unwrap().catch(() => null);
@@ -41,123 +61,102 @@ export default function LoginPage() {
                 navigate(destination);
             }
         } else if (resultAction.payload?.message === 'verification_required') {
-            navigate('/auth/choose-verification', {
+            navigate('/auth/verify-otp', {
                 state: {
                     email: resultAction.payload.user?.email,
-                    availableChannels: resultAction.payload.availableChannels || [],
-                    verificationReason: resultAction.payload.verificationReason || 'account_verification',
-                    delivery: resultAction.payload.delivery || null,
+                    channel: 'email',
+                    availableChannels: ['email'],
+                    verificationReason: resultAction.payload.verificationReason || 'login_2fa',
                     deliveryError: resultAction.payload.deliveryError || null,
+                    message: resultAction.payload.deliveryError ? null : t('auth.errors.otpSent', { channel: 'Email' }),
                     ...(returnState && { returnTo: returnState.returnTo, returnStep: returnState.returnStep }),
                 },
             });
         }
     };
 
-    const handleGuestStart = () => {
-        dispatch(startGuestSession());
-        dispatch(resetConfigurator());
-        navigate('/configurator', { state: { freshConfigurator: true } });
-    };
-
     return (
-        <div className="mx-auto max-w-lg space-y-10 animate-fade-in">
-            <div className="space-y-4 text-center animate-slide-up" style={{ animationDelay: '0.08s' }}>
-                <Badge variant="info" className="mx-auto gap-2">
-                    <UserCheck className="h-3.5 w-3.5" />
-                    {t('auth.welcomeBack')}
-                </Badge>
-                <div className="space-y-3">
-                    <h3 className="font-heading text-5xl font-semibold leading-none text-textPrimary">{t('auth.loginTitle')}</h3>
-                    <p className="mx-auto max-w-md text-sm leading-relaxed text-textSecondary">{t('auth.loginSubtitle')}</p>
-                </div>
-            </div>
+        <div className="w-full max-w-sm animate-fade-in">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                <h2 className="text-center font-heading text-3xl font-semibold text-textPrimary">
+                    {t('nav.login')}
+                </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-7 animate-slide-up" style={{ animationDelay: '0.16s' }}>
                 {error ? (
-                    <div className="rounded-2xl border border-red-500/18 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700">
                         {t(error)}
                     </div>
                 ) : null}
 
                 {isReturningToConfigurator ? (
-                    <Alert variant="info">
-                        <div className="space-y-1">
-                            <p className="font-semibold text-textPrimary">
-                                {t('auth.resumeConfiguratorTitle', { defaultValue: 'Resume your saved configuration' })}
-                            </p>
-                            <p>
-                                {t('auth.resumeConfiguratorBody', { defaultValue: 'Sign in to attach the guest project to the customer account. If your account needs email or SMS verification, we will bring you back to the configurator immediately after that step.' })}
-                            </p>
-                        </div>
+                    <Alert variant="info" className="rounded-md">
+                        {t('auth.resumeConfiguratorTitle', { defaultValue: 'Resume your saved configuration' })}
                     </Alert>
                 ) : null}
 
-                <div className="space-y-5">
-                    <Input
-                        label={t('auth.email')}
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@email.com"
-                        icon={Mail}
-                        required
-                    />
+                <Input
+                    label={t('auth.email')}
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }}
+                    placeholder="you@email.com"
+                    icon={Mail}
+                    required
+                    error={formErrors.email}
+                    className="rounded-md bg-fog"
+                />
 
-                    <div className="space-y-3">
-                        <Input
-                            label={t('auth.password')}
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="........"
-                            icon={Lock}
-                            required
-                        />
-                        <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
-                            <Checkbox
-                                label={t('auth.rememberMe')}
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                            />
-                            <Link to="/auth/forgot-password" className="text-sm font-semibold text-primary-300 transition-colors hover:text-primary-200">
-                                {t('auth.forgotPassword')}
-                            </Link>
-                        </div>
+                <div className="space-y-2">
+                    <Input
+                        label={t('auth.password')}
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }}
+                        placeholder="........"
+                        icon={Lock}
+                        trailingIcon={(
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-textSecondary transition-colors hover:text-textPrimary focus:outline-none"
+                                aria-label={showPassword ? t('auth.hidePassword', { defaultValue: 'Hide password' }) : t('auth.showPassword', { defaultValue: 'Show password' })}
+                            >
+                                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                            </button>
+                        )}
+                        required
+                        error={formErrors.password}
+                        className="rounded-md bg-fog"
+                    />
+                    <div className="text-right">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/auth/forgot-password')}
+                            className="text-xs font-semibold text-textSecondary transition-colors hover:text-primary-500"
+                        >
+                            {t('auth.forgotPassword')}
+                        </button>
                     </div>
                 </div>
 
-                <div className="space-y-4 pt-2">
-                    <Button
-                        type="submit"
-                        size="lg"
-                        variant="primary"
-                        className="w-full gap-2"
-                        loading={loading}
-                    >
-                        {t('nav.login')}
-                        <ArrowRight className="h-4.5 w-4.5" />
-                    </Button>
+                <Button
+                    type="submit"
+                    size="lg"
+                    variant="primary"
+                    className="w-full rounded-md"
+                    loading={loading}
+                >
+                    {t('nav.login')}
+                    <ArrowRight className="h-4.5 w-4.5" />
+                </Button>
 
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={handleGuestStart}
-                        className="w-full gap-2"
-                    >
-                        <Globe className="h-4.5 w-4.5" />
-                        {t('auth.continueAsGuest')}
-                    </Button>
+                <div className="text-center text-sm text-textSecondary">
+                    {t('auth.noAccountPrompt', { defaultValue: "Don't have an account?" })}{' '}
+                    <Link to="/auth/register" className="font-semibold text-primary-500 transition-colors hover:text-primary-700">
+                        {t('auth.createAccount')}
+                    </Link>
                 </div>
             </form>
-
-            <div className="flex items-center justify-center gap-2 border-t border-white/8 pt-6 text-sm text-textSecondary animate-slide-up" style={{ animationDelay: '0.22s' }}>
-                <span>{t('auth.alreadyHaveAccountPrompt')}</span>
-                <Link to="/auth/register" className="font-semibold text-primary-300 transition-colors hover:text-primary-200">
-                    {t('auth.createAccount')}
-                </Link>
-            </div>
         </div>
     );
 }
-

@@ -8,11 +8,11 @@ import { normalizeTranslations } from '../utils/localization.js';
 import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
-import { Op, fn, col } from 'sequelize';
+import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import { normalizeOfferStatus } from '../constants/offerStatus.js';
 import { getDefaultPermissionsForEmployeeRole, normalizePermissions } from '../constants/adminpermissions.js';
 
-const { RoomType, BuildingType, ProductRange, Color, Product, ProductFunctionMapping, ProductDependency, ProductRangeColor, SmartFunction, Service, User, Offer, Project } = models;
+const { RoomType, BuildingType, ProductRange, Color, Product, ProductFunctionMapping, ProductDependency, ProductRangeColor, SmartFunction, Service, User, Offer, OfferFollowup, Project, NewsletterSubscriber } = models;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Include options for models that have relations needed in list/detail */
@@ -488,7 +488,28 @@ async function safeRemoveRoomType(id) {
     }
 }
 
+async function safeRemoveBuildingType(id) {
+    const t = await sequelize.transaction();
+    try {
+        const record = await BuildingType.findByPk(id, { transaction: t });
+        if (!record) throw new Error('BuildingType not found');
+        const counts = {
+            roomTypeMappings: await models.BuildingTypeRoomType.count({ where: { buildingTypeId: id }, transaction: t }),
+            projects: await Project.count({ where: { buildingTypeId: id }, transaction: t })
+        };
+        await Project.update({ buildingTypeId: null }, { where: { buildingTypeId: id }, transaction: t });
+        await models.BuildingTypeRoomType.destroy({ where: { buildingTypeId: id }, transaction: t });
+        await record.destroy({ transaction: t });
+        await t.commit();
+        return { id, deleted: true, unlinkedProjects: counts.projects, dependencyCounts: counts };
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+}
+
 export const remove = async (modelName, id) => {
+    if (modelName === 'BuildingType') return safeRemoveBuildingType(id);
     if (modelName === 'SmartFunction') return safeRemoveSmartFunction(id);
     if (modelName === 'RoomType') return safeRemoveRoomType(id);
     const record = await models[modelName].findByPk(id);
@@ -807,6 +828,7 @@ function serializeAdminUser(user) {
         phone: plain.phone || '',
         role: plain.role || 'customer',
         employeeRole: plain.employeeRole || null,
+        permissions: normalizePermissions(plain.permissions),
         companyName: plain.companyName || '',
         isActive: plain.isActive !== false,
         isVerified: plain.isVerified === true,
@@ -824,6 +846,7 @@ export async function getUsers() {
             'phone',
             'role',
             'employeeRole',
+            'permissions',
             'companyName',
             'isActive',
             'isVerified',
@@ -836,6 +859,21 @@ export async function getUsers() {
     return users.map(serializeAdminUser);
 }
 
+export async function getNewsletterSubscribers() {
+    try {
+        const subscribers = await NewsletterSubscriber.findAll({
+            attributes: ['email', 'source', 'subscribedAt'],
+            order: [['subscribedAt', 'DESC']],
+        });
+        return subscribers.map(sub => (sub.toJSON ? sub.toJSON() : sub));
+    } catch (err) {
+        if (err.name === 'SequelizeDatabaseError') {
+            return [];
+        }
+        throw err;
+    }
+}
+
 export async function getUserById(id) {
     const user = await User.findByPk(id, {
         attributes: [
@@ -845,6 +883,7 @@ export async function getUserById(id) {
             'phone',
             'role',
             'employeeRole',
+            'permissions',
             'companyName',
             'invoiceName',
             'invoiceVat',
@@ -864,6 +903,95 @@ export async function getUserById(id) {
         invoiceVat: plain.invoiceVat || '',
         invoiceAddress: plain.invoiceAddress || '',
     };
+}
+
+const createUserManagementError = (message, statusCode = 400) => {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    return error;
+};
+
+async function findUserByNormalizedEmail(email, excludedId = null) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedEmail) return null;
+    const conditions = [sqlWhere(fn('LOWER', col('email')), normalizedEmail)];
+    if (excludedId) conditions.push({ id: { [Op.ne]: excludedId } });
+    return User.findOne({ where: { [Op.and]: conditions } });
+}
+
+async function assertActiveAdminWillRemain(user, nextRole, nextIsActive) {
+    if (user.role !== 'admin' || user.isActive === false) return;
+    if (nextRole === 'admin' && nextIsActive !== false) return;
+
+    const otherActiveAdmins = await User.count({
+        where: {
+            id: { [Op.ne]: user.id },
+            role: 'admin',
+            isActive: true,
+        },
+    });
+    if (otherActiveAdmins === 0) {
+        throw createUserManagementError('The last active admin cannot be demoted or deactivated.');
+    }
+}
+
+export async function updateUser(id, data = {}, actorId = null) {
+    const user = await User.findByPk(id);
+    if (!user) throw createUserManagementError('User not found', 404);
+
+    const nextRole = data.role ?? user.role;
+    const nextIsActive = data.isActive !== undefined ? Boolean(data.isActive) : user.isActive !== false;
+    if (actorId === id && (nextRole !== 'admin' || nextIsActive === false)) {
+        throw createUserManagementError('You cannot remove your own admin access or deactivate your own account.');
+    }
+    await assertActiveAdminWillRemain(user, nextRole, nextIsActive);
+
+    if (data.email !== undefined) {
+        const normalizedEmail = String(data.email || '').trim().toLowerCase();
+        const existing = await findUserByNormalizedEmail(normalizedEmail, id);
+        if (existing) throw createUserManagementError('An account with this email already exists.', 409);
+        user.email = normalizedEmail;
+    }
+    if (data.fullName !== undefined) user.fullName = String(data.fullName || '').trim() || null;
+    if (data.phone !== undefined) user.phone = String(data.phone || '').trim() || null;
+    if (data.companyName !== undefined) user.companyName = String(data.companyName || '').trim() || null;
+    if (data.isActive !== undefined) user.isActive = Boolean(data.isActive);
+    if (data.isVerified !== undefined) user.isVerified = Boolean(data.isVerified);
+
+    const previousRole = user.role;
+    user.role = nextRole;
+    if (nextRole === 'employee') {
+        const employeeRole = String(data.employeeRole ?? user.employeeRole ?? 'Engineer').trim() || 'Engineer';
+        user.employeeRole = employeeRole;
+        user.permissions = data.permissions !== undefined
+            ? normalizePermissions(data.permissions)
+            : (previousRole === 'employee'
+                ? normalizePermissions(user.permissions)
+                : getDefaultPermissionsForEmployeeRole(employeeRole));
+    } else {
+        user.employeeRole = null;
+        user.permissions = [];
+    }
+
+    if (data.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.passwordHash = await bcrypt.hash(String(data.password), salt);
+    }
+
+    await user.save();
+    return getUserById(user.id);
+}
+
+export async function deleteUser(id, actorId = null) {
+    if (actorId === id) {
+        throw createUserManagementError('You cannot delete your own account.');
+    }
+
+    const user = await User.findByPk(id);
+    if (!user) throw createUserManagementError('User not found', 404);
+    await assertActiveAdminWillRemain(user, null, false);
+    await user.destroy();
+    return { id };
 }
 
 export async function getEmployees() {
@@ -886,7 +1014,7 @@ export async function getEmployeeById(id) {
 }
 
 export async function createEmployee(data = {}) {
-    const existing = await User.findOne({ where: { email: String(data.email).trim().toLowerCase() } });
+    const existing = await findUserByNormalizedEmail(data.email);
     if (existing) {
         const err = new Error('Employee email already exists');
         err.statusCode = 400;
@@ -921,12 +1049,7 @@ export async function updateEmployee(id, data = {}) {
     if (!employee) throw new Error('Employee not found');
 
     if (data.email && String(data.email).trim().toLowerCase() !== employee.email) {
-        const existing = await User.findOne({
-            where: {
-                email: String(data.email).trim().toLowerCase(),
-                id: { [Op.ne]: id },
-            },
-        });
+        const existing = await findUserByNormalizedEmail(data.email, id);
         if (existing) {
             const err = new Error('Employee email already exists');
             err.statusCode = 400;
@@ -963,6 +1086,8 @@ export async function getAdminStats() {
         activeEmployees,
         offersByStatusRows,
         totalCustomers,
+        totalProjects,
+        pendingFollowups,
     ] = await Promise.all([
         Offer.count(),
         Offer.findOne({
@@ -981,6 +1106,8 @@ export async function getAdminStats() {
             raw: true,
         }),
         User.count({ where: { role: 'customer' } }),
+        Project.count(),
+        OfferFollowup.count({ where: { enabled: true, status: 'pending' } }),
     ]);
 
     const offersByStatus = offersByStatusRows.reduce((acc, row) => {
@@ -996,6 +1123,8 @@ export async function getAdminStats() {
         totalRevenue: Number(revenueResult?.totalRevenue || 0),
         activeEmployees,
         totalCustomers,
+        totalProjects,
+        pendingFollowups,
         offersByStatus,
     };
 }

@@ -287,22 +287,49 @@ const legacyOfferAttributes = {
 
 const legacyProjectAttributes = ['id', 'name', 'description', 'levelsCount', 'multiplicationIndex', 'builtUpArea'];
 
-function buildLegacyProjectInclude({ userId = null, projectId = null, client = '' } = {}) {
+function buildUserSearchWhere(client = '', owner = '') {
+    const conditions = [];
+    const buildSearchCondition = (term) => ({
+        [Op.or]: [
+            { fullName: { [Op.iLike]: `%${term}%` } },
+            { email: { [Op.iLike]: `%${term}%` } },
+        ],
+    });
+
+    if (client) conditions.push(buildSearchCondition(client));
+    if (owner) conditions.push(buildSearchCondition(owner));
+
+    if (!conditions.length) return undefined;
+    return conditions.length === 1 ? conditions[0] : { [Op.and]: conditions };
+}
+
+function buildFollowupStatusWhere(status = '') {
+    if (status === 'reminded' || status === 'attempted') {
+        return {
+            enabled: true,
+            [Op.or]: [
+                { status },
+                { status: { [Op.like]: `${status}_%` } },
+            ],
+        };
+    }
+
+    if (status === 'pending' || status === 'snoozed') {
+        return { enabled: true, status };
+    }
+
+    return status ? { status } : undefined;
+}
+
+function buildLegacyProjectInclude({ userId = null, projectId = null, client = '', owner = '' } = {}) {
+    const userWhere = buildUserSearchWhere(client, owner);
     const userInclude = {
         model: User,
         as: 'user',
         attributes: ['id', 'email', 'fullName'],
-        required: !!client,
+        required: Boolean(userWhere),
+        ...(userWhere ? { where: userWhere } : {}),
     };
-
-    if (client) {
-        userInclude.where = {
-            [Op.or]: [
-                { fullName: { [Op.iLike]: `%${client}%` } },
-                { email: { [Op.iLike]: `%${client}%` } },
-            ],
-        };
-    }
 
     const projectInclude = {
         model: Project,
@@ -602,24 +629,31 @@ export const listAdminOffers = async (filters = {}) => {
     }
 
     const client = typeof filters.client === 'string' ? filters.client.trim() : '';
+    const owner = typeof filters.owner === 'string' ? filters.owner.trim() : '';
     const projectId = typeof filters.projectId === 'string' ? filters.projectId.trim() : '';
+    if (projectId) where.projectId = projectId;
+    const userWhere = buildUserSearchWhere(client, owner);
     const userInclude = {
         model: User,
         as: 'user',
         attributes: ['id', 'email', 'fullName'],
-        required: !!client,
+        required: Boolean(userWhere),
+        ...(userWhere ? { where: userWhere } : {}),
     };
-    if (client) {
-        userInclude.where = {
-            [Op.or]: [
-                { fullName: { [Op.iLike]: `%${client}%` } },
-                { email: { [Op.iLike]: `%${client}%` } },
-            ],
-        };
-    }
+
+    const followupStatus = typeof filters.followup_status === 'string'
+        ? filters.followup_status.trim().toLowerCase()
+        : '';
+    const followupWhere = buildFollowupStatusWhere(followupStatus);
+    const followupInclude = {
+        model: OfferFollowup,
+        as: 'followup',
+        required: Boolean(followupWhere),
+        ...(followupWhere ? { where: followupWhere } : {}),
+    };
 
     const include = [
-        { model: OfferFollowup, as: 'followup' },
+        followupInclude,
         { model: OfferFile, as: 'pdfFile', attributes: ['id', 'fileType', 'generatedFilename', 'createdAt'] },
         { model: OfferFile, as: 'excelFile', attributes: ['id', 'fileType', 'generatedFilename', 'createdAt'] },
         {
@@ -664,7 +698,7 @@ export const listAdminOffers = async (filters = {}) => {
         const { rows, count } = await Offer.findAndCountAll({
             attributes: legacyOfferAttributes,
             where,
-            include: [buildLegacyProjectInclude({ client, projectId })],
+            include: [followupInclude, buildLegacyProjectInclude({ client, owner, projectId })],
             order: buildAdminOfferOrder(sort),
             limit,
             offset,

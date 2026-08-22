@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Button, Badge } from '../../common/UIComponents';
-import { FileText, ArrowRight, ShieldCheck, UserPlus, LogIn, Mail, MessageSquare, Building2, Receipt, CheckCircle2 } from 'lucide-react';
+import { FileText, ArrowRight, ShieldCheck, UserPlus, Mail, MessageSquare, Building2, Receipt, CheckCircle2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setStep, syncGuestConfiguratorDraft } from '../../../features/configurator/configuratorSlice';
 import { useTranslation } from 'react-i18next';
@@ -16,31 +16,40 @@ export default function GenerateOfferSection() {
     const { isAuthenticated } = useSelector((state) => state.auth);
     const hasCalculation = calculation && typeof calculation.grandTotal === 'number';
     const hasUnmetRequirements = Array.isArray(calculation?.unmetRequirements) && calculation.unmetRequirements.length > 0;
-    const isBlocked = isCalculating || !hasCalculation || hasUnmetRequirements;
 
     const persistGuestProgress = () => {
         const guestSessionId = getOrCreateGuestSessionId();
         saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({
             ...configurator,
-            currentStep: 7,
+            currentStep: 6,
             guestSessionId,
         }));
         dispatch(syncGuestConfiguratorDraft()).catch(() => null);
     };
 
-    const handleAuthRedirect = (mode) => {
+    const handleAuthRedirect = (mode, returnStep = 6) => {
         persistGuestProgress();
         navigate(`/auth/${mode}`, {
             state: {
                 returnTo: '/configurator',
-                returnStep: 7,
+                returnStep,
             },
         });
     };
 
     const handleGenerate = () => {
-        if (isBlocked) return;
-        dispatch(setStep(8));
+        if (isCalculating) return;
+        if (!isAuthenticated) {
+            persistGuestProgress();
+            navigate('/auth/login', {
+                state: {
+                    returnTo: '/configurator',
+                    returnStep: 6,
+                },
+            });
+            return;
+        }
+        dispatch(setStep(7));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -62,66 +71,64 @@ export default function GenerateOfferSection() {
                 helper: t('configurator.summary.generate.invoiceDataHelper', { defaultValue: 'Billing details are stored for later offer confirmation and invoicing.' }),
             },
             {
-                icon: Mail,
+                icon: MessageSquare,
                 label: t('configurator.summary.generate.preferencesLabel', { defaultValue: 'Newsletter, terms, and cookies' }),
                 helper: t('configurator.summary.generate.preferencesHelper', { defaultValue: 'Communication preference and policy consent are captured on the real account.' }),
             },
             {
-                icon: MessageSquare,
+                icon: Mail,
                 label: t('configurator.summary.generate.verificationLabel', { defaultValue: 'Email or SMS verification' }),
                 helper: t('configurator.summary.generate.verificationHelper', { defaultValue: 'The saved guest configuration is attached after the OTP verification step.' }),
             },
         ];
 
         return (
-            <Card id="summary-account-activation" className="rounded-[1.15rem] border border-primary-500/16 bg-primary-50 p-5 shadow-soft sm:rounded-[1.25rem] sm:p-6">
-                <div className="space-y-8">
+            <Card id="summary-account-activation" className="rounded-2xl border border-primary-500/20 bg-primary-50/70 p-5 shadow-soft sm:p-6">
+                <div className="space-y-6">
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div className="flex items-start gap-4">
-                            <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[1.75rem] border border-primary-200 bg-white text-primary-700 shadow-soft">
-                                <ShieldCheck className="h-7 w-7" />
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-white text-primary-700 shadow-xs">
+                                <ShieldCheck className="h-6 w-6" />
                             </div>
-                            <div className="space-y-3">
-                                <Badge variant="info" className="gap-2">
+                            <div className="space-y-2">
+                                <Badge variant="info" className="gap-1.5 px-2.5 py-0.5 text-[10px] font-bold">
                                     <ShieldCheck className="h-3.5 w-3.5" />
                                     {t('configurator.summary.generate.activationRequired', { defaultValue: 'Account activation required' })}
                                 </Badge>
-                                <div className="space-y-2">
-                                    <h3 className="text-2xl font-semibold text-textPrimary">
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-bold text-textPrimary sm:text-xl">
                                         {t('configurator.summary.generate.activationGateTitle', { defaultValue: 'Finish the customer account before generating the final offer' })}
                                     </h3>
-                                    <p className="max-w-2xl text-sm leading-relaxed text-textSecondary">
+                                    <p className="max-w-2xl text-xs sm:text-sm leading-relaxed text-textSecondary">
                                         {t('configurator.summary.generate.activationGateBody', { defaultValue: 'The client can start the project as a guest, but the final offer, PDFs, follow-up reminders, and stored history must belong to a verified customer account. Your current configuration steps are already being saved and will be restored after sign-up or sign-in.' })}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                            <Button size="lg" className="gap-2" onClick={() => handleAuthRedirect('register')}>
-                                <UserPlus className="h-4.5 w-4.5" />
+                        <div className="flex flex-col gap-2.5 sm:flex-row lg:flex-col shrink-0">
+                            <Button size="md" className="gap-2 rounded-lg text-xs font-bold" onClick={() => handleAuthRedirect('register')}>
+                                <UserPlus className="h-4 w-4" />
                                 {t('auth.createAccount', { defaultValue: 'Create Account' })}
-                                <ArrowRight className="h-4.5 w-4.5" />
                             </Button>
-                            <Button variant="secondary" size="lg" className="gap-2" onClick={() => handleAuthRedirect('login')}>
-                                <LogIn className="h-4.5 w-4.5" />
+                            <Button variant="secondary" size="md" className="gap-2 rounded-lg text-xs font-semibold" onClick={() => handleAuthRedirect('login')}>
                                 {t('nav.login', { defaultValue: 'Log In' })}
                             </Button>
                         </div>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-2">
                         {activationItems.map((item) => {
                             const Icon = item.icon;
                             return (
-                                <div key={item.label} className="rounded-[1.15rem] border border-white/60 bg-white/70 p-4 sm:p-5">
-                                    <div className="flex items-start gap-4">
-                                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700">
-                                            <Icon className="h-5 w-5" />
+                                <div key={item.label} className="rounded-xl border border-white/80 bg-white/90 p-3.5 sm:p-4 shadow-xs">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-primary-200 bg-primary-50 text-primary-700">
+                                            <Icon className="h-4.5 w-4.5" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-semibold text-textPrimary">{item.label}</p>
-                                            <p className="mt-1 text-xs leading-relaxed text-textSecondary">{item.helper}</p>
+                                            <p className="text-xs sm:text-sm font-bold text-textPrimary">{item.label}</p>
+                                            <p className="mt-0.5 text-[11px] leading-relaxed text-textSecondary">{item.helper}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -129,7 +136,7 @@ export default function GenerateOfferSection() {
                         })}
                     </div>
 
-                    <div className="rounded-[1.2rem] border border-primary-200 bg-white/80 px-4 py-3 text-sm leading-relaxed text-textSecondary sm:px-5">
+                    <div className="rounded-xl border border-primary-200 bg-white/90 px-4 py-2.5 text-xs leading-relaxed text-textSecondary">
                         {t('configurator.summary.generate.activationGateFooter', { defaultValue: 'The registration flow already includes reCAPTCHA and email/SMS OTP verification, so the customer account is activated before the final offer is generated.' })}
                     </div>
                 </div>
@@ -138,52 +145,35 @@ export default function GenerateOfferSection() {
     }
 
     return (
-        <Card className="flex flex-col items-center justify-center space-y-5 rounded-[1.15rem] border-none bg-slate-900 p-5 text-center text-white shadow-premium relative overflow-hidden group sm:rounded-[1.25rem] sm:p-6">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-primary-500 rounded-full -mr-48 -mt-48 blur-[100px] opacity-20 group-hover:scale-110 transition-transform duration-1000" />
-
-            <div className="w-full relative z-10 space-y-8">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-14 h-14 bg-white/10 rounded-[1.15rem] flex items-center justify-center shadow-inner sm:w-16 sm:h-16">
-                        <FileText className="w-8 h-8 text-primary-400" />
+        <Card className="flex flex-col items-center justify-center space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center text-white shadow-soft relative overflow-hidden sm:p-6">
+            <div className="w-full relative z-10 space-y-6">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/10">
+                        <FileText className="w-6 h-6 text-primary-400" />
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-2xl font-bold tracking-tight">{t('configurator.summary.generate.title', { defaultValue: 'Generate Offer' })}</h3>
-                        <p className="text-sm font-medium text-slate-400 max-w-lg mx-auto leading-relaxed">
+                        <h3 className="text-xl font-bold tracking-tight">{t('configurator.summary.generate.title', { defaultValue: 'Generate Offer' })}</h3>
+                        <p className="text-xs sm:text-sm font-medium text-slate-300 max-w-lg mx-auto leading-relaxed">
                             {t('configurator.summary.generate.subtitle', { defaultValue: 'Your configuration is ready. Generate the offer to save the backend totals and project details.' })}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-6">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-400/10 px-4 py-2 rounded-full border border-emerald-400/20">
-                        <ShieldCheck className="w-4 h-4" />
-                        {hasUnmetRequirements
-                            ? t('configurator.summary.generate.statusMapping', { defaultValue: 'Master data update required' })
-                            : !hasCalculation
-                                ? t('configurator.summary.generate.statusWaiting', { defaultValue: 'Waiting for backend calculation' })
-                                : isCalculating
-                                    ? t('configurator.summary.generate.statusRefreshing', { defaultValue: 'Refreshing backend calculation' })
-                                    : t('configurator.summary.generate.statusReady', { defaultValue: 'All validations passed' })}
-                    </div>
-
+                <div className="flex flex-col items-center gap-4">
                     <Button
                         size="lg"
                         onClick={handleGenerate}
-                        className="h-14 min-w-[240px] px-8 text-base font-bold bg-primary-700 hover:bg-primary-800 text-white rounded-[1.15rem] shadow-xl shadow-primary-600/20 active:scale-95 transition-all group/btn sm:h-16 sm:min-w-[300px] sm:text-lg"
-                        disabled={isBlocked}
+                        className="h-11 min-w-[200px] px-6 text-xs sm:text-sm font-bold bg-primary-500 hover:bg-primary-600 text-white rounded-lg shadow-xs active:scale-[0.99] transition-all group/btn sm:h-12 sm:min-w-[240px] disabled:opacity-50"
+                        disabled={isCalculating}
                     >
-                        <span className="flex items-center gap-3">
-                            {hasUnmetRequirements
-                                ? t('configurator.summary.generate.completeMapping', { defaultValue: 'Complete Product Mapping' })
-                                : t('configurator.summary.generate.cta', { defaultValue: 'Generate Offer' })}
-                            <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                        <span className="flex items-center gap-2">
+                            <span>{t('configurator.summary.generate.cta', { defaultValue: 'Generate Offer' })}</span>
+                            <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                         </span>
                     </Button>
 
-                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
-                        {hasUnmetRequirements
-                            ? t('configurator.summary.generate.blockedNote', { defaultValue: 'Generation is blocked until every configured function has a mapped product path' })
-                            : t('configurator.summary.generate.footer', { defaultValue: 'Document generation may take a few seconds' })}
+                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                        {t('configurator.summary.generate.footer', { defaultValue: 'Document generation may take a few seconds' })}
                     </p>
                 </div>
             </div>

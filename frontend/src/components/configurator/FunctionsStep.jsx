@@ -31,48 +31,13 @@ const ICON_MAP = {
     Activity,
 };
 
-const SCOPE_MAP = {
-    IN: { labelKey: 'configurator.functions.scope.room', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
-    OUT: { labelKey: 'configurator.functions.scope.level', cls: 'bg-blue-50 text-blue-700 border border-blue-100' },
-    GENERAL: { labelKey: 'configurator.functions.scope.project', cls: 'bg-violet-50 text-violet-700 border border-violet-100' },
-};
-
 function getIcon(name, cls = 'w-5 h-5') {
     const Icon = ICON_MAP[name] || Box;
     return <Icon className={cls} />;
 }
 
-function getFunctionDemandBadges(func) {
-    const badges = [];
-    const input = Number(func?.inputChannelCount ?? 0);
-    const output = Number(func?.outputChannelCount ?? 0);
-    const general = Number(func?.generalChannelCount ?? 0);
-
-    if (input > 0) badges.push({ key: 'input', label: `IN x${input}`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' });
-    if (output > 0) badges.push({ key: 'output', label: `OUT x${output}`, cls: 'bg-blue-50 text-blue-700 border-blue-100' });
-    if (general > 0) badges.push({ key: 'general', label: `GEN x${general}`, cls: 'bg-violet-50 text-violet-700 border-violet-100' });
-
-    if (badges.length > 0) return badges;
-
-    const fallback = String(func?.channelType || 'IN').toUpperCase();
-    if (fallback === 'OUT') return [{ key: 'output-fallback', label: 'OUT x1', cls: 'bg-blue-50 text-blue-700 border-blue-100' }];
-    if (fallback === 'GENERAL') return [{ key: 'general-fallback', label: 'GEN x1', cls: 'bg-violet-50 text-violet-700 border-violet-100' }];
-    return [{ key: 'input-fallback', label: 'IN x1', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' }];
-}
-
-const ScopeBadge = ({ channelType }) => {
-    const { t } = useTranslation();
-    const { labelKey, cls } = SCOPE_MAP[channelType] || SCOPE_MAP.IN;
-    return (
-        <span className={clsx('inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider', cls)}>
-            {t(labelKey)}
-        </span>
-    );
-};
-
 const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityChange }) => {
     const { t } = useTranslation();
-    const demandBadges = getFunctionDemandBadges(func);
     const isAdded = Boolean(addedFunc);
 
     const handleQtyBlur = (event) => {
@@ -82,61 +47,73 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
     };
 
     return (
-        <Card
+        <div
             className={clsx(
-                'relative overflow-hidden rounded-3xl border-2 transition-all duration-300',
+                'group relative flex flex-col justify-between rounded-2xl border p-5 transition-all duration-300',
                 isAdded
-                    ? 'border-primary-500 bg-primary-100 shadow-md'
-                    : 'border-slate-100 bg-primary-50 hover:border-primary-200 hover:shadow-sm'
+                    ? 'border-primary-400 bg-primary-50/50 shadow-md ring-1 ring-primary-400/30'
+                    : 'border-[#E5E7EB] bg-white shadow-soft hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-card-hover'
             )}
         >
-            {isAdded ? <div className="absolute left-0 right-0 top-0 h-1 bg-primary-500" /> : null}
+            {isAdded ? (
+                <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-primary-600" />
+            ) : null}
 
-            <div className="space-y-5 p-6">
+            <div>
                 <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className={clsx(
-                            'flex h-11 w-11 items-center justify-center rounded-xl shadow-sm transition-all',
-                            isAdded ? 'bg-primary-600 text-white' : 'bg-slate-50 text-slate-400'
-                        )}>
-                            {getIcon(func.icon)}
+                    <div className="flex items-center gap-3.5 min-w-0">
+                        <div
+                            className={clsx(
+                                'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border transition-all duration-300',
+                                isAdded
+                                    ? 'border-primary-300 bg-primary-600 text-white shadow-sm'
+                                    : 'border-primary-100 bg-primary-50 text-primary-700 group-hover:border-primary-200 group-hover:bg-primary-100/80'
+                            )}
+                        >
+                            {getIcon(func.icon, 'h-5 w-5')}
                         </div>
                         <div className="min-w-0">
-                            <h4 className="truncate text-sm font-bold leading-tight text-slate-900">{func.name}</h4>
-                            <p className="mt-0.5 text-[10px] font-mono text-slate-400">{func.code}</p>
+                            <h4 className="truncate text-base sm:text-[17px] font-bold leading-snug text-textPrimary group-hover:text-primary-800 transition-colors">
+                                {func.name}
+                            </h4>
+                            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-textSecondary">
+                                {func.code}
+                            </p>
                         </div>
                     </div>
+                    {isAdded ? (
+                        <Badge variant="success" className="h-5 shrink-0 px-2 text-[9px] font-bold">
+                            {t('configurator.functions.active', { defaultValue: 'Active' })}
+                        </Badge>
+                    ) : null}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <ScopeBadge channelType={func.channelType} />
-                    {demandBadges.map((badge) => (
-                        <span
-                            key={badge.key}
-                            className={clsx('inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider', badge.cls)}
-                        >
-                            {badge.label}
-                        </span>
-                    ))}
-                    {isAdded ? <Badge variant="success" className="h-4 text-[8px]">{t('configurator.functions.active', { defaultValue: 'Active' })}</Badge> : null}
+                <div className="mt-4 min-h-[4rem]">
+                    {func.description ? (
+                        <p className="text-xs sm:text-[13px] leading-relaxed text-textSecondary line-clamp-4">
+                            {func.description}
+                        </p>
+                    ) : null}
                 </div>
+            </div>
 
-                <p className="h-8 text-xs leading-relaxed text-slate-500 line-clamp-2">{func.description}</p>
-
+            <div className="mt-4 pt-1">
                 {isAdded ? (
-                    <div className="space-y-3 pt-2">
-                        <div className="group flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('configurator.summary.quantity')}</span>
-                            <div className="flex items-center gap-3">
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between rounded-lg border border-primary-200/80 bg-white px-3 py-1.5 shadow-xs">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                                {t('configurator.summary.quantity')}
+                            </span>
+                            <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => {
                                         const quantity = (addedFunc.quantity || 1) - 1;
                                         if (quantity <= 0) onRemove();
                                         else onQuantityChange(quantity);
                                     }}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-primary-50 text-slate-400 shadow-sm transition-all hover:border-red-200 hover:text-red-500"
+                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500 transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600"
                                 >
-                                    <Minus className="h-3.5 w-3.5" />
+                                    <Minus className="h-3 w-3" />
                                 </button>
                                 <input
                                     type="number"
@@ -144,45 +121,42 @@ const FunctionCard = React.memo(({ func, addedFunc, onAdd, onRemove, onQuantityC
                                     key={`${func.id}-${addedFunc?.quantity || 1}`}
                                     defaultValue={addedFunc?.quantity || 1}
                                     onBlur={handleQtyBlur}
-                                    className="w-8 bg-transparent text-center text-sm font-black text-slate-900 tabular-nums focus:outline-none"
+                                    className="w-7 bg-transparent text-center text-xs font-bold text-textPrimary tabular-nums focus:outline-none"
                                 />
                                 <button
                                     onClick={() => onQuantityChange((addedFunc.quantity || 1) + 1)}
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-primary-50 text-slate-400 shadow-sm transition-all hover:border-primary-200 hover:text-primary-600"
+                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700 transition-all hover:bg-primary-100"
                                 >
-                                    <Plus className="h-3.5 w-3.5" />
+                                    <Plus className="h-3 w-3" />
                                 </button>
                             </div>
                         </div>
 
                         <button
                             onClick={onRemove}
-                            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-100 text-[10px] font-bold uppercase tracking-widest text-red-500 transition-all hover:border-red-200 hover:bg-red-50"
+                            className="flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white text-[11px] font-semibold tracking-wide text-red-500 transition-all hover:border-red-300 hover:bg-red-50 hover:text-red-600"
                         >
-                            <X className="h-3.5 w-3.5" />
-                            {t('configurator.functions.remove', { defaultValue: 'Remove Function' })}
+                            <X className="h-3 w-3" />
+                            {t('configurator.functions.remove', { defaultValue: 'Remove' })}
                         </button>
                     </div>
                 ) : (
-                    <div className="pt-2">
-                        <button
-                            onClick={onAdd}
-                            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-[10px] font-bold uppercase tracking-widest text-white shadow-md transition-all hover:bg-primary-600 hover:shadow-lg"
-                        >
-                            <Plus className="h-4 w-4" />
-                            {t('configurator.functions.add', { defaultValue: 'Add Function' })}
-                        </button>
-                    </div>
+                    <button
+                        onClick={onAdd}
+                        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary-700 text-xs font-semibold tracking-wide text-white shadow-xs transition-all duration-200 hover:bg-primary-800 active:scale-[0.99]"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        {t('configurator.functions.add', { defaultValue: 'Add Function' })}
+                    </button>
                 )}
             </div>
-        </Card>
+        </div>
     );
 });
 FunctionCard.displayName = 'FunctionCard';
 
 const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) => {
     const { t } = useTranslation();
-    const demandBadges = getFunctionDemandBadges(func);
 
     const handleQtyBlur = (event) => {
         const quantity = Math.max(1, parseInt(event?.target?.value, 10) || 1);
@@ -191,55 +165,47 @@ const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) =
     };
 
     return (
-        <Card className="rounded-[1.25rem] border border-primary-100 bg-white p-5 shadow-sm">
-            <div className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
-                            {getIcon(func.icon)}
+        <div className="group relative flex flex-col justify-between rounded-2xl border border-primary-200/80 bg-white p-5 shadow-soft transition-all duration-300 hover:border-primary-300 hover:shadow-card-hover">
+            <div>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 shadow-sm">
+                            {getIcon(func.icon, 'h-5 w-5')}
                         </div>
                         <div className="min-w-0">
-                            <h4 className="truncate text-sm font-bold text-slate-900">{func.name}</h4>
-                            <p className="mt-0.5 text-[10px] font-mono text-slate-400">{func.code}</p>
+                            <h4 className="truncate text-base sm:text-[17px] font-bold leading-snug text-textPrimary">{func.name}</h4>
+                            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wider text-textSecondary">{func.code}</p>
                         </div>
                     </div>
                     <button
                         onClick={onRemove}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 transition-all hover:border-red-200 hover:bg-red-100"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-textSecondary transition-all hover:border-red-500/18 hover:bg-red-500/10 hover:text-red-500"
                         title={t('configurator.functions.remove', { defaultValue: 'Remove Function' })}
                     >
-                        <X className="h-4 w-4" />
+                        <X className="h-3.5 w-3.5" />
                     </button>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <ScopeBadge channelType={func.channelType} />
-                    {demandBadges.map((badge) => (
-                        <span
-                            key={badge.key}
-                            className={clsx('inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider', badge.cls)}
-                        >
-                            {badge.label}
-                        </span>
-                    ))}
+                <div className="mt-4 min-h-[3.5rem]">
+                    {func.description ? (
+                        <p className="text-xs sm:text-[13px] leading-relaxed text-textSecondary line-clamp-4">{func.description}</p>
+                    ) : null}
                 </div>
+            </div>
 
-                {func.description ? (
-                    <p className="text-xs leading-relaxed text-slate-500 line-clamp-2">{func.description}</p>
-                ) : null}
-
-                <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('configurator.summary.quantity')}</span>
-                    <div className="flex items-center gap-3">
+            <div className="mt-4 pt-1">
+                <div className="flex items-center justify-between rounded-lg border border-slate-200/80 bg-slate-50/70 px-3.5 py-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-textSecondary">{t('configurator.summary.quantity')}</span>
+                    <div className="flex items-center gap-2.5">
                         <button
                             onClick={() => {
                                 const quantity = (func.quantity || 1) - 1;
                                 if (quantity <= 0) onRemove();
                                 else onQuantityChange(quantity);
                             }}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-all hover:border-red-200 hover:text-red-500"
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-red-300 hover:text-red-500"
                         >
-                            <Minus className="h-3.5 w-3.5" />
+                            <Minus className="h-3 w-3" />
                         </button>
                         <input
                             type="number"
@@ -247,18 +213,18 @@ const SelectedFunctionCard = React.memo(({ func, onRemove, onQuantityChange }) =
                             key={`${func.id}-${func.quantity || 1}`}
                             defaultValue={func.quantity || 1}
                             onBlur={handleQtyBlur}
-                            className="w-10 bg-transparent text-center text-sm font-black text-slate-900 tabular-nums focus:outline-none"
+                            className="w-8 bg-transparent text-center text-xs font-bold text-textPrimary tabular-nums focus:outline-none"
                         />
                         <button
                             onClick={() => onQuantityChange((func.quantity || 1) + 1)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-all hover:border-primary-200 hover:text-primary-600"
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-primary-200 bg-primary-50 text-primary-700 shadow-xs transition-all hover:bg-primary-100"
                         >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Plus className="h-3 w-3" />
                         </button>
                     </div>
                 </div>
             </div>
-        </Card>
+        </div>
     );
 });
 SelectedFunctionCard.displayName = 'SelectedFunctionCard';
@@ -392,47 +358,52 @@ export default function FunctionsStep() {
     }, 0), [levels]);
 
     return (
-        <div className="mx-auto max-w-7xl space-y-6 animate-fade-in pb-16 sm:space-y-8 sm:pb-20">
-            <div className="flex flex-col justify-between gap-8 border-b border-slate-100 pb-8 md:flex-row md:items-end">
-                <SectionTitle
-                    title={t('configurator.functions.title', { defaultValue: 'Select Smart Functions for Each Room' })}
-                    subtitle={t('configurator.functions.subtitle', { defaultValue: 'Only compatible smart functions for the selected room are shown. Products and services are calculated automatically from these room-by-room choices.' })}
-                    badge={t('configurator.functions.badge', { defaultValue: 'Step 03: Smart Functions' })}
-                />
+        <div className="mx-auto max-w-7xl space-y-6 animate-fade-in pb-12 sm:space-y-8 sm:pb-16">
+            {/* Header and Stats */}
+            <div className="flex flex-col gap-6 border-b border-slate-200/80 pb-6">
+                <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                    <SectionTitle
+                        title={t('configurator.functions.title', { defaultValue: 'Select Smart Functions for Each Room' })}
+                        subtitle={t('configurator.functions.subtitle', { defaultValue: 'Only compatible smart functions for the selected room are shown. Products and services are calculated automatically from these room-by-room choices.' })}
+                        badge={t('configurator.functions.badge', { defaultValue: 'Step 03: Smart Functions' })}
+                    />
 
-                <div className="flex flex-shrink-0 items-center gap-6 rounded-[1.15rem] border border-slate-100 bg-[#f7f8f2] p-4 shadow-sm sm:p-5">
-                    <div className="px-2 text-center">
-                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.selectedCount', { defaultValue: 'Functions Selected' })}</p>
-                        <p className="text-3xl font-black tabular-nums text-slate-900">{totalSelectedCount}</p>
-                    </div>
-                    <div className="h-10 w-px bg-slate-100" />
-                    <div className="px-2 text-center">
-                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.roomsCovered', { defaultValue: 'Rooms Covered' })}</p>
-                        <p className="text-3xl font-black tabular-nums text-primary-600">{coveredRoomsCount}</p>
+                    <div className="flex flex-shrink-0 items-center gap-5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft sm:px-6">
+                        <div className="text-center">
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('configurator.functions.selectedCount', { defaultValue: 'Functions Selected' })}</p>
+                            <p className="text-3xl font-black tabular-nums text-textPrimary">{totalSelectedCount}</p>
+                        </div>
+                        <div className="h-9 w-px bg-slate-200" />
+                        <div className="text-center">
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('configurator.functions.roomsCovered', { defaultValue: 'Rooms Covered' })}</p>
+                            <p className="text-3xl font-black tabular-nums text-primary-700">{coveredRoomsCount}</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-10 xl:flex-row">
-                <aside className="flex-shrink-0 space-y-6 xl:w-80">
+            {/* Main Content Layout */}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start xl:gap-8">
+                {/* Left Sidebar: Rooms List */}
+                <aside className="w-full shrink-0 space-y-3 lg:w-72 xl:w-80">
                     <div className="flex items-center justify-between px-2">
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-500">{t('configurator.functions.rooms', { defaultValue: 'Rooms' })}</h3>
-                        <Badge variant="neutral" className="border-none bg-slate-100 text-[8px] font-bold">
-                            {allRooms.length} Total Rooms
+                        <h3 className="text-[11px] font-bold uppercase tracking-wider text-textSecondary">{t('configurator.functions.rooms', { defaultValue: 'Rooms' })}</h3>
+                        <Badge variant="neutral" className="border-none bg-slate-100 text-[10px] font-bold">
+                            {allRooms.length} {t('configurator.summary.rooms', { defaultValue: 'Rooms' })}
                         </Badge>
                     </div>
 
-                    <div className="max-h-[650px] overflow-hidden overflow-y-auto rounded-[1.15rem] border border-slate-100 bg-[#f7f8f2] shadow-sm">
+                    <div className="max-h-[600px] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white shadow-soft divide-y divide-slate-100">
                         {levels.map((level) => {
                             const levelRooms = Array.isArray(level?.rooms) ? level.rooms : [];
                             return (
-                                <div key={level.id} className="border-b border-slate-50 last:border-0">
-                                    <div className="sticky top-0 z-10 flex items-center gap-2.5 border-b border-slate-100/50 bg-slate-50/50 px-5 py-4 backdrop-blur-sm">
-                                        <Layers className="h-3.5 w-3.5 text-primary-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">{level.name}</span>
+                                <div key={level.id} className="border-b border-slate-100 last:border-0">
+                                    <div className="sticky top-0 z-10 flex items-center gap-2 bg-[#f9faf6] px-4 py-2.5 border-b border-slate-100/80 backdrop-blur-sm">
+                                        <Layers className="h-3.5 w-3.5 text-primary-700" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-textSecondary">{level.name}</span>
                                     </div>
 
-                                    <div className="divide-y divide-slate-50">
+                                    <div className="divide-y divide-slate-100/60 p-1.5 space-y-1">
                                         {levelRooms.length > 0 ? levelRooms.map((room) => {
                                             const resolvedRoom = allRooms.find((item) => item.id === room.id) || room;
                                             const isActive = activeRoomId === room.id;
@@ -442,43 +413,40 @@ export default function FunctionsStep() {
                                                     key={room.id}
                                                     onClick={() => setSelectedRoomId(room.id)}
                                                     className={clsx(
-                                                        'group relative flex w-full items-center justify-between px-6 py-4.5 text-left transition-all',
+                                                        'group flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left transition-all',
                                                         isActive
-                                                            ? 'bg-primary-600 text-white'
-                                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                                            ? 'bg-primary-700 text-white shadow-xs'
+                                                            : 'text-textPrimary hover:bg-primary-50/60 hover:text-primary-800'
                                                     )}
                                                 >
-                                                    {isActive ? <div className="absolute bottom-3 left-0 top-3 w-1 rounded-r-full bg-white" /> : null}
-                                                    <div className="min-w-0">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={clsx(
-                                                                'h-2 w-2 flex-shrink-0 rounded-full transition-all',
-                                                                isActive ? 'bg-white' : functionCount > 0 ? 'bg-emerald-400' : 'bg-slate-200 group-hover:bg-primary-300'
-                                                            )} />
-                                                            <div className="min-w-0">
-                                                                <span className="block truncate text-sm font-bold">{resolvedRoom.name}</span>
-                                                                <span className={clsx(
-                                                                    'mt-0.5 block text-[9px] font-bold uppercase tracking-widest',
-                                                                    isActive ? 'text-primary-100' : 'text-slate-400'
-                                                                )}>
-                                                                    {resolvedRoom.roomTypeName}
-                                                                </span>
-                                                            </div>
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div className={clsx(
+                                                            'h-2 w-2 flex-shrink-0 rounded-full transition-all',
+                                                            isActive ? 'bg-white' : functionCount > 0 ? 'bg-emerald-500' : 'bg-slate-300'
+                                                        )} />
+                                                        <div className="min-w-0">
+                                                            <span className="block truncate text-sm font-bold leading-tight">{resolvedRoom.name}</span>
+                                                            <span className={clsx(
+                                                                'mt-0.5 block text-[10px] font-medium uppercase tracking-wider truncate',
+                                                                isActive ? 'text-primary-100' : 'text-textSecondary'
+                                                            )}>
+                                                                {resolvedRoom.roomTypeName}
+                                                            </span>
                                                         </div>
                                                     </div>
-                                                    <div className="ml-3 flex flex-col items-end gap-2">
+                                                    <div className="ml-2 flex items-center gap-1.5 shrink-0">
                                                         {resolvedRoom.roomCount > 1 ? (
                                                             <span className={clsx(
-                                                                'rounded-lg px-2.5 py-1 text-[9px] font-black shadow-sm',
-                                                                isActive ? 'bg-white/20 text-white' : 'border border-primary-100 bg-primary-50 text-primary-600'
+                                                                'rounded-md px-1.5 py-0.5 text-[9px] font-bold',
+                                                                isActive ? 'bg-white/20 text-white' : 'bg-primary-50 text-primary-700 border border-primary-100'
                                                             )}>
-                                                                x {resolvedRoom.roomCount}
+                                                                x{resolvedRoom.roomCount}
                                                             </span>
                                                         ) : null}
                                                         {functionCount > 0 ? (
                                                             <span className={clsx(
-                                                                'rounded-lg px-2.5 py-1 text-[9px] font-black shadow-sm',
-                                                                isActive ? 'bg-white/20 text-white' : 'border border-emerald-100 bg-emerald-50 text-emerald-600'
+                                                                'rounded-md px-1.5 py-0.5 text-[10px] font-bold',
+                                                                isActive ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                                                             )}>
                                                                 {functionCount}
                                                             </span>
@@ -487,102 +455,72 @@ export default function FunctionsStep() {
                                                 </button>
                                             );
                                         }) : (
-                                            <div className="px-6 py-5 text-[11px] font-medium italic text-slate-400">{t('configurator.functions.noSpaces', { defaultValue: 'No spaces configured' })}</div>
+                                            <div className="px-4 py-4 text-[11px] font-medium italic text-textSecondary">{t('configurator.functions.noSpaces', { defaultValue: 'No spaces configured' })}</div>
                                         )}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-
-                    <Card className="space-y-5 rounded-[1.15rem] border-none bg-slate-900 p-5 shadow-xl sm:p-6">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-500/20">
-                                <Activity className="h-4 w-4 text-primary-400" />
-                            </div>
-                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">{t('configurator.functions.scopeTitle', { defaultValue: 'Function Scope' })}</h4>
-                        </div>
-
-                        <div className="space-y-4">
-                            {Object.entries(SCOPE_MAP).map(([scope, config]) => (
-                                <div key={scope} className="space-y-1.5">
-                                    <div className="flex items-center gap-2">
-                                        <div className={clsx(
-                                            'h-1.5 w-1.5 rounded-full',
-                                            scope === 'IN' ? 'bg-emerald-500' : scope === 'OUT' ? 'bg-blue-500' : 'bg-violet-500'
-                                        )} />
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">{config.label}</span>
-                                    </div>
-                                    <p className="pl-3.5 text-[9px] leading-relaxed text-slate-500">
-                                        {scope === 'IN' ? 'Calculated for each room independently.' : scope === 'OUT' ? 'Aggregated at level before hardware selection.' : 'Aggregated once across the whole project.'}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
                 </aside>
 
-                <main className="flex-grow space-y-8">
+                {/* Right Main Content */}
+                <main className="flex-1 min-w-0 space-y-6">
                     {currentRoom ? (
-                        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                            <Card className="group relative mb-6 overflow-hidden rounded-[1.25rem] border-none bg-[#f7f8f2] p-5 shadow-sm sm:mb-8 sm:p-6">
-                                <div className="absolute right-0 top-0 h-64 w-64 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary-50 opacity-40 blur-[80px] transition-transform duration-1000 group-hover:scale-110" />
-
-                                <div className="relative z-10 flex flex-col justify-between gap-8 md:flex-row md:items-center">
-                                    <div className="flex items-center gap-6">
-                                        <div className="flex h-16 w-16 items-center justify-center rounded-md] bg-slate-900 shadow-lg transition-colors duration-500 group-hover:bg-primary-600">
-                                            <Home className="h-8 w-8 text-white" />
-                                        </div>
-                                        <div>
-                                            <div className="mb-1.5 flex items-center gap-3">
-                                                <Badge variant="neutral" className="border-none bg-slate-100 px-3 py-1 text-[9px] font-black uppercase">
-                                                    {currentRoom.levelName}
-                                                </Badge>
-                                                <ChevronRight className="h-4 w-4 text-slate-200" />
-                                                <Badge variant="primary" className="px-3 py-1 text-[9px] font-black uppercase">
-                                                    {currentRoom.roomTypeName}
-                                                </Badge>
-                                            </div>
-                                            <h3 className="text-3xl font-black leading-none tracking-tight text-slate-900">{currentRoom.name}</h3>
-                                        </div>
+                        <div className="space-y-6">
+                            {/* Active Room Hero Card */}
+                            <div className="flex flex-col justify-between gap-5 rounded-2xl border border-primary-200/70 bg-[#f7f8f2] p-5 shadow-soft sm:flex-row sm:items-center sm:p-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl border border-primary-200 bg-white text-primary-700 shadow-xs">
+                                        <Home className="h-6 w-6" />
                                     </div>
-
-                                    <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-3 shadow-inner">
-                                        <div className="px-4 text-right">
-                                            <p className="mb-1 text-[9px] font-bold uppercase tracking-widest text-slate-400">{t('configurator.functions.selectedCount', { defaultValue: 'Functions Selected' })}</p>
-                                            <p className="text-xl font-black text-slate-900">{currentRoomSelections.length}</p>
+                                    <div className="min-w-0">
+                                        <div className="mb-1 flex items-center gap-2">
+                                            <Badge variant="info" className="px-2.5 py-0.5 text-[10px] font-bold uppercase">
+                                                {currentRoom.levelName}
+                                            </Badge>
+                                            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                                            <span className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                                                {currentRoom.roomTypeName}
+                                            </span>
                                         </div>
-                                        {currentRoom.roomCount > 1 ? (
-                                            <>
-                                                <div className="h-8 w-px bg-slate-200" />
-                                                <div className="px-4 text-right">
-                                                    <div className="mb-1.5 flex items-center justify-end gap-1.5">
-                                                        <Badge variant="primary" className="h-4 text-[8px] font-black">{t('configurator.functions.repeatedRoomCount', { defaultValue: 'Repeated Room Count' })}</Badge>
-                                                    </div>
-                                                    <p className="text-[8px] font-black uppercase leading-none tracking-widest text-slate-400">
-                                                        Function quantities are entered per room.
-                                                        <br />
-                                                        Repeated room count (x{currentRoom.roomCount}) is applied during calculation.
-                                                    </p>
-                                                </div>
-                                            </>
-                                        ) : null}
+                                        <h3 className="truncate text-2xl font-extrabold tracking-tight text-textPrimary sm:text-3xl">{currentRoom.name}</h3>
                                     </div>
                                 </div>
-                            </Card>
 
+                                <div className="flex items-center gap-3 self-start rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs sm:self-auto">
+                                    <div className="px-3 text-right">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-textSecondary">{t('configurator.functions.selectedCount', { defaultValue: 'Functions' })}</p>
+                                        <p className="text-xl font-black text-textPrimary">{currentRoomSelections.length}</p>
+                                    </div>
+                                    {currentRoom.roomCount > 1 ? (
+                                        <>
+                                            <div className="h-7 w-px bg-slate-200" />
+                                            <div className="px-3 text-right">
+                                                <Badge variant="primary" className="mb-0.5 px-2 py-0.5 text-[9px] font-bold">
+                                                    x{currentRoom.roomCount} {t('configurator.roomsLevels.summary.totalUnits', { defaultValue: 'Units' })}
+                                                </Badge>
+                                                <p className="text-[9px] text-textSecondary">{t('configurator.functions.repeatedNotice', { defaultValue: 'Quantities multiplied' })}</p>
+                                            </div>
+                                        </>
+                                    ) : null}
+                                </div>
+                            </div>
+
+                            {/* Function Lists */}
                             {availableFunctions.length > 0 ? (
-                                <div className="mt-8 space-y-6 sm:mt-10">
-                                    <section className="space-y-6">
-                                        <div className="flex items-center justify-between gap-4 px-4">
-                                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.selectedInRoom', { defaultValue: 'Selected Functions In This Room' })}</h3>
-                                            <Badge variant="neutral" className="border-none bg-slate-100 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest">
-                                                {currentRoomSelections.length} Active
+                                <div className="space-y-8">
+                                    {/* Section 1: Selected in this room */}
+                                    <section className="space-y-4">
+                                        <div className="flex items-center justify-between gap-4 px-1">
+                                            <h3 className="text-xs font-bold uppercase tracking-wider text-textSecondary">{t('configurator.functions.selectedInRoom', { defaultValue: 'Selected Functions In This Room' })}</h3>
+                                            <Badge variant="neutral" className="border-none bg-slate-100 px-3 py-1 text-[10px] font-bold">
+                                                {currentRoomSelections.length} {t('configurator.functions.active', { defaultValue: 'Active' })}
                                             </Badge>
                                         </div>
 
                                         {currentRoomSelections.length > 0 ? (
-                                            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                                 {currentRoomSelections.map((func) => (
                                                     <SelectedFunctionCard
                                                         key={`${activeRoomId || 'none'}-selected-${func.id}`}
@@ -593,42 +531,43 @@ export default function FunctionsStep() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <Card className="rounded-[1.15rem] border border-dashed border-slate-200 bg-white/80 p-5 shadow-none sm:p-6">
-                                                <p className="text-sm leading-relaxed text-slate-500">
-                                                    No functions have been selected for <strong>{currentRoom.name}</strong> yet. Use the compatible function list below to add them one by one.
+                                            <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center shadow-xs">
+                                                <p className="text-xs sm:text-sm text-textSecondary">
+                                                    No functions selected for <strong>{currentRoom.name}</strong> yet. Choose from the available options below.
                                                 </p>
-                                            </Card>
+                                            </div>
                                         )}
                                     </section>
 
-                                    <section className="space-y-6">
-                                        <div className="flex flex-col justify-between gap-4 px-4 md:flex-row md:items-end">
-                                            <div className="space-y-2">
-                                                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">{t('configurator.functions.addCompatible', { defaultValue: 'Add Compatible Functions' })}</h3>
-                                                <p className="text-xs font-medium text-slate-500">
-                                                    Only functions mapped to the selected room type are shown here.
+                                    {/* Section 2: Add Compatible Functions */}
+                                    <section className="space-y-4">
+                                        <div className="flex flex-col justify-between gap-3 px-1 sm:flex-row sm:items-end">
+                                            <div>
+                                                <h3 className="text-xs font-bold uppercase tracking-wider text-textSecondary">{t('configurator.functions.addCompatible', { defaultValue: 'Add Compatible Functions' })}</h3>
+                                                <p className="mt-0.5 text-xs text-textSecondary">
+                                                    Only functions compatible with {currentRoom.roomTypeName} are displayed.
                                                 </p>
                                             </div>
-                                            <Badge variant="neutral" className="border-none bg-slate-100 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest">
-                                                {addableFunctions.length} Available To Add
+                                            <Badge variant="neutral" className="border-none bg-slate-100 px-3 py-1 text-[10px] font-bold self-start sm:self-auto">
+                                                {addableFunctions.length} {t('configurator.functions.available', { defaultValue: 'Available' })}
                                             </Badge>
                                         </div>
 
-                                        <div className="max-w-md px-4">
+                                        <div className="max-w-md">
                                             <div className="relative">
-                                                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                                 <input
                                                     type="text"
                                                     value={functionSearch}
                                                     onChange={(event) => setFunctionSearch(event.target.value)}
                                                     placeholder={t('configurator.functions.search', { defaultValue: 'Search compatible functions...' })}
-                                                    className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-primary-300 focus:ring-4 focus:ring-primary-500/10"
+                                                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-textPrimary placeholder:text-textSecondary outline-none transition-all focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 shadow-xs"
                                                 />
                                             </div>
                                         </div>
 
                                         {filteredAddableFunctions.length > 0 ? (
-                                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                                                 {filteredAddableFunctions.map((func) => (
                                                     <FunctionCard
                                                         key={`${activeRoomId || 'none'}-${func.id}`}
@@ -641,28 +580,28 @@ export default function FunctionsStep() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <Card className="rounded-[1.15rem] border border-dashed border-slate-200 bg-white/80 p-5 shadow-none sm:p-6">
-                                                <p className="text-sm leading-relaxed text-slate-500">
+                                            <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center shadow-xs">
+                                                <p className="text-xs sm:text-sm text-textSecondary">
                                                     {addableFunctions.length === 0
                                                         ? t('configurator.functions.allSelected', { defaultValue: 'All compatible functions are already added to this room.' })
                                                         : t('configurator.functions.noSearchMatch', { defaultValue: 'No compatible functions match your search.' })}
                                                 </p>
-                                            </Card>
+                                            </div>
                                         )}
                                     </section>
                                 </div>
                             ) : (
-                                <div className="space-y-6 rounded-md] border border-dashed border-slate-200 bg-slate-50/50 py-16 text-center sm:py-20">
-                                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.25rem] border border-slate-100 bg-white shadow-sm sm:h-24 sm:w-24">
-                                        <ShieldAlert className="h-10 w-10 text-slate-200" />
+                                <div className="space-y-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 py-12 text-center">
+                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-xs">
+                                        <ShieldAlert className="h-8 w-8 text-slate-300" />
                                     </div>
                                     <div className="mx-auto max-w-md px-6">
-                                        <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{t('configurator.functions.noneAvailable', { defaultValue: 'No compatible functions available' })}</h4>
-                                        <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                                        <h4 className="text-base font-bold text-textPrimary">{t('configurator.functions.noneAvailable', { defaultValue: 'No compatible functions available' })}</h4>
+                                        <p className="mt-1 text-xs text-textSecondary">
                                             {t('configurator.functions.noneAvailableForType', { roomType: currentRoom.roomTypeName, defaultValue: 'No compatible functions are available for this room type: {{roomType}}.' })}
                                         </p>
-                                        <div className="pt-8">
-                                            <Button variant="outline" className="gap-2 rounded-xl text-xs font-bold uppercase tracking-widest" onClick={() => setSelectedRoomId(null)}>
+                                        <div className="pt-4">
+                                            <Button variant="outline" size="sm" onClick={() => setSelectedRoomId(null)}>
                                                 {t('configurator.functions.selectDifferentRoom', { defaultValue: 'Select Different Room' })}
                                             </Button>
                                         </div>
@@ -671,33 +610,29 @@ export default function FunctionsStep() {
                             )}
                         </div>
                     ) : (
-                        <div className="space-y-8 py-40 text-center animate-in fade-in zoom-in-95 duration-700">
-                            <div className="group mx-auto flex h-24 w-24 items-center justify-center rounded-md] border border-slate-100 bg-slate-50 shadow-inner sm:h-28 sm:w-28">
-                                <Monitor className="h-12 w-12 text-slate-200 transition-colors duration-500 group-hover:text-primary-200" />
+                        <div className="space-y-4 py-20 text-center">
+                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 shadow-inner">
+                                <Monitor className="h-10 w-10 text-slate-300" />
                             </div>
                             <div className="mx-auto max-w-sm">
-                                <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">{t('configurator.functions.selectRoom', { defaultValue: 'Select a Room' })}</h3>
-                                <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
+                                <h3 className="text-xl font-bold text-textPrimary">{t('configurator.functions.selectRoom', { defaultValue: 'Select a Room' })}</h3>
+                                <p className="mt-1 text-xs text-textSecondary leading-relaxed">
                                     {t('configurator.functions.selectRoomHelp', { defaultValue: 'Choose a room from the left panel to begin assigning smart functions.' })}
                                 </p>
-                            </div>
-                            <div className="flex items-center justify-center gap-2 text-primary-400">
-                                <Sparkles className="h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">{t('configurator.functions.mappingBadge', { defaultValue: 'Backoffice-Driven Mapping' })}</span>
                             </div>
                         </div>
                     )}
                 </main>
             </div>
 
-            <div className="group relative flex items-start gap-4 overflow-hidden rounded-[1.25rem] border border-slate-800 bg-slate-900 p-5 shadow-xl sm:p-6">
-                <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/2 translate-x-1/2 rounded-full bg-primary-600/10 blur-2xl transition-transform duration-1000 group-hover:scale-150" />
-                <div className="relative mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-500/20 text-primary-400 shadow-inner">
-                    <Info className="h-6 w-6" />
+            {/* Bottom Helper / Information Card */}
+            <div className="flex items-start gap-4 rounded-2xl border border-primary-200/70 bg-[#f7f8f2] p-5 shadow-soft sm:p-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-primary-200 text-primary-700 shadow-xs">
+                    <Info className="h-5 w-5" />
                 </div>
-                <div className="relative z-10 space-y-2">
-                    <h5 className="text-sm font-semibold uppercase tracking-widest text-white">{t('configurator.functions.information', { defaultValue: 'Information' })}</h5>
-                    <p className="max-w-4xl text-sm font-medium leading-relaxed text-white">
+                <div className="space-y-1">
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.functions.information', { defaultValue: 'Information' })}</h5>
+                    <p className="text-xs sm:text-sm text-textSecondary leading-relaxed">
                         {t('configurator.functions.informationBody', { defaultValue: 'You choose what each room should do. The system then calculates products, services, and totals from the backoffice master data and channel rules.' })}
                     </p>
                 </div>
@@ -705,3 +640,4 @@ export default function FunctionsStep() {
         </div>
     );
 }
+

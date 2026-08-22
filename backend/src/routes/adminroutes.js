@@ -5,6 +5,8 @@ import multer from 'multer';
 import crypto from 'crypto';
 import * as adminController from '../controllers/admincontroller.js';
 import * as offerController from '../controllers/offercontroller.js';
+import * as importController from '../controllers/importcontroller.js';
+import * as portfolioController from '../controllers/portfoliocontroller.js';
 import protect from '../middlewares/authmiddleware.js';
 import authorize, { requireAdminPermission } from '../middlewares/rolemiddleware.js';
 import * as v from '../validators/adminvalidator.js';
@@ -16,6 +18,9 @@ fs.mkdirSync(rangeUploadDirectory, { recursive: true });
 
 const productUploadDirectory = path.resolve(process.cwd(), 'uploads', 'products');
 fs.mkdirSync(productUploadDirectory, { recursive: true });
+
+const portfolioUploadDirectory = path.resolve(process.cwd(), 'uploads', 'portfolio');
+fs.mkdirSync(portfolioUploadDirectory, { recursive: true });
 
 const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
@@ -95,8 +100,38 @@ const rangeImageUpload = multer({
     },
 });
 
+
+
 const handleRangeImageUpload = (req, res, next) => {
     rangeImageUpload.single('image')(req, res, (error) => {
+        if (!error) return next();
+        error.statusCode = 400;
+        error.publicMessage = error.message || 'Image upload failed';
+        next(error);
+    });
+};
+
+const portfolioImageUpload = multer({
+    storage: multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, portfolioUploadDirectory),
+        filename: (_req, file, cb) => {
+            const extension = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+            cb(null, `portfolio-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+        },
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for portfolio images
+    fileFilter: (_req, file, cb) => {
+        const mime = String(file.mimetype || '').toLowerCase();
+        if (['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(mime)) {
+            cb(null, true);
+            return;
+        }
+        cb(new Error('Only JPG, PNG, and WEBP files are allowed'));
+    },
+});
+
+const handlePortfolioImagesUpload = (req, res, next) => {
+    portfolioImageUpload.array('images', 10)(req, res, (error) => {
         if (!error) return next();
         error.statusCode = 400;
         error.publicMessage = error.message || 'Image upload failed';
@@ -121,6 +156,10 @@ router.delete('/employees/:id', requireAdminPermission('manage_employees'), admi
 
 router.get('/users', requireAdminPermission('manage_employees'), adminController.userHandlers.getAll);
 router.get('/users/:id', requireAdminPermission('manage_employees'), adminController.userHandlers.getOne);
+router.put('/users/:id', requireAdminPermission('manage_employees'), v.userUpdateValidator, adminController.userHandlers.update);
+router.delete('/users/:id', requireAdminPermission('manage_employees'), adminController.userHandlers.delete);
+
+router.get('/newsletter', requireAdminPermission('manage_employees'), adminController.newsletterHandlers.getAll);
 
 const registerCrudRoutes = (path, handlers, validator, permissions) => {
     router.get(`/${path}`, requireAdminPermission(permissions.view), handlers.getAll);
@@ -147,8 +186,29 @@ registerCrudRoutes('offer-conditions', adminController.offerConditionHandlers, v
 registerCrudRoutes('disclaimers', adminController.disclaimerHandlers, v.disclaimerValidator, { view: 'manage_rules', edit: 'manage_rules', delete: 'manage_rules' });
 registerCrudRoutes('followup-templates', adminController.followupTemplateHandlers, v.followupTemplateValidator, { view: 'manage_rules', edit: 'manage_rules', delete: 'manage_rules' });
 
+// Portfolio Projects routes
+router.get('/portfolio-projects', requireAdminPermission('view_master'), portfolioController.getAllAdmin);
+router.get('/portfolio-projects/:id', requireAdminPermission('view_master'), portfolioController.getOneAdmin);
+router.post('/portfolio-projects', requireAdminPermission('edit_master'), portfolioController.createAdmin);
+router.put('/portfolio-projects/:id', requireAdminPermission('edit_master'), portfolioController.updateAdmin);
+router.delete('/portfolio-projects/:id', requireAdminPermission('delete_master'), portfolioController.deleteAdmin);
+router.post('/portfolio-projects/upload-images', requireAdminPermission('edit_master'), handlePortfolioImagesUpload, portfolioController.uploadImages);
+
 router.post('/products/:id/ranges', requireAdminPermission('edit_hardware'), v.syncIdsValidator, adminController.syncProductRanges);
 router.post('/products/:id/colors', requireAdminPermission('edit_hardware'), v.syncIdsValidator, adminController.syncProductColors);
 router.post('/services/:id/functions', requireAdminPermission('edit_hardware'), v.syncIdsValidator, adminController.syncServiceFunctions);
+
+// Bulk Excel Templates and Imports
+const uploadMemory = multer({ storage: multer.memoryStorage() });
+
+router.get('/import/templates/buildings', requireAdminPermission('view_master'), (req, res, next) => { req.params.type = 'buildings'; next(); }, importController.downloadTemplate);
+router.get('/import/templates/rooms', requireAdminPermission('view_master'), (req, res, next) => { req.params.type = 'rooms'; next(); }, importController.downloadTemplate);
+router.get('/import/templates/functions', requireAdminPermission('view_master'), (req, res, next) => { req.params.type = 'functions'; next(); }, importController.downloadTemplate);
+router.get('/import/templates/devices', requireAdminPermission('view_hardware'), (req, res, next) => { req.params.type = 'devices'; next(); }, importController.downloadTemplate);
+
+router.post('/import/buildings', requireAdminPermission('edit_master'), uploadMemory.single('file'), (req, res, next) => { req.params.type = 'buildings'; next(); }, importController.importExcel);
+router.post('/import/rooms', requireAdminPermission('edit_master'), uploadMemory.single('file'), (req, res, next) => { req.params.type = 'rooms'; next(); }, importController.importExcel);
+router.post('/import/functions', requireAdminPermission('edit_master'), uploadMemory.single('file'), (req, res, next) => { req.params.type = 'functions'; next(); }, importController.importExcel);
+router.post('/import/devices', requireAdminPermission('edit_hardware'), uploadMemory.single('file'), (req, res, next) => { req.params.type = 'devices'; next(); }, importController.importExcel);
 
 export default router;

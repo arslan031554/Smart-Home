@@ -370,6 +370,7 @@ async function ensureOfferSchema(queryInterface) {
         console.log(`DB patched: ${patched.join(', ')}`);
     }
 }
+
 async function ensureProductSchema(queryInterface) {
     const patched = [];
 
@@ -411,6 +412,63 @@ async function ensureProductSchema(queryInterface) {
     }
 }
 
+async function createNewsletterSubscribersTable(queryInterface) {
+    if (await tableExists(queryInterface, 'NewsletterSubscribers')) return false;
+
+    await queryInterface.createTable('NewsletterSubscribers', {
+        email: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            primaryKey: true,
+            unique: true,
+        },
+        source: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: 'footer',
+        },
+        subscribedAt: {
+            type: DataTypes.DATE,
+            allowNull: false,
+        },
+        createdAt: { allowNull: false, type: DataTypes.DATE },
+        updatedAt: { allowNull: false, type: DataTypes.DATE },
+    });
+    return true;
+}
+
+async function createPortfolioProjectsTable(queryInterface) {
+    if (await tableExists(queryInterface, 'PortfolioProjects')) return false;
+
+    await queryInterface.createTable('PortfolioProjects', {
+        id: { allowNull: false, primaryKey: true, type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4 },
+        title: { type: DataTypes.STRING, allowNull: false },
+        type: { type: DataTypes.STRING, allowNull: false },
+        location: { type: DataTypes.STRING, allowNull: true },
+        result: { type: DataTypes.STRING, allowNull: true },
+        description: { type: DataTypes.TEXT, allowNull: true },
+        images: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+        isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+        displayOrder: { type: DataTypes.INTEGER, defaultValue: 0 },
+        createdAt: { allowNull: false, type: DataTypes.DATE },
+        updatedAt: { allowNull: false, type: DataTypes.DATE },
+    });
+    return true;
+}
+
+async function ensureAdminSchema(queryInterface) {
+    const patched = [];
+    if (await createNewsletterSubscribersTable(queryInterface)) {
+        patched.push('NewsletterSubscribers');
+    }
+    if (await createPortfolioProjectsTable(queryInterface)) {
+        patched.push('PortfolioProjects');
+    }
+    if (patched.length > 0) {
+        console.log(`DB patched: ${patched.join(', ')}`);
+    }
+}
+
 const startServer = async () => {
     try {
         await sequelize.authenticate();
@@ -420,6 +478,7 @@ const startServer = async () => {
             const queryInterface = sequelize.getQueryInterface();
             await ensureOfferSchema(queryInterface);
             await ensureProductSchema(queryInterface);
+            await ensureAdminSchema(queryInterface);
         } catch (e) {
             console.warn('DB patch skipped (runtime schema):', e?.message || e);
         }

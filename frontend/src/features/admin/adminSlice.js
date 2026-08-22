@@ -46,9 +46,25 @@ export const deleteEmployee = createAsyncThunk('admin/deleteEmployee', async (id
     return dispatch(deleteMasterDataItem({ key: 'employees', id })).unwrap();
 });
 
-// Specific Thunks for Users (read-only)
+// Specific Thunks for Users
 export const fetchUsers = createAsyncThunk('admin/fetchUsers', async (_, { dispatch }) => {
     return dispatch(fetchMasterData('users')).unwrap();
+});
+
+export const updateUser = createAsyncThunk('admin/updateUser', async ({ id, ...data }, { dispatch, rejectWithValue }) => {
+    try {
+        return await dispatch(updateMasterDataItem({ key: 'users', id, data })).unwrap();
+    } catch (error) {
+        return rejectWithValue(error);
+    }
+});
+
+export const deleteUser = createAsyncThunk('admin/deleteUser', async (id, { dispatch, rejectWithValue }) => {
+    try {
+        return await dispatch(deleteMasterDataItem({ key: 'users', id })).unwrap();
+    } catch (error) {
+        return rejectWithValue(error);
+    }
 });
 
 // Specific Thunks for Colors
@@ -240,6 +256,15 @@ export const fetchPublicMasterData = createAsyncThunk('admin/fetchPublicMasterDa
     }
 });
 
+export const fetchNewsletterSubscribers = createAsyncThunk('admin/fetchNewsletterSubscribers', async (_, { rejectWithValue }) => {
+    try {
+        const response = await api.get('/admin/newsletter');
+        return response.data.data;
+    } catch (error) {
+        return rejectWithValue(normalizeApiError(error));
+    }
+});
+
 export const addMasterDataItem = createAsyncThunk('admin/addMasterDataItem', async ({ key, data }, { rejectWithValue }) => {
     try {
         const response = await api.post(`/admin/${key}`, data);
@@ -298,6 +323,7 @@ const initialState = {
     publicProductRanges: [],
     publicColors: [],
     publicServices: [],
+    newsletterSubscribers: [],
 };
 
 const adminSlice = createSlice({
@@ -314,9 +340,23 @@ const adminSlice = createSlice({
             .addCase(fetchStats.fulfilled, (state, action) => {
                 state.stats = action.payload;
             })
+            // Fetch Newsletter Subscribers
+            .addCase(fetchNewsletterSubscribers.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchNewsletterSubscribers.fulfilled, (state, action) => {
+                state.loading = false;
+                state.newsletterSubscribers = action.payload;
+            })
+            .addCase(fetchNewsletterSubscribers.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload?.message || 'Request failed';
+            })
             // Fetch Master Data
             .addCase(fetchMasterData.pending, (state) => {
                 state.loading = true;
+                state.error = null;
             })
             .addCase(fetchMasterData.fulfilled, (state, action) => {
                 state.loading = false;

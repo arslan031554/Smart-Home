@@ -272,7 +272,7 @@ export default function ColorSelectionStep() {
                         t('configurator.color.finishProfile', { defaultValue: 'Finish Profile' }),
                         t('configurator.color.filterActive', { defaultValue: 'Color Filter Active' }),
                     ];
-                    
+
                     return (
                         <Card
                             key={color.id}
@@ -290,7 +290,7 @@ export default function ColorSelectionStep() {
                                     className={`w-full h-full object-cover transition-transform duration-1000 ${isActive ? 'scale-105' : 'group-hover:scale-105 brightness-95 group-hover:brightness-100'}`}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
-                                
+
                                 {isActive && (
                                     <div className="absolute top-6 left-6 w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl animate-in fade-in zoom-in duration-300">
                                         <CheckCircle2 className="w-7 h-7" />
@@ -357,6 +357,30 @@ export default function ColorSelectionStep() {
                     </div>
                 </div>
             </Alert>
+
+            <SectionTitle
+                title={t('configurator.color.projectWideTitle', { defaultValue: 'A consistent finish across compatible devices.' })}
+                subtitle={t('configurator.color.projectWideSubtitle', { defaultValue: 'The selected colour is used as a compatibility filter for the project. Products that do not support the chosen finish are clearly identified before the offer is generated.' })}
+                badge={t('configurator.color.projectWideBadge', { defaultValue: 'PROJECT-WIDE FINISH SELECTION' })}
+            />
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-sm font-black text-emerald-700">1</div>
+                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.color.stepOneTitle', { defaultValue: 'Applied project-wide' })}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.color.stepOneDescription', { defaultValue: 'Keep switches, panels and visible devices visually consistent.' })}</p>
+                </div>
+                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-sm font-black text-emerald-700">2</div>
+                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.color.stepTwoTitle', { defaultValue: 'Compatibility checked' })}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.color.stepTwoDescription', { defaultValue: 'The configurator validates finish availability for every selected product.' })}</p>
+                </div>
+                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-sm font-black text-emerald-700">3</div>
+                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.color.stepThreeTitle', { defaultValue: 'Review before final offer' })}</h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.color.stepThreeDescription', { defaultValue: 'Confirm the finish in the summary and change it without losing the project.' })}</p>
+                </div>
+            </div>
         </div>
     );
 }

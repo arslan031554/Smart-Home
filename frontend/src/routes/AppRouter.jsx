@@ -32,6 +32,7 @@ import PresentationPortfolioPage from '../presentation/pages/PortfolioPage';
 import PresentationMediaPage from '../presentation/pages/MediaPage';
 import PresentationContactPage from '../presentation/pages/ContactPage';
 import PresentationServicePage from '../presentation/pages/ServicePage';
+import PortfolioProjectDetail from '../presentation/pages/PortfolioProjectDetail';
 import DeckContentPage from '../presentation/pages/DeckContentPage';
 import DeckOverviewPage from '../presentation/pages/DeckOverviewPage';
 
@@ -39,21 +40,25 @@ import DeckOverviewPage from '../presentation/pages/DeckOverviewPage';
 import AdminDashboard from '../pages/AdminDashboard';
 import ProductsManagement from '../pages/ProductsManagement';
 import MasterDataManagement from '../pages/MasterDataManagement';
+import AdminPortfolioManagement from '../pages/AdminPortfolioManagement';
 import AdminOffersMonitor from '../pages/AdminOffersMonitor';
 import AdminProjectsMonitor from '../pages/AdminProjectsMonitor';
 import EmployeeManagement from '../pages/EmployeeManagement';
 import PermissionsManagement from '../pages/PermissionsManagement';
 import AdminSettingsPage from '../pages/AdminSettingsPage';
 import UsersManagement from '../pages/UsersManagement';
+import NewsletterManagement from '../pages/NewsletterManagement';
 import { Store, Layers, Zap, Box, Palette, Briefcase, Percent, FileText, AlertCircle, Bell } from 'lucide-react';
 
 import { useSelector } from 'react-redux';
 import { hasAdminAccess, hasPermission } from '../constants/adminPermissions';
+import { isSessionExpired, clearSession } from '../utils/sessionManager';
 
 const ProtectedRoute = ({ children, role = 'user' }) => {
     const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || isSessionExpired()) {
+        clearSession();
         return <Navigate to="/auth/login" replace />;
     }
 
@@ -90,6 +95,7 @@ const router = createBrowserRouter([
             { path: 'servicii', element: <PresentationServicesPage /> },
             { path: 'servicii/:slug', element: <PresentationServiceRoute /> },
             { path: 'portofoliu', element: <PresentationPortfolioPage /> },
+            { path: 'portofoliu/:id', element: <PortfolioProjectDetail /> },
             { path: 'portfolio', element: <PresentationPortfolioPage /> },
             { path: 'technology', element: <DeckOverviewPage section="technology" /> },
             { path: 'technology/:slug', element: <DeckContentPage section="technology" /> },
@@ -108,7 +114,7 @@ const router = createBrowserRouter([
         children: [
             { path: 'smart-home', element: <HomePage /> },
             { path: 'configurator', element: <ConfiguratorPage /> },
-            { path: 'offers', element: <OffersListPage /> },
+            { path: 'offers', element: <ProtectedRoute><Navigate to="/dashboard/offers" replace /></ProtectedRoute> },
             { path: 'legal/terms', element: <TermsOfServicePage /> },
             { path: 'legal/privacy', element: <PrivacyPolicyPage /> },
             { path: 'legal/cookies', element: <CookiesPolicyPage /> },
@@ -157,11 +163,14 @@ const router = createBrowserRouter([
         errorElement: <RootErrorPage />,
         children: [
             { index: true, element: <AdminDashboard /> },
+            { path: 'portfolio-projects', element: <AdminPermissionRoute permission="view_master"><AdminPortfolioManagement /></AdminPermissionRoute> },
             { path: 'products', element: <AdminPermissionRoute permission="view_hardware"><ProductsManagement /></AdminPermissionRoute> },
             { path: 'offers', element: <AdminPermissionRoute permission="view_offers"><AdminOffersMonitor /></AdminPermissionRoute> },
             { path: 'projects', element: <AdminPermissionRoute permission="view_offers"><AdminProjectsMonitor /></AdminPermissionRoute> },
+            { path: 'projects/:id', element: <AdminPermissionRoute permission="view_offers"><ProjectDetailPage /></AdminPermissionRoute> },
             { path: 'employees', element: <AdminPermissionRoute permission="manage_employees"><EmployeeManagement /></AdminPermissionRoute> },
             { path: 'users', element: <AdminPermissionRoute permission="manage_employees"><UsersManagement /></AdminPermissionRoute> },
+            { path: 'newsletter', element: <AdminPermissionRoute permission="manage_employees"><NewsletterManagement /></AdminPermissionRoute> },
             { path: 'permissions', element: <AdminPermissionRoute permission="manage_employees"><PermissionsManagement /></AdminPermissionRoute> },
             { path: 'building-types', element: <AdminPermissionRoute permission="view_master"><MasterDataManagement title="Building Types" entityName="Building Type" icon={Store} storeKey="buildingTypes" /></AdminPermissionRoute> },
             { path: 'room-types', element: <AdminPermissionRoute permission="view_master"><MasterDataManagement title="Room Types" entityName="Room Type" icon={Layers} storeKey="roomTypes" extraFields={[{ name: 'buildingTypes', label: 'Assigned Building Types', type: 'multiselect', sourceKey: 'buildingTypes' }]} /></AdminPermissionRoute> },

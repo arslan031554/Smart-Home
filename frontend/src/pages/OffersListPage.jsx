@@ -9,7 +9,6 @@ import {
     Copy,
     Trash2,
     Calendar,
-    Building2,
     Layout,
     AlertCircle,
     Edit3,
@@ -23,7 +22,6 @@ import {
     Badge,
     Card,
     Modal,
-    Skeleton,
     EmptyState,
     AnimatedPageWrapper,
     SectionTitle,
@@ -38,7 +36,10 @@ export default function OffersListPage() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
-    const { offersList: offers = [], loading: offersLoading } = useSelector((state) => state.offers);
+    const rawOffers = useSelector((state) => state.offers?.offersList);
+    const offersLoading = useSelector((state) => state.offers?.loading);
+    const offersError = useSelector((state) => state.offers?.error);
+    const offers = Array.isArray(rawOffers) ? rawOffers : [];
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, offerId: null });
@@ -60,20 +61,22 @@ export default function OffersListPage() {
         return date.toLocaleDateString(locale);
     };
 
-    const projectNameFor = (offer) => offer.project?.name || offer.projectName || '';
-    const filteredOffers = offers.filter((offer) => {
+    const projectNameFor = (offer) => offer?.project?.name || offer?.projectName || '';
+    const safeOffers = offers.filter(Boolean);
+    const filteredOffers = safeOffers.filter((offer) => {
         const projectName = projectNameFor(offer);
         const offerId = offer.id || '';
+        const offerNumber = String(offer.offerNumber || '');
         const matchesSearch = projectName.toLowerCase().includes(searchTerm.toLowerCase())
-            || (offer.offerNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
+            || offerNumber.toLowerCase().includes(searchTerm.toLowerCase())
             || offerId.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || normalizeOfferStatus(offer.status) === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
-    const draftCount = offers.filter((offer) => normalizeOfferStatus(offer.status) === 'draft').length;
-    const generatedCount = offers.filter((offer) => isOfferGeneratedStatus(offer.status)).length;
-    const orderedCount = offers.filter((offer) => normalizeOfferStatus(offer.status) === 'ordered').length;
+    const draftCount = safeOffers.filter((offer) => normalizeOfferStatus(offer.status) === 'draft').length;
+    const generatedCount = safeOffers.filter((offer) => isOfferGeneratedStatus(offer.status)).length;
+    const orderedCount = safeOffers.filter((offer) => normalizeOfferStatus(offer.status) === 'ordered').length;
 
     const handleDuplicate = (id) => {
         dispatch(duplicateOffer(id));
@@ -87,6 +90,8 @@ export default function OffersListPage() {
     };
 
     const handleEdit = async (offerId) => {
+
+
         const result = await dispatch(reopenOfferById(offerId));
         if (reopenOfferById.fulfilled.match(result)) {
             navigate('/configurator');
@@ -103,10 +108,10 @@ export default function OffersListPage() {
     );
 
     return (
-        <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-10 pb-20">
-            <div className="hero-frame overflow-hidden rounded-[2.25rem] px-6 py-8 sm:px-8">
-                <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/60 to-transparent" />
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl" />
+        <AnimatedPageWrapper className="mx-auto max-w-7xl pb-12 px-2 sm:px-4 lg:px-6 mt-4">
+            <div className="bg-white border border-gray-200 shadow-sm hover:shadow-md relative rounded-sm p-4 sm:p-5 lg:p-6 transition-all duration-700 group/bg space-y-8">
+            <div className="bg-primary-600/5 border border-primary-500/10 overflow-hidden rounded-sm px-5 py-6 sm:px-6 relative">
+                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
                     <div className="space-y-6">
                         <SectionTitle
@@ -134,14 +139,14 @@ export default function OffersListPage() {
                                     value: orderedCount,
                                 },
                             ].map((item) => (
-                                <div key={item.label} className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
+                                <div key={item.label} className="rounded-sm border border-primary-500/15 bg-white px-4 py-4 shadow-sm">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                            <item.icon className="h-4.5 w-4.5" />
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-500/10 text-primary-400">
+                                            <item.icon className="h-4 w-4" />
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{item.label}</p>
-                                            <p className="mt-1 font-heading text-3xl font-semibold leading-none text-textPrimary">{item.value}</p>
+                                            <p className="mt-1 font-heading text-2xl font-bold leading-none text-primary-600">{item.value}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -156,7 +161,7 @@ export default function OffersListPage() {
                 </div>
             </div>
 
-            <Card className="rounded-[1.9rem] p-4">
+            <Card className="rounded-sm p-4 bg-white shadow-sm border border-gray-100">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="relative w-full xl:w-96">
                         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
@@ -165,12 +170,12 @@ export default function OffersListPage() {
                             placeholder={t('offers.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-full border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                            className="w-full rounded-sm border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-2 focus:ring-primary-500/10"
                         />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5">
+                        <div className="flex items-center gap-2 rounded-sm border border-gray-200 bg-gray-50 px-4 py-2.5">
                             <Filter className="h-4 w-4 text-primary-300" />
                             <select
                                 value={statusFilter}
@@ -185,74 +190,48 @@ export default function OffersListPage() {
                                 ))}
                             </select>
                         </div>
-                        <Badge variant="neutral">
-                            {t('offers.totalOffers', { count: filteredOffers.length })}
-                        </Badge>
                     </div>
                 </div>
             </Card>
 
-            {offersLoading ? (
-                <Card className="rounded-[2rem] p-8">
-                    <Skeleton className="mb-4 h-16 w-full" repeat={5} />
-                </Card>
-            ) : filteredOffers.length > 0 ? (
+            {filteredOffers.length > 0 ? (
                 <PremiumTableWrapper>
                     <thead>
-                        <tr className="border-b border-white/8 bg-white/5">
-                            <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.offerId')}</th>
-                            <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.projectDetails')}</th>
-                            <th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.structure')}</th>
-                            <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.status')}</th>
-                            <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.valuation')}</th>
-                            <th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.actions')}</th>
+                        <tr>
+                            <th className="w-16 px-6 py-4"></th>
+                            <th className="px-6 py-4">{t('offers.list.project', { defaultValue: 'Project' })}</th>
+                            <th className="px-6 py-4">{t('offers.list.status', { defaultValue: 'Status' })}</th>
+                            <th className="px-6 py-4 text-right">{t('offers.list.amount', { defaultValue: 'Amount' })}</th>
+                            <th className="w-24 px-6 py-4 text-center">{t('offers.list.actions', { defaultValue: 'Actions' })}</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/8">
+                    <tbody>
                         {filteredOffers.map((offer) => (
-                            <tr key={offer.id} className="transition-colors hover:bg-white/5">
-                                <td className="px-6 py-5 align-top">
-                                    <p className="text-sm font-medium text-textPrimary">{offer.offerNumber || offer.id}</p>
-                                    <p className="mt-1 text-xs text-textSecondary">{offer.id}</p>
-                                    <p className="mt-2 flex items-center gap-2 text-xs text-textSecondary">
-                                        <Calendar className="h-3.5 w-3.5 text-primary-300" />
-                                        {formatDate(offer.createdAt)}
-                                    </p>
-                                </td>
-                                <td className="px-6 py-5 align-top">
-                                    <div className="flex items-start gap-3">
-                                        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                            <Building2 className="h-4.5 w-4.5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-textPrimary">{projectNameFor(offer)}</p>
-                                            {offer.customerName ? <p className="mt-1 text-sm text-textSecondary">{offer.customerName}</p> : null}
-                                            {offer.buildingType ? (
-                                                <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                                    {offer.buildingType.replace(/_/g, ' ')}
-                                                </p>
-                                            ) : null}
-                                        </div>
+                            <tr key={offer.id} className="align-top transition-colors hover:bg-white/5">
+                                <td className="px-6 py-5 text-center align-top">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary-500/10 text-primary-400">
+                                        <FileText className="h-5 w-5" />
                                     </div>
                                 </td>
                                 <td className="px-6 py-5 align-top">
-                                    <div className="mx-auto flex w-fit items-center gap-3 rounded-full border border-white/8 bg-white/5 px-4 py-2">
-                                        <div className="text-center">
-                                            <p className="text-sm font-semibold leading-none text-textPrimary">{offer.roomsCount || 0}</p>
-                                            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.rooms')}</p>
+                                    <Link to={`/dashboard/offers/${offer.id}`} className="block group">
+                                        <p className="text-sm font-bold uppercase tracking-[0.02em] text-textPrimary transition-colors group-hover:text-primary-400">
+                                            {projectNameFor(offer) || t('offers.list.unnamedProject', { defaultValue: 'Unnamed Project' })}
+                                        </p>
+                                        <p className="mt-1.5 text-xs text-textSecondary font-medium">
+                                            {offer.offerNumber ? offer.offerNumber.split('-').slice(0, -1).join('-') : ''}
+                                        </p>
+                                        <div className="mt-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
+                                            <Calendar className="h-3 w-3" />
+                                            {formatDate(offer.createdAt)}
                                         </div>
-                                        <div className="h-8 w-px bg-white/10" />
-                                        <div className="text-center">
-                                            <p className="text-sm font-semibold leading-none text-primary-300">{offer.functionsCount || 0}</p>
-                                            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.func')}</p>
-                                        </div>
-                                    </div>
+                                    </Link>
                                 </td>
                                 <td className="px-6 py-5 align-top">
                                     <StatusBadge status={offer.status} />
                                 </td>
                                 <td className="px-6 py-5 text-right align-top">
-                                    <p className="font-heading text-3xl font-semibold leading-none text-primary-300">
+                                    <p className="font-heading text-3xl font-semibold leading-none text-primary-600">
                                         {formatCurrency(offer.totalAmount)}
                                     </p>
                                     <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.exclVat')}</p>
@@ -261,7 +240,7 @@ export default function OffersListPage() {
                                     <div className="flex items-center justify-center gap-2">
                                         <Link to={`/dashboard/offers/${offer.id}`}>
                                             <button
-                                                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
+                                                className="flex h-10 w-10 items-center justify-center rounded-sm border border-gray-200 bg-white text-textSecondary transition-colors hover:border-primary-500/30 hover:text-primary-500 shadow-sm"
                                                 title={t('offers.detail.view', { defaultValue: 'View' })}
                                             >
                                                 <Eye className="h-4 w-4" />
@@ -269,21 +248,21 @@ export default function OffersListPage() {
                                         </Link>
                                         <button
                                             onClick={() => handleEdit(offer.id)}
-                                            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
+                                            className="flex h-10 w-10 items-center justify-center rounded-sm border border-gray-200 bg-white text-textSecondary transition-colors hover:border-primary-500/30 hover:text-primary-500 shadow-sm"
                                             title={t('offers.detail.edit')}
                                         >
                                             <Edit3 className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDuplicate(offer.id)}
-                                            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
+                                            className="flex h-10 w-10 items-center justify-center rounded-sm border border-gray-200 bg-white text-textSecondary transition-colors hover:border-primary-500/30 hover:text-primary-500 shadow-sm"
                                             title={t('offers.detail.duplicate')}
                                         >
                                             <Copy className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={() => setDeleteModal({ isOpen: true, offerId: offer.id })}
-                                            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300"
+                                            className="flex h-10 w-10 items-center justify-center rounded-sm border border-gray-200 bg-white text-textSecondary transition-colors hover:border-red-500/30 hover:text-red-500 shadow-sm"
                                             title={t('offers.detail.delete')}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -295,7 +274,7 @@ export default function OffersListPage() {
                     </tbody>
                 </PremiumTableWrapper>
             ) : (
-                <Card className="rounded-[2rem]">
+                <Card className="rounded-sm bg-white shadow-sm border border-gray-100">
                     <EmptyState
                         title={t('offers.noOffersTitle')}
                         description={t('offers.noOffersDesc')}
@@ -308,6 +287,7 @@ export default function OffersListPage() {
                     />
                 </Card>
             )}
+            </div>
 
             <Modal
                 isOpen={deleteModal.isOpen}

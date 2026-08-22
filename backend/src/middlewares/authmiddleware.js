@@ -18,6 +18,9 @@ const protect = async (req, res, next) => {
             if (!req.user) {
                 return sendError(res, 401, 'Not authorized, user not found');
             }
+            if (req.user.isActive === false) {
+                return sendError(res, 403, 'This account has been deactivated. Please contact an administrator.');
+            }
 
             // Check if token was issued before the last logout
             if (req.user.lastLogoutAt && decoded.iat * 1000 < req.user.lastLogoutAt.getTime()) {

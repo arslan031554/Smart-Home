@@ -49,7 +49,7 @@ export default function DashboardLayout() {
         .toUpperCase() || 'U';
 
     return (
-        <div className="dashboard-theme min-h-screen bg-gradient-surface text-textPrimary">
+        <div className="dashboard-theme min-h-screen bg-gray-50 text-textPrimary">
             <ScrollToTop />
 
             <div className="flex min-h-screen">
@@ -61,8 +61,8 @@ export default function DashboardLayout() {
                 ) : null}
 
                 <aside className={clsx(
-                    'dark-surface fixed inset-y-0 left-0 z-50 border-r border-white/10 backdrop-blur-2xl transition-all duration-300 md:relative',
-                    isSidebarOpen ? 'w-80 translate-x-0' : 'w-80 -translate-x-full md:w-20 md:translate-x-0',
+                    'dark-surface fixed inset-y-0 left-0 z-50 border-r border-white/10 backdrop-blur-2xl transition-all duration-300 md:relative bg-[#0a180b]',
+                    isSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:w-20 md:translate-x-0',
                 )}>
                     <button
                         type="button"
@@ -83,9 +83,9 @@ export default function DashboardLayout() {
                                 src="/images/green-electric-logo.png"
                                 alt="Green Electric Innovations"
                                 className={clsx(
-                                'w-auto object-contain shadow-lg shadow-emerald/10 transition-all duration-300 group-hover:-translate-y-0.5',
-                                isSidebarOpen ? 'h-14 max-w-[230px]' : 'h-8 max-w-12',
-                            )}
+                                    'w-auto object-contain shadow-lg shadow-emerald/10 transition-all duration-300 group-hover:-translate-y-0.5',
+                                    isSidebarOpen ? 'h-14 max-w-[230px]' : 'h-8 max-w-12',
+                                )}
                             />
                         </Link>
 
@@ -104,7 +104,7 @@ export default function DashboardLayout() {
                                             if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false);
                                         }}
                                         className={clsx(
-                                            'group flex min-h-10 items-center rounded-[1.25rem] border text-sm transition-all duration-300',
+                                            'group flex min-h-10 items-center rounded-sm border text-sm transition-all duration-300',
                                             isSidebarOpen ? 'w-full gap-3 px-4 py-2.5' : 'w-11 justify-center px-2 py-2.5',
                                             isActive
                                                 ? 'border-primary-500/20 bg-primary-500/12 text-primary-200'
@@ -129,7 +129,7 @@ export default function DashboardLayout() {
                                             if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarOpen(false);
                                         }}
                                         className={clsx(
-                                            'mt-2 flex min-h-10 items-center rounded-[1.25rem] border border-transparent text-sm text-textSecondary transition-all hover:border-white/8 hover:bg-white/5 hover:text-textPrimary',
+                                            'mt-2 flex min-h-10 items-center rounded-sm border border-transparent text-sm text-textSecondary transition-all hover:border-white/8 hover:bg-white/5 hover:text-textPrimary',
                                             isSidebarOpen ? 'w-full gap-3 px-4 py-2.5' : 'mx-auto w-11 justify-center px-2 py-2.5',
                                         )}
                                         title={!isSidebarOpen ? t('dashboardLayout.admin') : undefined}
@@ -142,9 +142,9 @@ export default function DashboardLayout() {
                         </nav>
 
                         <div className={clsx('mt-auto space-y-4 border-t border-white/8 pt-6', !isSidebarOpen && 'space-y-3')}>
-                            <div className={clsx('rounded-[1.5rem] border border-white/8 bg-white/5', isSidebarOpen ? 'p-4' : 'p-2')}>
+                            <div className={clsx('rounded-sm border border-white/8 bg-white/5', isSidebarOpen ? 'p-4' : 'p-2')}>
                                 <div className={clsx('flex items-center', isSidebarOpen ? 'gap-3' : 'justify-center')}>
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-sm font-semibold text-primary-200">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-sm font-semibold text-primary-200">
                                         {initials}
                                     </div>
                                     <div className={clsx('min-w-0', !isSidebarOpen && 'sr-only')}>
@@ -159,7 +159,7 @@ export default function DashboardLayout() {
                             <button
                                 onClick={handleLogout}
                                 className={clsx(
-                                    'flex w-full items-center justify-center gap-2 rounded-full border border-red-500/16 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200',
+                                    'flex w-full items-center justify-center gap-2 rounded-sm border border-red-500/16 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10 hover:text-red-200',
                                     isSidebarOpen ? 'px-4 py-3' : 'h-10 px-2 py-2',
                                 )}
                             >
@@ -188,7 +188,7 @@ export default function DashboardLayout() {
                                     </span>
                                 </button>
 
-                                <nav className="hidden items-center gap-1 rounded-full border border-white/8 bg-white/5 p-1.5 backdrop-blur-xl lg:flex">
+                                <nav className="hidden items-center gap-1 rounded-sm border border-white/8 bg-white/5 p-1.5 backdrop-blur-xl lg:flex">
                                     {topNavigation.map((item) => {
                                         const Icon = item.icon;
                                         const isActive = item.href === '/dashboard'
@@ -200,7 +200,7 @@ export default function DashboardLayout() {
                                                 key={item.href}
                                                 to={item.href}
                                                 className={clsx(
-                                                    'flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-300',
+                                                    'flex items-center gap-2 rounded-sm px-3.5 py-2 text-xs font-semibold transition-all duration-300',
                                                     isActive
                                                         ? 'bg-primary-500/14 text-primary-200 shadow-soft border border-primary-500/18'
                                                         : 'text-textSecondary hover:bg-white/6 hover:text-textPrimary',
@@ -222,11 +222,11 @@ export default function DashboardLayout() {
                                     <input
                                         type="text"
                                         placeholder={t('dashboardLayout.searchPlaceholder')}
-                                        className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+                                        className="w-full rounded-sm border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-sm text-textPrimary placeholder:text-textSecondary focus:border-primary-500/25 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                                     />
                                 </div>
 
-                                <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-textSecondary transition-all hover:border-primary-500/20 hover:text-primary-300">
+                                <button className="relative flex h-9 w-9 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-textSecondary transition-all hover:border-primary-500/20 hover:text-primary-300">
                                     <Bell className="h-4.5 w-4.5" />
                                     <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary-300" />
                                 </button>
@@ -240,7 +240,7 @@ export default function DashboardLayout() {
                                             <p className="truncate text-sm font-medium text-textPrimary">{user?.fullName || user?.email || t('dashboardLayout.user')}</p>
                                             <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{user?.email}</p>
                                         </div> */}
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-[11px] font-semibold text-primary-200">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-[11px] font-semibold text-primary-200">
                                             {initials}
                                         </div>
                                     </button>
@@ -248,7 +248,7 @@ export default function DashboardLayout() {
                                     {isDropdownOpen ? (
                                         <>
                                             <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
-                                            <div className="premium-panel absolute right-0 z-20 mt-3 w-60 overflow-hidden rounded-[1.5rem] border border-white/10">
+                                            <div className="premium-panel absolute right-0 z-20 mt-3 w-60 overflow-hidden rounded-sm border border-white/10 bg-[#161616]">
                                                 <div className="border-b border-white/8 px-5 py-4">
                                                     <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-300">{t('dashboardLayout.account')}</p>
                                                     <p className="mt-2 truncate text-sm text-textPrimary">{user?.email}</p>

@@ -10,12 +10,14 @@ import {
     normalizeRoomCount,
 } from '../../utils/configuratorNormalization';
 
+import { generateOffer } from '../offers/offersSlice';
+
 function clearCalculation(state) {
     state.calculation = null;
 }
 
 function clampConfiguratorStep(value) {
-    return Math.max(1, Math.min(parseInt(value, 10) || 1, 9));
+    return Math.max(1, Math.min(parseInt(value, 10) || 1, 8));
 }
 
 function clearDownstreamSelections(state) {
@@ -582,6 +584,11 @@ const configuratorSlice = createSlice({
                 state.currentStep = 1;
                 state.calculation = null;
                 state.calcError = null;
+            })
+            .addCase(generateOffer.fulfilled, (state, action) => {
+                if (action.payload?.id) {
+                    state.currentOfferId = action.payload.id;
+                }
             });
     },
 });
