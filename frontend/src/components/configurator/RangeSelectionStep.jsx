@@ -61,33 +61,37 @@ export default function RangeSelectionStep() {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in pb-16 max-w-7xl mx-auto sm:space-y-8 sm:pb-20">
-            
+        <div className="space-y-5 animate-fade-in pb-12 max-w-7xl mx-auto sm:space-y-6 sm:pb-16">
+            <SectionTitle
+                title={t('configurator.range.title', { defaultValue: 'Choose Product Range' })}
+                subtitle={t('configurator.range.subtitle', { defaultValue: 'Select the design and finish aesthetic for your smart home devices.' })}
+                badge={t('configurator.range.badge', { defaultValue: 'Step 04: Product Range' })}
+                className="mb-2 sm:mb-4"
+            />
 
-            
+            <div className="max-h-[520px] sm:max-h-[600px] overflow-y-auto custom-scrollbar p-1 -m-1">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-5">
+                    {RANGES.filter(r => r?.isVisible !== false).map((r, index) => {
+                        const isActive = range === r.id;
+                        const fallbackImage = getRangeFallbackImage(
+                            r.id || r.code || r.name,
+                            index,
+                            0
+                        );
+                        const resolvedImage = resolveRangeImageUrl(r.imageUrl || r.image);
+                        const imageSrc = resolvedImage || fallbackImage;
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {RANGES.filter(r => r?.isVisible !== false).map((r, index) => {
-                    const isActive = range === r.id;
-                    const fallbackImage = getRangeFallbackImage(
-                        r.id || r.code || r.name,
-                        index,
-                        0
-                    );
-                    const resolvedImage = resolveRangeImageUrl(r.imageUrl || r.image);
-                    const imageSrc = resolvedImage || fallbackImage;
-
-                    return (
-                        <Card
-                            key={r.id}
-                            className={`group relative overflow-hidden transition-all duration-500 cursor-pointer border rounded-[1.25rem] sm:rounded-[1.5rem] ${isActive
-                                ? 'border-primary-600 ring-8 ring-primary-600/5 shadow-premium'
-                                : 'border-slate-100 hover:border-primary-200 shadow-sm hover:shadow-md bg-white'
+                        return (
+                            <Card
+                                key={r.id}
+                            className={`group relative overflow-hidden transition-all duration-300 cursor-pointer border rounded-2xl ${isActive
+                                ? 'border-primary-500 ring-2 ring-primary-500/20 shadow-md'
+                                : 'border-slate-200 hover:border-primary-300 shadow-soft hover:shadow-card-hover bg-white'
                                 }`}
                             onClick={() => dispatch(setRange(r.id))}
                         >
                             {/* Product Visualization */}
-                            <div className="h-64 overflow-hidden relative">
+                            <div className="h-44 sm:h-52 overflow-hidden relative">
                                 <img
                                     src={imageSrc}
                                     alt={r.name}
@@ -95,50 +99,52 @@ export default function RangeSelectionStep() {
                                         event.currentTarget.onerror = null;
                                         event.currentTarget.src = fallbackImage;
                                     }}
-                                    className={`w-full h-full object-cover transition-transform duration-1000 ${isActive ? 'scale-105' : 'group-hover:scale-105 brightness-95 group-hover:brightness-100'}`}
+                                    className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? 'scale-105' : 'group-hover:scale-105 brightness-95 group-hover:brightness-100'}`}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
 
                                 {isActive && (
-                                    <div className="absolute top-6 left-6 w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl animate-in fade-in zoom-in duration-300">
-                                        <CheckCircle2 className="w-7 h-7" />
+                                    <div className="absolute top-3.5 right-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-white shadow-md">
+                                        <CheckCircle2 className="h-5 w-5" />
                                     </div>
                                 )}
 
-                                <div className="absolute bottom-6 left-8 right-8">
-                                    <h3 className="text-xl font-bold text-white tracking-tight leading-tight">
+                                <div className="absolute bottom-3.5 left-4 right-4">
+                                    <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug">
                                         {r.name}
                                     </h3>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <Badge className="bg-white/20 backdrop-blur-md border-none text-[8px] font-bold text-white uppercase tracking-[0.2em] px-3 py-1">
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Badge className="bg-white/20 backdrop-blur-md border-none text-[8px] font-bold text-white uppercase tracking-wider px-2 py-0.5">
                                             {r.code || 'SERIES_' + r.id.slice(0, 3).toUpperCase()}
                                         </Badge>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4 p-5 sm:p-6 sm:space-y-5">
-                                <p className="text-sm font-medium text-slate-500 leading-relaxed line-clamp-3">
-                                    {r.description || ''}
-                                </p>
+                            <div className="space-y-3 p-4 sm:p-5">
+                                {r.description ? (
+                                    <p className="text-xs text-textSecondary leading-relaxed line-clamp-2">
+                                        {r.description}
+                                    </p>
+                                ) : null}
 
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5">
                                     {(r.features || [
                                         t('configurator.range.features.premium', { defaultValue: 'Premium Finish' }),
                                         t('configurator.range.features.reliable', { defaultValue: 'Reliable Module' }),
                                         t('configurator.range.features.smart', { defaultValue: 'Smart Integration' }),
                                     ]).map((feature) => (
-                                        <div key={feature} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl text-[10px] font-bold text-slate-500 border border-slate-100">
-                                            <Sparkles className="w-3 h-3 text-primary-400" />
+                                        <div key={feature} className="flex items-center gap-1 px-2.5 py-1 bg-slate-50 rounded-lg text-[10px] font-bold text-slate-600 border border-slate-100">
+                                            <Sparkles className="w-2.5 h-2.5 text-primary-500" />
                                             {feature}
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className="pt-2">
-                                    <div className="h-1.5 w-full rounded-full bg-slate-100 relative overflow-hidden">
+                                <div className="pt-1">
+                                    <div className="h-1 w-full rounded-full bg-slate-100 relative overflow-hidden">
                                         <div
-                                            className={`absolute inset-0 bg-primary-600 transition-all duration-700 ${isActive ? 'translate-x-0' : '-translate-x-full group-hover:translate-x-0'}`}
+                                            className={`absolute inset-0 bg-primary-600 transition-all duration-500 ${isActive ? 'translate-x-0' : '-translate-x-full group-hover:translate-x-0'}`}
                                         />
                                     </div>
                                 </div>
@@ -146,50 +152,42 @@ export default function RangeSelectionStep() {
                         </Card>
                     );
                 })}
+                </div>
             </div>
 
-            <Alert
-                variant="info"
-                className="mt-8 rounded-[1.25rem] border border-emerald-700/35 bg-gradient-to-r from-[#052e16] via-[#064e3b] to-[#052e16] p-6 text-white shadow-xl relative overflow-hidden group sm:p-8 sm:rounded-[1.5rem] [&>svg]:text-white"
-            >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full -mr-32 -mt-32 blur-[80px] opacity-40" />
-                <div className="flex items-start gap-6 relative z-10">
-                    <div className="w-14 h-14 bg-white/10 rounded-2xl text-white flex items-center justify-center shadow-inner border border-white/15">
-                        <Box className="w-7 h-7" />
+            {/* Info Banner */}
+            <div className="rounded-2xl border border-primary-200/80 bg-white p-4 shadow-soft sm:p-5">
+                <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
+                        <Box className="h-4.5 w-4.5" />
                     </div>
-                    <div className="space-y-2">
-                        <h4 className="text-lg font-bold leading-none text-white">{t('configurator.range.projectLevelTitle', { defaultValue: 'Project-level range' })}</h4>
-                        <p className="text-sm font-medium text-white leading-relaxed max-w-3xl">
-                            {t('configurator.range.projectLevelHelp', { defaultValue: 'The selected range applies to your whole project and is used by the system to calculate compatible products from your chosen smart functions.' })}
+                    <div className="space-y-0.5">
+                        <h4 className="text-xs sm:text-sm font-bold text-textPrimary">{t('configurator.range.projectLevelTitle', { defaultValue: 'Project-wide Range' })}</h4>
+                        <p className="text-xs text-textSecondary leading-relaxed">
+                            {t('configurator.range.projectLevelHelp', { defaultValue: 'The selected range applies across all configured rooms to ensure uniform design and hardware compatibility.' })}
                         </p>
                     </div>
                 </div>
-            </Alert>
-            <SectionTitle
-                title={t('configurator.range.projectWideTitle', { defaultValue: 'One range, consistent products throughout the project.' })}
-                subtitle={t('configurator.range.projectWideSubtitle', { defaultValue: 'The selected range is applied at project level and used to filter compatible products in every room. You can change the choice before the offer is generated.' })}
-                badge={t('configurator.range.projectWideBadge', { defaultValue: 'PROJECT-WIDE RANGE SELECTION' })}
-            />
+            </div>
 
-            {/* Three-step workflow cards placed at bottom */}
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-sm font-black text-white">1</div>
-                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.range.stepOneTitle', { defaultValue: 'Consistent specification' })}</h4>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.range.stepOneDescription', { defaultValue: 'The same product family is used across all selected rooms.' })}</p>
+            {/* Workflow Points */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-xs">
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-primary-700 font-black text-xs border border-primary-100">1</div>
+                    <h4 className="mt-2.5 text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.range.stepOneTitle', { defaultValue: 'Consistent specification' })}</h4>
+                    <p className="mt-1 text-xs text-textSecondary leading-relaxed">{t('configurator.range.stepOneDescription', { defaultValue: 'The same product family is used across all selected rooms.' })}</p>
                 </div>
-                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white">2</div>
-                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.range.stepTwoTitle', { defaultValue: 'Automatic compatibility' })}</h4>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.range.stepTwoDescription', { defaultValue: 'Only products supported by the chosen range remain available.' })}</p>
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-xs">
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-primary-700 font-black text-xs border border-primary-100">2</div>
+                    <h4 className="mt-2.5 text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.range.stepTwoTitle', { defaultValue: 'Automatic compatibility' })}</h4>
+                    <p className="mt-1 text-xs text-textSecondary leading-relaxed">{t('configurator.range.stepTwoDescription', { defaultValue: 'Only products supported by the chosen range remain available.' })}</p>
                 </div>
-                <div className="rounded-[1.15rem] border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-violet-600 text-sm font-black text-white">3</div>
-                    <h4 className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-slate-900">{t('configurator.range.stepThreeTitle', { defaultValue: 'Editable before offer' })}</h4>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{t('configurator.range.stepThreeDescription', { defaultValue: 'Change the project range without rebuilding the room structure.' })}</p>
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 text-center shadow-xs">
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-primary-700 font-black text-xs border border-primary-100">3</div>
+                    <h4 className="mt-2.5 text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.range.stepThreeTitle', { defaultValue: 'Editable before offer' })}</h4>
+                    <p className="mt-1 text-xs text-textSecondary leading-relaxed">{t('configurator.range.stepThreeDescription', { defaultValue: 'Change the project range without rebuilding room structure.' })}</p>
                 </div>
             </div>
-            
         </div>
     );
 }

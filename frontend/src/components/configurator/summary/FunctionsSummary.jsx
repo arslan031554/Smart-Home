@@ -76,8 +76,9 @@ export default function FunctionsSummary({ levels }) {
                 </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {functions.map((fn) => (
+            <div className="max-h-[460px] sm:max-h-[540px] overflow-y-auto custom-scrollbar p-1 -m-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {functions.map((fn) => (
                     <div key={fn.id} className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-[#f9faf6] p-4 space-y-3 hover:border-primary-200 transition-all">
                         <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 min-w-0">
@@ -104,6 +105,7 @@ export default function FunctionsSummary({ levels }) {
                         </div>
                     </div>
                 ))}
+                </div>
             </div>
         </Card>
     );

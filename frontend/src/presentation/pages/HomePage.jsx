@@ -188,7 +188,7 @@ export default function HomePage() {
           >
             <Motion.div variants={reveal} className="inline-flex items-center gap-2 rounded-full border border-emerald/25 bg-emerald/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-emerald backdrop-blur">
               <Activity size={15} />
-              Green Electric · Smart buildings
+              {t('presentation.home.kicker', { defaultValue: 'Green Electric · Smart buildings' })}
             </Motion.div>
 
             <h1 className="mt-7 text-[clamp(3.25rem,6.2vw,5.8rem)] font-extrabold leading-[0.9] tracking-[-0.055em]">
@@ -219,7 +219,11 @@ export default function HomePage() {
             </Motion.div>
 
             <Motion.div variants={reveal} className="mt-9 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-white/55">
-              {['One connected system', 'Designed to scale', 'Remote control'].map((label) => (
+              {[
+                t('presentation.home.highlights.connected', { defaultValue: 'One connected system' }),
+                t('presentation.home.highlights.scalable', { defaultValue: 'Designed to scale' }),
+                t('presentation.home.highlights.remote', { defaultValue: 'Remote control' }),
+              ].map((label) => (
                 <span className="flex items-center gap-2" key={label}>
                   <CheckCircle2 className="text-emerald" size={16} />
                   {label}
@@ -270,7 +274,7 @@ export default function HomePage() {
               <p className="section-kicker">{home.sectionHeading}</p>
               <h2 className="section-title">{home.sectionDescription}</h2>
               <p className="section-copy mt-5">
-                Lighting, climate, shading, security, energy and control work together as one coordinated system.
+                {t('presentation.home.realLifeCopyShort', { defaultValue: 'Lighting, climate, shading, security, energy and control work together as one coordinated system.' })}
               </p>
             </div>
           </Motion.div>

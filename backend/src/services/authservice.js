@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { col, fn, where } from 'sequelize';
+import { col, fn, where, Op } from 'sequelize';
 import User from '../../models/User.js';
 import NewsletterSubscriber from '../../models/NewsletterSubscriber.js';
 import * as notificationService from './notificationservice.js';
@@ -506,17 +506,21 @@ export const verifyOtp = async (email, otpCode) => {
 export const forgotPassword = async (email) => {
     const user = await findUserByEmail(email);
     if (!user) {
-        throw new Error('User not found');
+        const error = new Error('No account found with this email address.');
+        error.statusCode = 404;
+        error.code = 'USER_NOT_FOUND';
+        throw error;
     }
 
     const resetToken = crypto.randomBytes(20).toString('hex');
     const previousToken = user.resetPasswordToken;
     const previousExpiresAt = user.resetPasswordExpiresAt;
     user.resetPasswordToken = hashSecret(resetToken);
-    user.resetPasswordExpiresAt = Date.now() + 3600000;
+    user.resetPasswordExpiresAt = new Date(Date.now() + 3600000);
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+    const frontendBaseUrl = String(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    const resetUrl = `${frontendBaseUrl}/auth/reset-password?token=${resetToken}`;
 
     try {
         await notificationService.sendPasswordResetEmail(user.email, resetUrl);
@@ -531,9 +535,14 @@ export const forgotPassword = async (email) => {
 };
 
 export const resetPassword = async (token, newPassword) => {
-    const submittedToken = String(token || '');
+    const submittedToken = String(token || '').trim();
+    if (!submittedToken) {
+        const err = new Error('Invalid or expired reset token');
+        err.statusCode = 400;
+        throw err;
+    }
+
     const submittedHash = hashSecret(submittedToken);
-    const Op = User.sequelize.Sequelize.Op;
     const user = await User.findOne({
         where: {
             resetPasswordToken: { [Op.in]: [submittedHash, submittedToken] },
@@ -542,7 +551,9 @@ export const resetPassword = async (token, newPassword) => {
     });
 
     if (!user) {
-        throw new Error('Invalid or expired reset token');
+        const err = new Error('Invalid or expired reset token. Please request a new password reset link.');
+        err.statusCode = 400;
+        throw err;
     }
 
     const salt = await bcrypt.genSalt(10);

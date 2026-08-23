@@ -8,17 +8,20 @@ import Stats from './Stats';
 import SiteImage from './SiteImage';
 import { usePresentationContent } from '../data/usePresentationContent';
 import { greenElectricDeck } from '../data/deckContent';
-
-const aboutHomeStats = greenElectricDeck.home.stats.map((stat, index) => {
-  const icons = [Gauge, Building2, Lightbulb, CheckCircle];
-  return {
-    ...stat,
-    icon: icons[index],
-  };
-});
+import { roDeckHome } from '../data/roDeckHome';
+import { useTranslation } from 'react-i18next';
 
 export default function About() {
   const { about, aboutFeatures, companyDescription, siteImages } = usePresentationContent();
+  const { i18n } = useTranslation();
+  const rawStats = i18n.language?.startsWith('ro') ? roDeckHome.stats : greenElectricDeck.home.stats;
+  const aboutHomeStats = (rawStats || []).map((stat, index) => {
+    const icons = [Gauge, Building2, Lightbulb, CheckCircle];
+    return {
+      ...stat,
+      icon: icons[index],
+    };
+  });
 
   return (
     <AnimatedSection id="despre" className="relative overflow-hidden bg-fog py-24">

@@ -1,7 +1,7 @@
-import deck from './greenElectricDeck.json';
-import smartHomeImage from '../../assets/12.JPG';
-import smartSystemsImage from '../../assets/13.jfif';
-import mobileControlImage from '../../assets/14.jfif';
+import deck from './greenElectricDeck.json' with { type: 'json' };
+const smartHomeImage = new URL('../../assets/12.JPG', import.meta.url).href;
+const smartSystemsImage = new URL('../../assets/13.jfif', import.meta.url).href;
+const mobileControlImage = new URL('../../assets/14.jfif', import.meta.url).href;
 
 export const greenElectricDeck = deck;
 

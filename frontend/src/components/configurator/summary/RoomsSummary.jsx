@@ -20,7 +20,7 @@ export default function RoomsSummary({ levels }) {
                 <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.summary.roomsInventory', { defaultValue: 'Spaces & Room Inventory' })}</h3>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-5 max-h-[380px] sm:max-h-[460px] overflow-y-auto custom-scrollbar pr-1">
                 {levels.map((level) => (
                     <div key={level.id} className="space-y-2.5">
                         <div className="flex items-center gap-2">

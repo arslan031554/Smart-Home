@@ -79,7 +79,7 @@ export default function ChooseVerificationMethodPage() {
                     setLocalError(errorMessage);
                 }
             }
-        } catch {
+        } catch (_err) {
             setLocalError(t('errors.requestFailed'));
         }
     };
@@ -106,84 +106,80 @@ export default function ChooseVerificationMethodPage() {
     ]; // Show all channels, even if there was a delivery error
 
     return (
-        <AnimatedPageWrapper>
-            <div className="flex min-h-[70vh] items-center justify-center py-6">
-                <Card className="w-full max-w-xl rounded-[2rem] p-7 sm:p-8">
-                    <div className="space-y-6">
-                        <div className="space-y-4 text-center">
-                            <Badge variant="info" className="mx-auto gap-2">
-                                <Shield className="h-3.5 w-3.5" />
-                                {t('auth.verifyTitle')}
-                            </Badge>
-                            <div className="space-y-2">
-                                <h3 className="font-heading text-4xl font-semibold text-textPrimary">
-                                    {verificationReason === 'login_2fa' ? t('auth.twoFactorTitle', 'Two-Factor Verification') : t('auth.verifyTitle')}
-                                </h3>
-                                <p className="mx-auto max-w-md text-sm leading-relaxed text-textSecondary">
-                                    {verificationReason === 'login_2fa'
-                                        ? t('auth.twoFactorSubtitle', 'Choose where to receive your login security code.')
-                                        : t('auth.verifySubtitle')}
-                                </p>
-                            </div>
-                        </div>
-
-                        {(error || localError || deliveryError) ? (
-                            <Alert variant="warning">
-                                {localError && <p className="text-sm font-semibold">{localError}</p>}
-                                {!localError && deliveryError && (
-                                    <>
-                                        <p className="text-sm font-semibold">{deliveryError}</p>
-                                        <p className="mt-2 text-xs text-textSecondary">{t('auth.tryAlternativeChannel', 'Try using an alternative verification method below.')}</p>
-                                    </>
-                                )}
-                                {!localError && !deliveryError && error && <p className="text-sm">{error}</p>}
-                            </Alert>
-                        ) : null}
-
-                        <div className="space-y-3">
-                            {options.filter(o => o.enabled).map((option) => {
-                                const Icon = option.icon;
-                                return (
-                                    <button
-                                        key={option.key}
-                                        onClick={() => handleSelectMethod(option.key)}
-                                        disabled={loading}
-                                        className={clsx(
-                                            'w-full rounded-[1.5rem] border border-white/8 bg-white/5 p-5 text-left transition-all duration-300',
-                                            'hover:border-primary-500/18 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-60',
-                                        )}
-                                    >
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className={clsx('flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-[#1d1d1d]', option.tone)}>
-                                                    <Icon className="h-5 w-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-semibold text-textPrimary">{option.title}</p>
-                                                    <p className="mt-1 text-xs text-textSecondary">{option.detail}</p>
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="h-4.5 w-4.5 text-textSecondary" />
-                                        </div>
-                                    </button>
-                                );
-                            })}
-
-                            {options.filter(o => !o.enabled).length > 0 ? (
-                                <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-5 text-left">
-                                    <p className="text-xs text-textSecondary">{t('auth.noChannels', 'No verification channels available. Please ensure your account has an email and/or phone number.')}</p>
-                                </div>
-                            ) : null}
-                        </div>
-
-                        <div className="pt-2 text-center">
-                            <button onClick={() => navigate('/auth/login')} className="text-sm font-semibold text-textSecondary transition-colors hover:text-primary-300">
-                                {t('nav.login')}
-                            </button>
-                        </div>
+        <div className="w-full max-w-md mx-auto animate-fade-in">
+            <div className="space-y-6">
+                <div className="space-y-2 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald/10 text-emerald shadow-sm">
+                        <Shield className="h-5 w-5" />
                     </div>
-                </Card>
+                    <h1 className="font-heading text-2xl font-bold tracking-tight text-textPrimary sm:text-3xl">
+                        {verificationReason === 'login_2fa' ? t('auth.twoFactorTitle', 'Two-Factor Verification') : t('auth.verifyTitle')}
+                    </h1>
+                    <p className="mx-auto max-w-sm text-sm font-medium text-textSecondary">
+                        {verificationReason === 'login_2fa'
+                            ? t('auth.twoFactorSubtitle', 'Choose where to receive your login security code.')
+                            : t('auth.verifySubtitle')}
+                    </p>
+                </div>
+
+                {(error || localError || deliveryError) ? (
+                    <Alert variant="warning" className="rounded-xl">
+                        {localError && <p className="text-sm font-semibold">{localError}</p>}
+                        {!localError && deliveryError && (
+                            <>
+                                <p className="text-sm font-semibold">{deliveryError}</p>
+                                <p className="mt-1 text-xs text-textSecondary">{t('auth.tryAlternativeChannel', 'Try using an alternative verification method below.')}</p>
+                            </>
+                        )}
+                        {!localError && !deliveryError && error && <p className="text-sm">{error}</p>}
+                    </Alert>
+                ) : null}
+
+                <div className="space-y-3">
+                    {options.filter(o => o.enabled).map((option) => {
+                        const Icon = option.icon;
+                        return (
+                            <button
+                                key={option.key}
+                                onClick={() => handleSelectMethod(option.key)}
+                                disabled={loading}
+                                className={clsx(
+                                    'w-full rounded-2xl border border-emerald/18 bg-fog/80 p-4 sm:p-5 text-left transition-all duration-300',
+                                    'hover:border-emerald/40 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60',
+                                )}
+                            >
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald/10 text-emerald shadow-sm">
+                                            <Icon className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-textPrimary">{option.title}</p>
+                                            <p className="mt-0.5 text-xs text-textSecondary">{option.detail}</p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-emerald" />
+                                </div>
+                            </button>
+                        );
+                    })}
+
+                    {options.filter(o => !o.enabled).length > 0 ? (
+                        <div className="rounded-2xl border border-emerald/12 bg-fog/60 p-4 text-left">
+                            <p className="text-xs text-textSecondary">{t('auth.noChannels', 'No verification channels available. Please ensure your account has an email and/or phone number.')}</p>
+                        </div>
+                    ) : null}
+                </div>
+
+                <div className="pt-2 text-center">
+                    <button
+                        onClick={() => navigate('/auth/login')}
+                        className="inline-flex min-h-[36px] items-center text-sm font-bold text-textSecondary transition-colors hover:text-emerald"
+                    >
+                        {t('nav.login')}
+                    </button>
+                </div>
             </div>
-        </AnimatedPageWrapper>
+        </div>
     );
 }

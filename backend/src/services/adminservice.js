@@ -18,10 +18,10 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 /** Include options for models that have relations needed in list/detail */
 function getDefaultIncludes(modelName) {
     if (modelName === 'SmartFunction') {
-        return [{ model: RoomType, as: 'roomTypes', attributes: ['id', 'name'], through: { attributes: [] } }];
+        return [{ model: RoomType, as: 'roomTypes', attributes: ['id', 'name'], through: { attributes: [] }, where: { isActive: true }, required: false }];
     }
     if (modelName === 'RoomType') {
-        return [{ model: BuildingType, as: 'buildingTypes', attributes: ['id', 'name'], through: { attributes: [] } }];
+        return [{ model: BuildingType, as: 'buildingTypes', attributes: ['id', 'name'], through: { attributes: [] }, where: { isActive: true }, required: false }];
     }
     if (modelName === 'Product') {
         return [
@@ -49,7 +49,8 @@ function getDefaultIncludes(modelName) {
  */
 export const getAll = async (modelName, options = {}) => {
     const includes = getDefaultIncludes(modelName);
-    const baseOptions = modelName === 'SmartFunction' && !options.includeArchived
+    const archivableModels = ['SmartFunction', 'RoomType', 'BuildingType'];
+    const baseOptions = archivableModels.includes(modelName) && !options.includeArchived
         ? { ...options, where: { ...(options.where || {}), isActive: true } }
         : { ...options };
     delete baseOptions.includeArchived;
@@ -445,14 +446,14 @@ async function safeRemoveSmartFunction(id) {
             serviceMappings: await models.ServiceSmartFunction.count({ where: { smartFunctionId: id }, transaction: t }),
             savedSelections: await models.RoomFunctionSelection.count({ where: { smartFunctionId: id }, transaction: t })
         };
+        await models.ProductFunctionMapping.destroy({ where: { smartFunctionId: id }, transaction: t });
+        await models.SmartFunctionRoomType.destroy({ where: { smartFunctionId: id }, transaction: t });
+        await models.ServiceSmartFunction.destroy({ where: { smartFunctionId: id }, transaction: t });
         if (counts.savedSelections > 0) {
             await record.update({ isActive: false }, { transaction: t });
             await t.commit();
             return { id, archived: true, dependencyCounts: counts };
         }
-        await models.ProductFunctionMapping.destroy({ where: { smartFunctionId: id }, transaction: t });
-        await models.SmartFunctionRoomType.destroy({ where: { smartFunctionId: id }, transaction: t });
-        await models.ServiceSmartFunction.destroy({ where: { smartFunctionId: id }, transaction: t });
         await record.destroy({ transaction: t });
         await t.commit();
         return { id, deleted: true, dependencyCounts: counts };
@@ -472,13 +473,13 @@ async function safeRemoveRoomType(id) {
             smartFunctionMappings: await models.SmartFunctionRoomType.count({ where: { roomTypeId: id }, transaction: t }),
             savedRooms: await models.ProjectRoom.count({ where: { roomTypeId: id }, transaction: t })
         };
+        await models.BuildingTypeRoomType.destroy({ where: { roomTypeId: id }, transaction: t });
+        await models.SmartFunctionRoomType.destroy({ where: { roomTypeId: id }, transaction: t });
         if (counts.savedRooms > 0) {
             await record.update({ isActive: false }, { transaction: t });
             await t.commit();
             return { id, archived: true, dependencyCounts: counts };
         }
-        await models.BuildingTypeRoomType.destroy({ where: { roomTypeId: id }, transaction: t });
-        await models.SmartFunctionRoomType.destroy({ where: { roomTypeId: id }, transaction: t });
         await record.destroy({ transaction: t });
         await t.commit();
         return { id, deleted: true, dependencyCounts: counts };
@@ -497,8 +498,13 @@ async function safeRemoveBuildingType(id) {
             roomTypeMappings: await models.BuildingTypeRoomType.count({ where: { buildingTypeId: id }, transaction: t }),
             projects: await Project.count({ where: { buildingTypeId: id }, transaction: t })
         };
-        await Project.update({ buildingTypeId: null }, { where: { buildingTypeId: id }, transaction: t });
         await models.BuildingTypeRoomType.destroy({ where: { buildingTypeId: id }, transaction: t });
+        if (counts.projects > 0) {
+            await record.update({ isActive: false }, { transaction: t });
+            await t.commit();
+            return { id, archived: true, dependencyCounts: counts };
+        }
+        await Project.update({ buildingTypeId: null }, { where: { buildingTypeId: id }, transaction: t });
         await record.destroy({ transaction: t });
         await t.commit();
         return { id, deleted: true, unlinkedProjects: counts.projects, dependencyCounts: counts };

@@ -1,15 +1,15 @@
-﻿import {
+import {
   buildingPages,
   solutionPages,
   technologyPages,
-} from './deckContent';
+} from './deckContent.js';
 import {
   CATEGORY_CONFIG,
   TAB_IDS,
   clampWords,
   getCollectionByCategory,
   getPagerState,
-} from './publicPageHelpers';
+} from './publicPageHelpers.js';
 
 const TAB_LABELS = {
   'how-it-works': 'How it works',
@@ -980,6 +980,14 @@ function buildRoIntroduction(page) {
 function buildRoSteps(page) {
   if (page.section === 'solutions' && roSolutionProcesses[page.slug]) return roSolutionProcesses[page.slug];
 
+  if (page.features && page.features.length > 0) {
+    return page.features.slice(0, 4).map((feature, index) => ({
+      number: index + 1,
+      title: feature.title,
+      description: feature.description,
+    }));
+  }
+
   if (page.section === 'technology') {
     return [
       { title: 'Măsoară', description: `Senzorii, comenzile și programul urmăresc condițiile relevante pentru ${roPageNoun(page)}.` },
@@ -996,6 +1004,10 @@ function buildRoSteps(page) {
 }
 
 function buildRoIncludedBullets(page) {
+  if (page.features && page.features.length > 0) {
+    return page.features.map((feature) => `${feature.title}: ${feature.description}`);
+  }
+
   if (page.section === 'solutions') {
     return [
       'Analiză a cerințelor, spațiilor și priorităților proiectului.',

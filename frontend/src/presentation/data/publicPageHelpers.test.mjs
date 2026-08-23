@@ -70,3 +70,60 @@ test('all overview cards point to real registered routes', () => {
     }
   }
 });
+
+test('Romanian localization maps unique feature cards and copy for all 31 deck pages', async () => {
+  const { localizeDeckPageRo, roPageData } = await import('./roDeckPages.js');
+  const { createPublicRegistry } = await import('./publicPageRegistry.js');
+
+  const allSections = ['technology', 'buildings', 'solutions'];
+  const seenFeatureSignatures = new Set();
+
+  for (const section of allSections) {
+    for (const page of deck[section]) {
+      assert.ok(roPageData[page.slug], `Missing roPageData for slug: ${page.slug}`);
+      const localized = localizeDeckPageRo(page);
+
+      assert.equal(localized.language, 'ro');
+      assert.ok(localized.title && localized.title.length > 0);
+      assert.ok(localized.supportingHeadline && localized.supportingHeadline.length > 0);
+      assert.ok(localized.heroDescription && localized.heroDescription.length > 0);
+      assert.ok(localized.resultLine && localized.resultLine.length > 0);
+      assert.equal(localized.features.length, 6, `Page ${page.slug} must have exactly 6 features`);
+
+      for (const feature of localized.features) {
+        assert.ok(feature.title, `Feature title missing on ${page.slug}`);
+        assert.ok(feature.description, `Feature description missing on ${page.slug}`);
+        assert.ok(feature.icon, `Feature icon missing on ${page.slug}`);
+      }
+
+      // Ensure that different pages do not share the exact same 6 cards
+      const signature = localized.features.map((f) => f.title).join('|');
+      assert.ok(!seenFeatureSignatures.has(signature), `Duplicate features detected for page ${page.slug}`);
+      seenFeatureSignatures.add(signature);
+    }
+  }
+
+  // Verify public registry in Romanian
+  const roRegistry = createPublicRegistry({
+    technology: deck.technology.map(localizeDeckPageRo),
+    buildings: deck.buildings.map(localizeDeckPageRo),
+    solutions: deck.solutions.map(localizeDeckPageRo),
+  });
+
+  for (const section of allSections) {
+    for (const page of deck[section]) {
+      const detail = roRegistry[section].find((item) => item.slug === page.slug && item.category === section);
+      assert.ok(detail, `Registry item not found for ${page.slug}`);
+      assert.equal(detail.tabs.length, 4);
+
+      const includedTab = detail.tabs.find((t) => t.id === 'what-is-included');
+      assert.ok(includedTab);
+      assert.ok(includedTab.bullets.length >= 4);
+
+      // Verify that the first bullet contains the localized page's first feature title
+      const localized = localizeDeckPageRo(page);
+      assert.ok(includedTab.bullets[0].includes(localized.features[0].title));
+    }
+  }
+});
+

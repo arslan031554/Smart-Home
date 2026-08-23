@@ -101,7 +101,7 @@ export default function VerifyOtpPage() {
                 }
             }, 1400);
         } else {
-            setError(normalizeApiError(resultAction.payload).message || t('auth.errors.otpInvalid'));
+            setError(normalizeApiError(resultAction.payload).message || t('auth.errors.otpInvalid', { defaultValue: 'Invalid or expired verification code. Please try again.' }));
             setOtp(['', '', '', '', '', '']);
             setTimeout(() => inputs.current[0]?.focus(), 50);
         }
@@ -114,29 +114,29 @@ export default function VerifyOtpPage() {
         setIsLoading(false);
         if (resendOtp.fulfilled.match(resultAction)) {
             setDeliveryWarning(null);
-            setSuccessMessage(t('auth.errors.otpSent', { channel: 'Email' }));
+            setSuccessMessage(t('auth.errors.otpSent', { channel: 'Email', defaultValue: 'Verification code sent to your email.' }));
             setTimer(60);
             setOtp(['', '', '', '', '', '']);
             setTimeout(() => inputs.current[0]?.focus(), 50);
         } else {
             setDeliveryWarning(null);
-            setError(normalizeApiError(resultAction.payload).message || t('auth.errors.otpSendFailed'));
+            setError(normalizeApiError(resultAction.payload).message || t('auth.errors.otpSendFailed', { defaultValue: 'Failed to send verification code. Please try again later.' }));
         }
     };
 
     if (!email) return null;
 
     return (
-        <div className="w-full max-w-md animate-fade-in">
+        <div className="w-full max-w-md mx-auto animate-fade-in">
             {step === 2 ? (
                 <div className="space-y-6">
-                    <div className="space-y-3 text-center">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-emerald/10 text-emerald">
+                    <div className="space-y-2 text-center">
+                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald/10 text-emerald shadow-sm">
                             <Mail className="h-5 w-5" />
                         </div>
-                        <h2 className="font-heading text-3xl font-semibold text-textPrimary">
-                            {t('auth.verifyByEmail')}
-                        </h2>
+                        <h1 className="font-heading text-2xl font-bold tracking-tight text-textPrimary sm:text-3xl">
+                            {t('auth.verifyByEmail', { defaultValue: 'Security Verification' })}
+                        </h1>
                         <p className="mx-auto max-w-sm text-sm leading-relaxed text-textSecondary">
                             {t('auth.otpEmailNotice', { email, defaultValue: `We sent a 6-digit code to ${email}.` })}{' '}
                             {verificationReason === 'login_2fa'
@@ -146,48 +146,56 @@ export default function VerifyOtpPage() {
                     </div>
 
                     {deliveryWarning ? (
-                        <Alert variant="warning" className="rounded-md">
+                        <Alert variant="warning" className="rounded-xl">
                             <div className="space-y-1">
                                 <p className="font-semibold text-textPrimary">{deliveryWarning}</p>
-                                <p>{t('auth.otpInitialDeliveryFailed', 'We could not deliver the first code. Use resend below to request a fresh email OTP.')}</p>
+                                <p className="text-xs">{t('auth.otpInitialDeliveryFailed', 'We could not deliver the first code. Use resend below to request a fresh email OTP.')}</p>
                             </div>
                         </Alert>
                     ) : null}
-                    {error ? <Alert variant="error" className="rounded-md">{error}</Alert> : null}
-                    {successMessage ? <Alert variant="success" className="rounded-md">{successMessage}</Alert> : null}
+                    {error ? <Alert variant="error" className="rounded-xl">{error}</Alert> : null}
+                    {successMessage ? <Alert variant="success" className="rounded-xl">{successMessage}</Alert> : null}
 
-                    <div className="flex justify-center gap-2" onPaste={handlePaste}>
+                    <div className="flex justify-center gap-1.5 sm:gap-2.5" onPaste={handlePaste}>
                         {otp.map((digit, index) => (
                             <input
                                 key={index}
                                 ref={(el) => { inputs.current[index] = el; }}
                                 type="text"
                                 inputMode="numeric"
+                                pattern="[0-9]*"
+                                autoComplete="one-time-code"
                                 maxLength={1}
                                 value={digit}
                                 onChange={(e) => handleOtpChange(index, e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(index, e)}
-                                className="h-12 w-10 rounded-md border border-emerald/18 bg-fog text-center text-xl font-semibold text-textPrimary transition-all focus:border-primary-500/45 focus:outline-none focus:ring-4 focus:ring-primary-500/10 sm:h-14 sm:w-12"
+                                className="h-12 w-10 sm:h-14 sm:w-12 rounded-xl border border-emerald/20 bg-fog/80 text-center text-lg sm:text-2xl font-bold text-textPrimary shadow-sm transition-all focus:border-emerald focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald/12"
                             />
                         ))}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-1">
                         <div className="space-y-2">
                             <div className="flex justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
                                 <span>{t('auth.timeRemaining', 'Time Remaining')}</span>
-                                <span className={timer < 20 ? 'text-red-500' : 'text-primary-500'}>{timer}s</span>
+                                <span className={timer < 20 ? 'font-bold text-red-500' : 'font-bold text-emerald'}>{timer}s</span>
                             </div>
                             <Progress value={(timer / 60) * 100} variant={timer < 20 ? 'danger' : 'primary'} />
                         </div>
 
-                        <Button size="lg" className="w-full rounded-md" onClick={handleVerify} loading={isLoading} disabled={otp.some((d) => !d) || isLoading}>
+                        <Button
+                            size="lg"
+                            className="w-full min-h-[46px] rounded-full text-xs font-black tracking-wider"
+                            onClick={handleVerify}
+                            loading={isLoading}
+                            disabled={otp.some((d) => !d) || isLoading}
+                        >
                             {t('auth.confirmVerification', 'Confirm Verification')}
                         </Button>
 
                         <button
                             type="button"
-                            className="mx-auto flex items-center gap-2 text-sm font-semibold text-textSecondary transition-colors hover:text-primary-500 disabled:opacity-40"
+                            className="mx-auto flex min-h-[36px] items-center gap-2 text-sm font-bold text-textSecondary transition-colors hover:text-emerald disabled:opacity-40 focus:outline-none"
                             onClick={handleResend}
                             disabled={timer > 0 || isLoading}
                         >
@@ -200,12 +208,12 @@ export default function VerifyOtpPage() {
 
             {step === 3 ? (
                 <div className="space-y-6 py-8 text-center">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-md bg-emerald/10 text-emerald">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald/10 text-emerald shadow-sm">
                         <CheckCircle2 className="h-10 w-10" />
                     </div>
                     <div className="space-y-2">
-                        <h2 className="font-heading text-3xl font-semibold text-textPrimary">{t('auth.verificationComplete', 'Verification Complete')}</h2>
-                        <p className="text-sm text-textSecondary">{t('auth.redirectingAfterVerification', 'Your identity has been confirmed. Redirecting...')}</p>
+                        <h2 className="font-heading text-2xl font-bold text-textPrimary sm:text-3xl">{t('auth.verificationComplete', 'Verification Complete')}</h2>
+                        <p className="text-sm font-medium text-textSecondary">{t('auth.redirectingAfterVerification', 'Your identity has been confirmed. Redirecting...')}</p>
                     </div>
                 </div>
             ) : null}

@@ -8,12 +8,14 @@ const Row = ({ icon: Icon, label, value }) => {
     if (value === undefined || value === null || value === '') return null;
 
     return (
-        <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-            <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 flex-shrink-0 mt-0.5">
-                <Icon className="w-4 h-4" />
+        <div className="flex items-start gap-2.5 py-2.5 border-b border-slate-100 last:border-0 sm:gap-3 sm:py-3">
+            <div className="w-7 h-7 bg-primary-50 rounded-lg flex items-center justify-center text-primary-700 flex-shrink-0 mt-0.5 border border-primary-100/60 shadow-xs sm:w-8 sm:h-8">
+                <Icon className="w-3.5 h-3.5" />
             </div>
-            <span className="text-xs font-semibold text-slate-400 w-44 flex-shrink-0 pt-0.5">{label}</span>
-            <span className="text-sm font-bold text-slate-900">{value}</span>
+            <div className="flex flex-1 flex-col justify-between gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                <span className="text-[11px] sm:text-xs font-semibold text-textSecondary sm:w-44 flex-shrink-0">{label}</span>
+                <span className="text-xs sm:text-sm font-bold text-textPrimary">{value}</span>
+            </div>
         </div>
     );
 };

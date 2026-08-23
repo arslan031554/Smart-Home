@@ -38,10 +38,10 @@ const projectImages = [
 ];
 
 const resultSectors = [
-  { label: 'Residential', filter: 'Home' },
-  { label: 'Offices', filter: 'Offices' },
-  { label: 'Hospitality', filter: 'Hotel' },
-  { label: 'Industrial', filter: 'Factory' },
+  { label: 'Residential', filterEn: 'Home', filterRo: 'Locuințe' },
+  { label: 'Offices', filterEn: 'Offices', filterRo: 'Birouri' },
+  { label: 'Hospitality', filterEn: 'Hotel', filterRo: 'Hotel' },
+  { label: 'Industrial', filterEn: 'Factory', filterRo: 'Fabrică' },
 ];
 
 const proofSteps = [
@@ -61,11 +61,12 @@ const proofSteps = [
 
 export default function PortfolioPage() {
   const { t, i18n } = useTranslation();
-  const portfolio = i18n.language?.startsWith('ro')
+  const isRo = i18n.language?.startsWith('ro');
+  const portfolio = isRo
     ? localizePortfolioRo(greenElectricDeck.portfolio)
     : greenElectricDeck.portfolio;
   const reduceMotion = useReducedMotion();
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState(isRo ? 'Toate' : 'All');
   
   const dispatch = useDispatch();
   const { projects: dynamicProjects = [] } = useSelector((state) => state.portfolio || {});
@@ -76,16 +77,25 @@ export default function PortfolioPage() {
 
   const allProjects = useMemo(() => {
     const staticProjects = portfolio.projects || [];
-    // Dynamic projects take precedence, or we just append them. We'll append dynamic projects first.
     return [...dynamicProjects, ...staticProjects];
   }, [portfolio.projects, dynamicProjects]);
 
-  const filteredProjects = useMemo(
-    () => filter === 'All' || filter === 'Toate'
-      ? allProjects
-      : allProjects.filter((project) => projectCategories[project.type] === filter || project.type === filter),
-    [filter, allProjects],
-  );
+  const filteredProjects = useMemo(() => {
+    if (filter === 'All' || filter === 'Toate') return allProjects;
+    return allProjects.filter((project) => {
+      const cat = projectCategories[project.type] || project.type;
+      return (
+        cat === filter ||
+        project.type === filter ||
+        (filter === 'Home' && (cat === 'Locuințe' || project.type === 'Locuință rezidențială')) ||
+        (filter === 'Locuințe' && (cat === 'Home' || project.type === 'Residential home')) ||
+        (filter === 'Offices' && (cat === 'Birouri' || project.type === 'Clădire de birouri')) ||
+        (filter === 'Birouri' && (cat === 'Offices' || project.type === 'Office building')) ||
+        (filter === 'Factory' && (cat === 'Fabrică' || project.type === 'Fabrică')) ||
+        (filter === 'Fabrică' && (cat === 'Factory' || project.type === 'Factory'))
+      );
+    });
+  }, [filter, allProjects]);
 
   return (
     <>
@@ -196,18 +206,22 @@ export default function PortfolioPage() {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3" role="group" aria-label={t('presentation.portfolio.resultsSectorLabel', { defaultValue: 'Browse result sectors' })}>
-            {resultSectors.map((sector) => (
-              <button
-                type="button"
-                className={`min-w-[8.75rem] rounded-full border px-6 py-3 text-sm font-extrabold transition ${
-                  filter === sector.filter ? 'border-emerald bg-emerald text-ink shadow-glow' : 'border-emerald/15 bg-white text-graphite hover:border-emerald hover:text-emerald'
-                }`}
-                onClick={() => setFilter(sector.filter)}
-                key={sector.label}
-              >
-                {t(`presentation.portfolio.resultsSector.${sector.label}`, { defaultValue: sector.label })}
-              </button>
-            ))}
+            {resultSectors.map((sector) => {
+              const targetFilter = isRo ? sector.filterRo : sector.filterEn;
+              const isActive = filter === targetFilter || (isRo && filter === sector.filterEn) || (!isRo && filter === sector.filterRo);
+              return (
+                <button
+                  type="button"
+                  className={`min-w-[8.75rem] rounded-full border px-6 py-3 text-sm font-extrabold transition ${
+                    isActive ? 'border-emerald bg-emerald text-ink shadow-glow' : 'border-emerald/15 bg-white text-graphite hover:border-emerald hover:text-emerald'
+                  }`}
+                  onClick={() => setFilter(targetFilter)}
+                  key={sector.label}
+                >
+                  {t(`presentation.portfolio.resultsSector.${sector.label}`, { defaultValue: sector.label })}
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-8 overflow-hidden rounded-[1.5rem] border border-emerald/15 bg-white shadow-soft">

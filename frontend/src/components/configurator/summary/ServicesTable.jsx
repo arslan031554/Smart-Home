@@ -24,7 +24,7 @@ export default function ServicesTable() {
 
     if (isCalculating && services.length === 0) {
         return (
-            <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
+            <Card className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft sm:p-5">
                 <div className="flex items-center gap-3 text-primary-700">
                     <Loader2 className="w-5 h-5 animate-spin" />
                     <p className="text-xs sm:text-sm font-bold">{t('configurator.summary.services.calculating', { defaultValue: 'Calculating services from the backend...' })}</p>
@@ -34,77 +34,116 @@ export default function ServicesTable() {
     }
 
     return (
-        <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6">
-            <div className="flex items-center justify-between mb-5 gap-4">
+        <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft sm:p-5">
+            <div className="flex items-center justify-between mb-4 gap-4">
                 <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
                         <Briefcase className="w-4 h-4" />
                     </div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-textPrimary">{t('configurator.summary.services.title', { defaultValue: 'Services' })}</h3>
                 </div>
-                <Badge variant="neutral" className="bg-slate-100 border-none text-[10px] font-bold text-textSecondary uppercase tracking-wider px-3 py-1">
-                    {t('configurator.summary.services.count', { count: services.length, defaultValue: '{{count}} service lines' })}
+                <Badge variant="neutral" className="bg-slate-100 border-none text-[9px] font-bold text-textSecondary uppercase tracking-wider px-2.5 py-1">
+                    {t('configurator.summary.services.count', { count: services.length, defaultValue: '{{count}} items' })}
                 </Badge>
             </div>
 
             {services.length === 0 ? (
-                <p className="text-xs sm:text-sm text-textSecondary italic">{t('configurator.summary.services.empty', { defaultValue: 'No services are currently included in the backend-calculated offer.' })}</p>
+                <p className="text-xs text-textSecondary italic">{t('configurator.summary.services.empty', { defaultValue: 'No services are currently included in the backend-calculated offer.' })}</p>
             ) : (
-                <div className="overflow-x-auto -mx-1">
-                    <table className="w-full min-w-[700px] text-left">
-                        <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-100">
-                                <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.services.columns.service', { defaultValue: 'Service' })}</th>
-                                <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-center">{t('configurator.summary.services.columns.quantity', { defaultValue: 'Quantity' })}</th>
-                                <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-right">{t('configurator.summary.services.columns.unitPrice', { defaultValue: 'Unit Price' })}</th>
-                                <th className="px-5 py-3 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-right">{t('configurator.summary.services.columns.subtotal', { defaultValue: 'Subtotal' })}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {services.map((service) => (
-                                <tr key={service.serviceId || service.id || service.serviceCode} className="hover:bg-slate-50/50 transition-colors align-top">
-                                    <td className="px-5 py-3.5">
-                                        <div className="max-w-[420px]">
-                                            <p className="text-xs sm:text-sm font-bold text-textPrimary leading-snug">{service.name}</p>
-                                            {service.description && (
-                                                <p className="text-[11px] text-textSecondary mt-0.5 leading-relaxed line-clamp-2">{service.description}</p>
-                                            )}
-                                            <div className="flex items-center gap-2 mt-1.5">
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">{service.serviceCode || service.code || service.serviceId || service.id}</span>
-                                                {service.pricingMode && (
-                                                    <span className="text-[9px] font-bold bg-primary-50 text-primary-700 px-1.5 py-0.2 rounded uppercase tracking-wider">
-                                                        {service.pricingMode}
-                                                    </span>
+                <>
+                    {/* Mobile Cards List (< 768px) */}
+                    <div className="md:hidden space-y-2.5 max-h-[380px] overflow-y-auto custom-scrollbar pr-1">
+                        {services.map((service) => (
+                            <div key={service.serviceId || service.id || service.serviceCode} className="p-3.5 rounded-xl border border-slate-200/80 bg-white space-y-2 shadow-xs">
+                                <div>
+                                    <h4 className="text-xs font-bold text-textPrimary leading-snug">{service.name}</h4>
+                                    {service.description && (
+                                        <p className="text-[11px] text-textSecondary mt-0.5 line-clamp-2 leading-relaxed">{service.description}</p>
+                                    )}
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">{service.serviceCode || service.code || service.serviceId || service.id}</span>
+                                        {service.pricingMode && (
+                                            <span className="text-[8px] font-bold bg-primary-50 text-primary-700 px-1.5 py-0.2 rounded uppercase tracking-wider">
+                                                {service.pricingMode}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                                    <span className="text-[11px] text-textSecondary font-semibold">
+                                        {safeNum(service.calcQty, 1)} × {formatMoney(service.unitPrice)}
+                                    </span>
+                                    <span className="font-black text-textPrimary tabular-nums">
+                                        {formatMoney(service.subtotal)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+
+                        <div className="flex items-center justify-between rounded-xl bg-slate-50/80 p-3 border border-slate-200">
+                            <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.services.footerLabel', { defaultValue: 'Services Subtotal / Project' })}</span>
+                            <span className="text-base font-black text-primary-700 tabular-nums">{formatMoney(total)}</span>
+                        </div>
+                    </div>
+
+                    {/* Desktop Table (>= 768px) */}
+                    <div className="hidden md:block overflow-x-auto max-h-[420px] overflow-y-auto custom-scrollbar -mx-1">
+                        <table className="w-full min-w-[700px] text-left">
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-100">
+                                    <th className="px-4 py-2.5 text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.services.columns.service', { defaultValue: 'Service' })}</th>
+                                    <th className="px-4 py-2.5 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-center">{t('configurator.summary.services.columns.quantity', { defaultValue: 'Quantity' })}</th>
+                                    <th className="px-4 py-2.5 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-right">{t('configurator.summary.services.columns.unitPrice', { defaultValue: 'Unit Price' })}</th>
+                                    <th className="px-4 py-2.5 text-[10px] font-bold text-textSecondary uppercase tracking-wider text-right">{t('configurator.summary.services.columns.subtotal', { defaultValue: 'Subtotal' })}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {services.map((service) => (
+                                    <tr key={service.serviceId || service.id || service.serviceCode} className="hover:bg-slate-50/50 transition-colors align-top">
+                                        <td className="px-4 py-3">
+                                            <div className="max-w-[420px]">
+                                                <p className="text-xs sm:text-sm font-bold text-textPrimary leading-snug">{service.name}</p>
+                                                {service.description && (
+                                                    <p className="text-[11px] text-textSecondary mt-0.5 leading-relaxed line-clamp-2">{service.description}</p>
                                                 )}
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-mono">{service.serviceCode || service.code || service.serviceId || service.id}</span>
+                                                    {service.pricingMode && (
+                                                        <span className="text-[8px] font-bold bg-primary-50 text-primary-700 px-1.5 py-0.2 rounded uppercase tracking-wider">
+                                                            {service.pricingMode}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <span className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md bg-slate-50 text-xs font-bold text-textPrimary border border-slate-200/80">
+                                                {safeNum(service.calcQty, 1)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <span className="text-xs sm:text-sm font-semibold text-textSecondary tabular-nums">{formatMoney(service.unitPrice)}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <span className="text-xs sm:text-sm font-bold text-textPrimary tabular-nums">{formatMoney(service.subtotal)}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot>
+                                <tr className="border-t-2 border-slate-200 bg-slate-50/50">
+                                    <td colSpan={3} className="px-4 py-3">
+                                        <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.services.footerLabel', { defaultValue: 'Services Subtotal / Project' })}</span>
                                     </td>
-                                    <td className="px-5 py-3.5 text-center">
-                                        <span className="inline-flex items-center justify-center min-w-8 h-8 px-2.5 rounded-md bg-slate-50 text-xs font-bold text-textPrimary border border-slate-200/80">
-                                            {safeNum(service.calcQty, 1)}
-                                        </span>
-                                    </td>
-                                    <td className="px-5 py-3.5 text-right">
-                                        <span className="text-xs sm:text-sm font-semibold text-textSecondary tabular-nums">{formatMoney(service.unitPrice)}</span>
-                                    </td>
-                                    <td className="px-5 py-3.5 text-right">
-                                        <span className="text-xs sm:text-sm font-bold text-textPrimary tabular-nums">{formatMoney(service.subtotal)}</span>
+                                    <td className="px-4 py-3 text-right">
+                                        <span className="text-base font-black text-primary-700 tabular-nums">{formatMoney(total)}</span>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr className="border-t-2 border-slate-200 bg-slate-50/50">
-                                <td colSpan={3} className="px-5 py-4">
-                                    <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider">{t('configurator.summary.services.footerLabel', { defaultValue: 'Services Subtotal / Project' })}</span>
-                                </td>
-                                <td className="px-5 py-4 text-right">
-                                    <span className="text-lg font-black text-primary-700 tabular-nums">{formatMoney(total)}</span>
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                            </tfoot>
+                        </table>
+                    </div>
+                </>
             )}
         </Card>
     );

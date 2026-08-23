@@ -34,32 +34,37 @@ export default function DocumentsSection({ offerId }) {
     ];
 
     return (
-        <div className="space-y-6">
-            <div className="text-center">
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">{t('offerSuccess.documents.title', { defaultValue: 'Generated Documentation' })}</h3>
-                <p className="mt-3 text-sm text-slate-500">{t('offerSuccess.documents.help', { defaultValue: 'Download the final proposal and the technical manifest for your records.' })}</p>
+        <div className="space-y-4 sm:space-y-6">
+            <div className="text-center space-y-1">
+                <h3 className="text-xs font-bold text-textSecondary uppercase tracking-widest">{t('offerSuccess.documents.title', { defaultValue: 'Generated Documentation' })}</h3>
+                <p className="text-xs sm:text-sm text-textSecondary">{t('offerSuccess.documents.help', { defaultValue: 'Download the final proposal and the technical manifest for your records.' })}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
                 {documents.map((doc) => (
-                    <Card key={doc.id} className="p-8 h-full border border-slate-100 shadow-sm flex flex-col justify-between rounded-[2.5rem] bg-white">
+                    <Card key={doc.id} className="p-5 sm:p-6 h-full border border-slate-200/90 shadow-soft flex flex-col justify-between rounded-2xl bg-white">
                         <div>
-                            <div className={`inline-flex items-center justify-center rounded-3xl p-4 ${doc.tone === 'rose' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                <doc.icon className="w-7 h-7" />
+                            <div className="flex items-center justify-between gap-3">
+                                <div className={`inline-flex items-center justify-center rounded-xl p-3 ${doc.tone === 'rose' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-primary-50 text-primary-700 border border-primary-100'}`}>
+                                    <doc.icon className="w-5 h-5" />
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${doc.tone === 'rose' ? 'bg-rose-50 text-rose-700' : 'bg-primary-50 text-primary-700'}`}>
+                                    {doc.format.toUpperCase()}
+                                </span>
                             </div>
-                            <h4 className="mt-6 text-xl font-black text-slate-900 uppercase tracking-tight">{doc.name}</h4>
-                            <p className="mt-2 text-sm leading-relaxed text-slate-500">{doc.type}</p>
+                            <h4 className="mt-3.5 text-sm sm:text-base font-bold text-textPrimary">{doc.name}</h4>
+                            <p className="mt-1 text-xs leading-relaxed text-textSecondary">{doc.type}</p>
                         </div>
 
-                        <div className="mt-8">
+                        <div className="mt-5 pt-3 border-t border-slate-100">
                             <Button
-                                size="lg"
+                                size="md"
                                 variant="primary"
                                 onClick={() => downloadExport(doc.format)}
                                 disabled={!offerId || downloading === doc.format}
-                                className="w-full h-14 gap-3"
+                                className="w-full gap-2 rounded-xl text-xs font-bold"
                             >
-                                {downloading === doc.format ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                                {downloading === doc.format ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                                 {t('offerSuccess.documents.download', { defaultValue: 'Download' })}
                             </Button>
                         </div>

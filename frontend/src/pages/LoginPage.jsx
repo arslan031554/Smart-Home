@@ -40,9 +40,9 @@ export default function LoginPage() {
 
         const trimmedEmail = email.trim();
         const nextErrors = {};
-        if (!trimmedEmail) nextErrors.email = t('auth.errors.fieldRequired');
-        else if (!EMAIL_PATTERN.test(trimmedEmail)) nextErrors.email = t('auth.errors.invalidEmail');
-        if (!password) nextErrors.password = t('auth.errors.fieldRequired');
+        if (!trimmedEmail) nextErrors.email = t('auth.errors.fieldRequired', { defaultValue: 'Please fill in this field.' });
+        else if (!EMAIL_PATTERN.test(trimmedEmail)) nextErrors.email = t('auth.errors.invalidEmail', { defaultValue: 'Please enter a valid email address.' });
+        if (!password) nextErrors.password = t('auth.errors.fieldRequired', { defaultValue: 'Please fill in this field.' });
         setFormErrors(nextErrors);
         if (Object.keys(nextErrors).length) return;
 
@@ -68,7 +68,7 @@ export default function LoginPage() {
                     availableChannels: ['email'],
                     verificationReason: resultAction.payload.verificationReason || 'login_2fa',
                     deliveryError: resultAction.payload.deliveryError || null,
-                    message: resultAction.payload.deliveryError ? null : t('auth.errors.otpSent', { channel: 'Email' }),
+                    message: resultAction.payload.deliveryError ? null : t('auth.errors.otpSent', { channel: 'Email', defaultValue: 'Verification code sent to your email.' }),
                     ...(returnState && { returnTo: returnState.returnTo, returnStep: returnState.returnStep }),
                 },
             });
@@ -76,66 +76,76 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="w-full max-w-sm animate-fade-in">
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
-                <h2 className="text-center font-heading text-3xl font-semibold text-textPrimary">
-                    {t('nav.login')}
-                </h2>
+        <div className="w-full max-w-md mx-auto animate-fade-in">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
+                <div className="space-y-2 text-center">
+                    <h1 className="font-heading text-2xl font-bold tracking-tight text-textPrimary sm:text-3xl">
+                        {t('auth.loginTitle', { defaultValue: 'Log In to Your Account' })}
+                    </h1>
+                    <p className="text-sm font-medium text-textSecondary">
+                        {t('auth.loginSubtitle', { defaultValue: 'Enter your credentials to access your Smart Home workspace.' })}
+                    </p>
+                </div>
 
                 {error ? (
-                    <div className="rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700">
-                        {t(error)}
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-700">
+                        {t(error, { defaultValue: error })}
                     </div>
                 ) : null}
 
                 {isReturningToConfigurator ? (
-                    <Alert variant="info" className="rounded-md">
+                    <Alert variant="info" className="rounded-xl">
                         {t('auth.resumeConfiguratorTitle', { defaultValue: 'Resume your saved configuration' })}
                     </Alert>
                 ) : null}
 
-                <Input
-                    label={t('auth.email')}
-                    type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }}
-                    placeholder="you@email.com"
-                    icon={Mail}
-                    required
-                    error={formErrors.email}
-                    className="rounded-md bg-fog"
-                />
-
-                <div className="space-y-2">
+                <div className="space-y-4">
                     <Input
-                        label={t('auth.password')}
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }}
-                        placeholder="........"
-                        icon={Lock}
-                        trailingIcon={(
+                        label={t('auth.email', { defaultValue: 'Email Address' })}
+                        type="email"
+                        autoComplete="email"
+                        inputMode="email"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }}
+                        placeholder="you@email.com"
+                        icon={Mail}
+                        required
+                        error={formErrors.email}
+                        className="rounded-xl bg-fog/80"
+                    />
+
+                    <div className="space-y-1.5">
+                        <Input
+                            label={t('auth.password', { defaultValue: 'Password' })}
+                            type={showPassword ? 'text' : 'password'}
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }}
+                            placeholder="••••••••"
+                            icon={Lock}
+                            trailingIcon={(
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-textSecondary transition-colors hover:bg-emerald/10 hover:text-emerald focus:outline-none"
+                                    aria-label={showPassword ? t('auth.hidePassword', { defaultValue: 'Hide password' }) : t('auth.showPassword', { defaultValue: 'Show password' })}
+                                >
+                                    {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                                </button>
+                            )}
+                            required
+                            error={formErrors.password}
+                            className="rounded-xl bg-fog/80"
+                        />
+                        <div className="flex justify-end pt-1">
                             <button
                                 type="button"
-                                onClick={() => setShowPassword((prev) => !prev)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-textSecondary transition-colors hover:text-textPrimary focus:outline-none"
-                                aria-label={showPassword ? t('auth.hidePassword', { defaultValue: 'Hide password' }) : t('auth.showPassword', { defaultValue: 'Show password' })}
+                                onClick={() => navigate('/auth/forgot-password')}
+                                className="inline-flex min-h-[32px] items-center text-xs font-bold text-emerald hover:text-emerald-700 transition-colors focus:outline-none"
                             >
-                                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                                {t('auth.forgotPassword', { defaultValue: 'Forgot password?' })}
                             </button>
-                        )}
-                        required
-                        error={formErrors.password}
-                        className="rounded-md bg-fog"
-                    />
-                    <div className="text-right">
-                        <button
-                            type="button"
-                            onClick={() => navigate('/auth/forgot-password')}
-                            className="text-xs font-semibold text-textSecondary transition-colors hover:text-primary-500"
-                        >
-                            {t('auth.forgotPassword')}
-                        </button>
+                        </div>
                     </div>
                 </div>
 
@@ -143,17 +153,20 @@ export default function LoginPage() {
                     type="submit"
                     size="lg"
                     variant="primary"
-                    className="w-full rounded-md"
+                    className="w-full min-h-[46px] rounded-full text-xs font-black tracking-wider"
                     loading={loading}
                 >
-                    {t('nav.login')}
-                    <ArrowRight className="h-4.5 w-4.5" />
+                    {t('nav.login', { defaultValue: 'Log In' })}
+                    <ArrowRight className="h-4 w-4" />
                 </Button>
 
-                <div className="text-center text-sm text-textSecondary">
+                <div className="pt-2 text-center text-sm text-textSecondary">
                     {t('auth.noAccountPrompt', { defaultValue: "Don't have an account?" })}{' '}
-                    <Link to="/auth/register" className="font-semibold text-primary-500 transition-colors hover:text-primary-700">
-                        {t('auth.createAccount')}
+                    <Link
+                        to="/auth/register"
+                        className="font-bold text-emerald transition-colors hover:text-emerald-700 hover:underline"
+                    >
+                        {t('auth.createAccount', { defaultValue: 'Create an Account' })}
                     </Link>
                 </div>
             </form>

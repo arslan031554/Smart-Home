@@ -117,127 +117,116 @@ export default function ServicesStep() {
         .reduce((acc, service) => acc + Number(service.price || 0), 0);
 
     return (
-        <div className="space-y-6 animate-fade-in pb-16 max-w-5xl mx-auto sm:space-y-8 sm:pb-20">
-            <SectionTitle
-                title={t('configurator.servicesStep.title', { defaultValue: 'Professional Services' })}
-                subtitle={t('configurator.servicesStep.subtitle', { defaultValue: 'Select the additional installation, programming, and support services that should be included in the offer.' })}
-                badge={t('configurator.servicesStep.badge', { defaultValue: 'Step 05: Services' })}
-            />
+        <div className="space-y-5 animate-fade-in pb-12 max-w-6xl mx-auto sm:space-y-6 sm:pb-16">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <SectionTitle
+                    title={t('configurator.servicesStep.title', { defaultValue: 'Professional Services' })}
+                    subtitle={t('configurator.servicesStep.subtitle', { defaultValue: 'Select installation, programming, and support services to include in the offer.' })}
+                    badge={t('configurator.servicesStep.badge', { defaultValue: 'Step 05: Services' })}
+                    className="mb-0"
+                />
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {visibleServices.map((service) => {
-                    const isMandatory = service?.isOptionalForCustomer === false;
-                    const isSelected = isMandatory || selectedServices.includes(service.id);
-                    const Icon = resolveServiceIcon(service);
-                    const highlights = getServiceHighlights(service);
+                <div className="rounded-xl border border-primary-200/80 bg-primary-50/80 px-4 py-2 text-right shadow-xs self-start sm:self-center">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-primary-700">{t('configurator.servicesStep.totalServices', { defaultValue: 'Selected Total' })}</span>
+                    <span className="font-heading text-base font-black text-primary-800 tabular-nums">{formatCurrency(selectedTotal)}</span>
+                </div>
+            </div>
+
+            <div className="max-h-[520px] sm:max-h-[600px] overflow-y-auto custom-scrollbar p-1 -m-1">
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
+                    {visibleServices.map((service) => {
+                        const isMandatory = service?.isOptionalForCustomer === false;
+                        const isSelected = isMandatory || selectedServices.includes(service.id);
+                        const Icon = resolveServiceIcon(service);
+                        const highlights = getServiceHighlights(service);
                     return (
                         <Card
                             key={service.id}
                             onClick={() => handleToggle(service)}
                             className={clsx(
-                                'group relative overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-6 transition-all duration-300 active:scale-[0.98] sm:p-7',
-                                isMandatory ? 'cursor-default shadow-sm' : 'cursor-pointer hover:border-slate-300 hover:shadow-lg'
+                                'group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 sm:p-5 transition-all duration-200 shadow-soft',
+                                isSelected
+                                    ? 'border-primary-500 bg-primary-50/40 ring-1 ring-primary-500/20'
+                                    : 'border-slate-200/90 bg-white hover:border-primary-300 hover:shadow-card-hover',
+                                isMandatory ? 'cursor-default' : 'cursor-pointer active:scale-[0.99]'
                             )}
                         >
-                            <div className="flex items-center justify-between gap-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3">
+                            <div>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
                                         <div className={clsx(
-                                            'flex h-12 w-12 items-center justify-center rounded-2xl border text-slate-900',
-                                            isSelected ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+                                            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors',
+                                            isSelected ? 'border-primary-300 bg-primary-600 text-white shadow-xs' : 'border-slate-200 bg-slate-50 text-slate-500'
                                         )}>
-                                            <Icon className="w-6 h-6" />
+                                            <Icon className="h-5 w-5" />
                                         </div>
-                                        <div>
-                                            <h4 className="text-base font-black text-slate-900">{service.name}</h4>
-                                            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-700">{t('configurator.servicesStep.serviceLabel', { defaultValue: 'Optional' })}</p>
+                                        <div className="min-w-0">
+                                            <h4 className="truncate text-sm font-bold text-textPrimary leading-snug">{service.name}</h4>
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider text-primary-700">
+                                                {isMandatory
+                                                    ? t('configurator.servicesStep.included', { defaultValue: 'Included' })
+                                                    : t('configurator.servicesStep.serviceLabel', { defaultValue: 'Optional' })}
+                                            </span>
                                         </div>
                                     </div>
+                                    <div className="rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-xs font-black text-primary-800 shrink-0">
+                                        {formatCurrency(service.price)}
+                                    </div>
                                 </div>
-                                <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700">
-                                    {formatCurrency(service.price)}
-                                </div>
+
+                                {service.description ? (
+                                    <p className="mt-3 text-xs leading-relaxed text-textSecondary line-clamp-2">{service.description}</p>
+                                ) : null}
+
+                                <ul className="mt-3.5 space-y-2 border-t border-slate-100 pt-3 text-xs text-textSecondary">
+                                    {highlights.slice(0, 3).map((highlight, index) => (
+                                        <li key={index} className="flex items-start gap-2">
+                                            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" />
+                                            <span className="line-clamp-1">{highlight}</span>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
 
-                            <p className="mt-5 text-sm leading-relaxed text-slate-600">{service.description}</p>
-
-                            <ul className="mt-5 space-y-3 text-sm text-slate-500">
-                                {highlights.slice(0, 4).map((highlight, index) => (
-                                    <li key={index} className="flex items-start gap-3">
-                                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                                        <span>{highlight}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <div className="mt-6 flex items-center justify-between gap-3 rounded-3xl border border-slate-100 bg-slate-50 px-4 py-3 text-[11px] font-bold text-slate-600">
-                                <span>{t('configurator.servicesStep.viewScope', { defaultValue: 'View full scope' })}</span>
-                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                            <div className="mt-4 pt-2">
+                                <button
+                                    type="button"
+                                    disabled={isMandatory}
+                                    className={clsx(
+                                        'flex h-8 w-full items-center justify-center gap-1.5 rounded-xl text-xs font-bold transition-all shadow-xs',
+                                        isSelected
+                                            ? 'bg-primary-600 text-white'
+                                            : 'border border-slate-200 bg-slate-50 text-textSecondary hover:bg-slate-100 hover:text-textPrimary',
+                                        isMandatory && 'opacity-80 cursor-default'
+                                    )}
+                                >
+                                    {isSelected ? (
+                                        <>
+                                            <Check className="h-3.5 w-3.5" />
+                                            <span>{isMandatory ? t('configurator.servicesStep.included', { defaultValue: 'Included in Offer' }) : t('configurator.servicesStep.selected', { defaultValue: 'Selected' })}</span>
+                                        </>
+                                    ) : (
+                                        <span>{t('configurator.servicesStep.addService', { defaultValue: 'Add Service' })}</span>
+                                    )}
+                                </button>
                             </div>
-
-                            {isSelected && (
-                                <div className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg">
-                                    <Check className="w-4 h-4" />
-                                </div>
-                            )}
                         </Card>
                     );
                 })}
-            </div>
-
-            <div className="mt-6 rounded-[1.5rem] bg-emerald-950 p-7 text-white shadow-xl">
-                <div className="grid gap-4 xl:grid-cols-4 xl:items-start">
-                    <div className="space-y-2">
-                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-300">{t('configurator.servicesStep.bottomHeadline', { defaultValue: 'Select only what the project needs' })}</p>
-                        <h3 className="text-xl font-black leading-tight">{t('configurator.servicesStep.bottomTitle', { defaultValue: 'Service prices and descriptions are loaded from the back-office master data.' })}</h3>
-                    </div>
-                    <div className="flex h-full rounded-3xl border border-emerald-800 bg-emerald-900/70 px-5 py-4">
-                        <div className="flex items-center gap-3 text-emerald-200">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-700/30">
-                                <Check className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold">{t('configurator.servicesStep.bottomPointOneTitle', { defaultValue: 'Clear scope' })}</p>
-                                <p className="text-xs text-emerald-300">{t('configurator.servicesStep.bottomPointOneDescription', { defaultValue: 'Core activities are visible before selection.' })}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex h-full rounded-3xl border border-emerald-800 bg-emerald-900/70 px-5 py-4">
-                        <div className="flex items-center gap-3 text-emerald-200">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-700/30">
-                                <Check className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold">{t('configurator.servicesStep.bottomPointTwoTitle', { defaultValue: 'Full details' })}</p>
-                                <p className="text-xs text-emerald-300">{t('configurator.servicesStep.bottomPointTwoDescription', { defaultValue: 'Expanded technical scope remains available.' })}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex h-full rounded-3xl border border-emerald-800 bg-emerald-900/70 px-5 py-4">
-                        <div className="flex items-center gap-3 text-emerald-200">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-700/30">
-                                <Check className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold">{t('configurator.servicesStep.bottomPointThreeTitle', { defaultValue: 'Automatic totals' })}</p>
-                                <p className="text-xs text-emerald-300">{t('configurator.servicesStep.bottomPointThreeDescription', { defaultValue: 'The offer updates immediately after selection.' })}</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            {visibleServices.length === 0 ? (
-                <Card className="p-6 border border-slate-100 bg-white shadow-none">
-                    <p className="text-sm text-slate-500">
-                        {t('configurator.servicesStep.noRelevantServices', { defaultValue: 'No services are currently mapped to the selected smart-home functions.' })}
+            {/* Information Card */}
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-700 border border-primary-100">
+                    <Info className="h-4 w-4" />
+                </div>
+                <div className="space-y-0.5">
+                    <h5 className="text-xs font-bold text-textPrimary">{t('configurator.servicesStep.infoTitle', { defaultValue: 'Service Estimates & Master Data' })}</h5>
+                    <p className="text-xs text-textSecondary leading-relaxed">
+                        {t('configurator.servicesStep.footer', { defaultValue: 'All service prices are calculated in EUR from back-office master rates and include standard labor and deployment support.' })}
                     </p>
-                </Card>
-            ) : null}
-
-            <div className="flex items-center gap-3 px-5 py-4 bg-white border border-slate-100 rounded-xl shadow-sm">
-                <Info className="w-4 h-4 text-primary-500 shrink-0" />
-                <p className="text-xs text-slate-500">{t('configurator.servicesStep.footer', { defaultValue: 'All service prices are shown in EUR excluding VAT and are taken from the backend master data.' })}</p>
+                </div>
             </div>
         </div>
     );

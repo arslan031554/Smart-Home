@@ -59,7 +59,7 @@ export default function RoomFunctionsSummary({ levels }) {
                 </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 max-h-[440px] sm:max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
                 {levels.map((level) => {
                     const levelRooms = Array.isArray(level?.rooms) ? level.rooms : [];
                     return (

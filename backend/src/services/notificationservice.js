@@ -463,6 +463,7 @@ export const sendOtpEmail = async (email, otpCode, recipientName = null) => {
     maybeLogOtp({ channel: 'email', destination: email, otp: otpCode, result });
     return result;
 };
+
 export const resendOtpEmail = async (email, otpCode) => {
     return sendOtpEmail(email, otpCode);
 };
@@ -479,14 +480,30 @@ export const resendOtpSms = async (phone, otpCode) => {
 };
 
 export const sendPasswordResetEmail = async (email, resetUrl) => {
-    const subject = 'Password Reset Request';
-    const text = `You requested a password reset. Use this link: ${resetUrl}`;
+    const subject = 'Password Reset Request - Green Electric';
+    const text = `You requested a password reset for your Green Electric account. Use this link: ${resetUrl}\n\nThis link will expire in 1 hour. If you didn't request this, please ignore this email.`;
     const html = `
-        <div style="font-family: sans-serif; padding: 20px;">
-            <h2 style="color: #4F46E5;">Password Reset</h2>
-            <p>Click the button below to reset your password:</p>
-            <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
-            <p style="margin-top: 20px; font-size: 12px; color: #6B7280;">If you didn't request this, please ignore this email.</p>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
+            <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 28px 24px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">Green Electric</h1>
+                    <p style="color: rgba(255,255,255,0.85); margin: 4px 0 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Smart-Home Workspace</p>
+                </div>
+                <div style="padding: 28px 24px;">
+                    <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">Reset Your Password</h2>
+                    <p style="font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 20px;">You recently requested to reset the password for your Green Electric account. Click the button below to set a new password:</p>
+                    <div style="text-align: center; margin: 24px 0;">
+                        <a href="${resetUrl}" style="display: inline-block; padding: 12px 32px; background-color: #10b981; color: #ffffff !important; text-decoration: none; border-radius: 50px; font-weight: 700; font-size: 13px; letter-spacing: 0.02em; text-transform: uppercase;">Reset Password</a>
+                    </div>
+                    <p style="font-size: 12px; color: #64748b; margin-bottom: 8px;">This link will expire in <strong>1 hour</strong>. If you did not make this request, you can safely ignore this email.</p>
+                    <div style="background-color: #f1f5f9; padding: 10px 14px; border-radius: 8px; font-size: 11px; color: #64748b; word-break: break-all; margin-top: 18px;">
+                        <strong>Direct link:</strong> <a href="${resetUrl}" style="color: #059669; text-decoration: underline;">${resetUrl}</a>
+                    </div>
+                </div>
+                <div style="background: #f8fafc; padding: 16px 24px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; text-align: center;">
+                    &copy; ${new Date().getFullYear()} Green Electric. All rights reserved.
+                </div>
+            </div>
         </div>
     `;
     return sendEmail(email, subject, text, html, null, getSendGridTemplateId('SENDGRID_PASSWORD_RESET_TEMPLATE_ID'), { resetUrl });

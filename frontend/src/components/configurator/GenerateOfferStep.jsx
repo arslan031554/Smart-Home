@@ -172,174 +172,162 @@ export default function GenerateOfferStep() {
     ];
 
     return (
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center space-y-6 py-4 animate-fade-in sm:space-y-8 sm:py-6">
-            <div className="space-y-5 text-center">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-center space-y-5 py-3 animate-fade-in sm:space-y-6 sm:py-5">
+            <div className="space-y-3 text-center">
                 <div className="relative inline-flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-primary-500/12 blur-3xl" />
-                    <div className="relative flex h-24 w-24 items-center justify-center rounded-[1.5rem] border border-primary-500/18 bg-primary-500/12 text-primary-300 shadow-glow sm:h-28 sm:w-28">
-                        <Activity className="h-12 w-12 animate-pulse" />
+                    <div className="absolute inset-0 rounded-full bg-primary-500/10 blur-2xl" />
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-primary-200 bg-primary-50 text-primary-700 shadow-soft sm:h-20 sm:w-20">
+                        <Activity className="h-8 w-8 animate-pulse sm:h-10 sm:w-10" />
                     </div>
                 </div>
                 <SectionTitle
                     title={t('configurator.generateOffer.title')}
                     subtitle={t('configurator.generateOffer.subtitle')}
                     align="center"
+                    className="mb-0"
                 />
             </div>
 
             {genError ? (
-                <div className="w-full space-y-4">
+                <div className="w-full space-y-3">
                     <Alert variant="error">{genError}</Alert>
-                    <div className="flex flex-wrap items-center justify-center gap-3">
+                    <div className="flex flex-wrap items-center justify-center gap-2.5">
                         <Button
                             type="button"
                             variant="primary"
-                            size="md"
-                            className="gap-2"
+                            size="sm"
+                            className="gap-1.5 rounded-xl"
                             onClick={handleRetry}
                         >
-                            <RefreshCcw className="h-4 w-4" />
+                            <RefreshCcw className="h-3.5 w-3.5" />
                             {t('configurator.retry', { defaultValue: 'Retry Offer Generation' })}
                         </Button>
                         <Button
                             type="button"
                             variant="secondary"
-                            size="md"
-                            className="gap-2"
+                            size="sm"
+                            className="gap-1.5 rounded-xl"
                             onClick={handleGoBackToSummary}
                         >
-                            <ArrowLeft className="h-4 w-4" />
+                            <ArrowLeft className="h-3.5 w-3.5" />
                             {t('configurator.goBack', { defaultValue: 'Back to Summary' })}
                         </Button>
                     </div>
                 </div>
             ) : null}
 
-            <Card className="w-full rounded-[1.25rem] p-5 sm:rounded-[1.5rem] sm:p-7">
-                <div className="space-y-8">
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
+            <Card className="w-full rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft sm:p-6">
+                <div className="space-y-5">
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-textSecondary">
                             <span>{t('configurator.generateOffer.status')}</span>
                             <span>{Math.floor(visibleProgress)}%</span>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
-                            <div className="h-full rounded-full bg-gradient-brand transition-all duration-300" style={{ width: `${visibleProgress}%` }} />
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full rounded-full bg-primary-600 transition-all duration-300" style={{ width: `${visibleProgress}%` }} />
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs">
+                                <Loader2 className="h-4 w-4 animate-spin" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.generateOffer.status')}</p>
-                                <p className="mt-1 text-lg font-semibold text-textPrimary">{visibleCurrentPhase}</p>
+                                <p className="text-[9px] font-bold uppercase tracking-wider text-textSecondary">{t('configurator.generateOffer.status')}</p>
+                                <p className="text-sm sm:text-base font-bold text-textPrimary">{visibleCurrentPhase}</p>
                             </div>
                         </div>
-                        <Badge variant="info">{isGenerating ? 'Processing' : 'Queued'}</Badge>
+                        <Badge variant="info" className="self-start sm:self-auto text-[10px] font-bold">{isGenerating ? 'Processing' : 'Queued'}</Badge>
                     </div>
 
-                    <div className="flex justify-center border-t border-white/8 pt-6">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="lg"
-                            className="w-full gap-2 sm:w-auto"
-                            onClick={handleStartNewConfigurator}
-                        >
-                            <RotateCcw className="h-4.5 w-4.5" />
-                            {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
-                        </Button>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
                         {systemNodes.map((node) => (
                             <div
                                 key={node.name}
                                 className={clsx(
-                                    'rounded-[1.6rem] border p-5 transition-all duration-300',
+                                    'rounded-xl border p-3 transition-all duration-200',
                                     node.status === 'Active'
-                                        ? 'border-primary-500/20 bg-primary-500/10 text-textPrimary'
-                                        : 'border-white/8 bg-white/5 text-textSecondary',
+                                        ? 'border-primary-300 bg-primary-50/70 text-textPrimary shadow-xs'
+                                        : 'border-slate-200 bg-slate-50/60 text-textSecondary',
                                 )}
                             >
                                 <div className={clsx(
-                                    'mb-4 flex h-10 w-10 items-center justify-center rounded-2xl border',
-                                    node.status === 'Active' ? 'border-primary-500/18 bg-primary-500/12 text-primary-300' : 'border-white/8 bg-[#1d1d1d]',
+                                    'mb-2 flex h-8 w-8 items-center justify-center rounded-lg border',
+                                    node.status === 'Active' ? 'border-primary-200 bg-white text-primary-700 shadow-xs' : 'border-slate-200 bg-white text-slate-400',
                                 )}>
-                                    <node.icon className="h-4.5 w-4.5" />
+                                    <node.icon className="h-3.5 w-3.5" />
                                 </div>
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('configurator.generateOffer.nodeStep')}</p>
-                                <p className="mt-2 text-base font-semibold text-textPrimary">{node.name}</p>
+                                <p className="text-[9px] font-bold uppercase tracking-wider text-textSecondary">{t('configurator.generateOffer.nodeStep')}</p>
+                                <p className="mt-0.5 text-xs font-bold text-textPrimary truncate">{node.name}</p>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="flex justify-center border-t border-slate-100 pt-4">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="w-full gap-2 rounded-xl sm:w-auto"
+                            onClick={handleStartNewConfigurator}
+                        >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
+                        </Button>
                     </div>
                 </div>
             </Card>
 
             {showActivationPrompt ? (
-                <Card className="w-full rounded-[1.25rem] p-5 text-center sm:rounded-[1.5rem] sm:p-7">
-                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-primary-500/18 bg-primary-500/12 text-primary-300 shadow-glow sm:h-24 sm:w-24">
-                        <Fingerprint className="h-10 w-10" />
+                <Card className="w-full rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-soft sm:p-7">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 border border-primary-100 shadow-xs sm:h-16 sm:w-16">
+                        <Fingerprint className="h-7 w-7" />
                     </div>
-                    <div className="space-y-3">
-                        <h3 className="font-heading text-4xl font-semibold text-textPrimary">{t('configurator.generateOffer.activationTitle')}</h3>
-                        <p className="mx-auto max-w-2xl text-sm leading-relaxed text-textSecondary">
-                            {t('configurator.generateOffer.activationBody', { defaultValue: 'Create or log into the real customer account to continue. The registration flow uses reCAPTCHA plus email or SMS OTP verification, and your saved guest steps will be restored after activation.' })}
+                    <div className="space-y-1.5">
+                        <h3 className="font-heading text-xl sm:text-2xl font-black text-textPrimary">{t('configurator.generateOffer.activationTitle')}</h3>
+                        <p className="mx-auto max-w-xl text-xs sm:text-sm leading-relaxed text-textSecondary">
+                            {t('configurator.generateOffer.activationBody', { defaultValue: 'Create or log into your customer account to finalize and store your proposal. Your configuration is already saved.' })}
                         </p>
                     </div>
 
-                    <div className="mt-8 grid gap-4 md:grid-cols-2">
+                    <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2 max-w-md mx-auto">
                         <Button
                             variant="primary"
-                            size="lg"
-                            className="gap-2"
+                            size="md"
+                            className="gap-2 rounded-xl font-bold"
                             onClick={() => {
                                 saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({ ...configurator, currentStep: 6, guestSessionId: getOrCreateGuestSessionId() }));
                                 navigate('/auth/register', { state: { returnTo: '/configurator', returnStep: 6 } });
                             }}
                         >
-                            <UserPlus className="h-4.5 w-4.5" />
+                            <UserPlus className="h-4 w-4" />
                             {t('configurator.generateOffer.createAccount')}
-                            <ArrowRight className="h-4.5 w-4.5" />
+                            <ArrowRight className="h-4 w-4" />
                         </Button>
 
                         <Button
                             variant="secondary"
-                            size="lg"
-                            className="gap-2"
+                            size="md"
+                            className="gap-2 rounded-xl font-bold"
                             onClick={() => {
                                 saveStoredConfiguratorSnapshot(buildStoredConfiguratorSnapshot({ ...configurator, currentStep: 6, guestSessionId: getOrCreateGuestSessionId() }));
                                 navigate('/auth/login', { state: { returnTo: '/configurator', returnStep: 6 } });
                             }}
                         >
-                            <LogIn className="h-4.5 w-4.5" />
+                            <LogIn className="h-4 w-4" />
                             {t('configurator.generateOffer.logIn')}
                         </Button>
                     </div>
 
-                    <div className="mt-4">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="lg"
-                            className="mx-auto gap-2"
-                            onClick={handleStartNewConfigurator}
-                        >
-                            <RotateCcw className="h-4.5 w-4.5" />
-                            {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
-                        </Button>
-                    </div>
-
-                    <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                        <ShieldAlert className="h-4 w-4 text-primary-300" />
+                    <div className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                        <ShieldAlert className="h-3.5 w-3.5 text-primary-700" />
                         {t('configurator.generateOffer.secureSaved')}
                     </div>
                 </Card>
             ) : (
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-5 py-3 text-sm text-textSecondary">
-                    <Server className="h-4.5 w-4.5 text-primary-300" />
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-textSecondary shadow-xs">
+                    <Server className="h-3.5 w-3.5 text-primary-700" />
                     {t('configurator.generateOffer.secureConnection')}
                 </div>
             )}

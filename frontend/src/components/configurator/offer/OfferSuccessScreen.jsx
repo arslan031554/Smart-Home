@@ -29,43 +29,43 @@ export default function OfferSuccessScreen() {
     };
 
     return (
-        <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-10 py-8">
-            <div className="space-y-6 text-center">
+        <AnimatedPageWrapper className="mx-auto max-w-5xl space-y-6 py-4 sm:space-y-8 sm:py-6">
+            <div className="space-y-4 text-center">
                 <div className="relative inline-block">
-                    <div className="relative z-10 mx-auto flex h-24 w-24 items-center justify-center rounded-[2.5rem] border-4 border-white bg-emerald-50 shadow-premium sm:h-28 sm:w-28">
-                        <CheckCircle2 className="h-12 w-12 text-emerald-500 sm:h-14 sm:w-14" />
+                    <div className="relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-white bg-primary-50 text-primary-700 shadow-soft sm:h-20 sm:w-20">
+                        <CheckCircle2 className="h-8 w-8 text-primary-600 sm:h-10 sm:w-10" />
                     </div>
-                    <div className="absolute -inset-4 -z-10 rounded-full bg-emerald-400/10 blur-3xl animate-pulse" />
+                    <div className="absolute -inset-2 -z-10 rounded-full bg-primary-400/10 blur-xl animate-pulse" />
                 </div>
 
                 <SectionTitle
                     title={t('offerSuccess.title', { defaultValue: 'Offer Generated Successfully' })}
                     subtitle={t('offerSuccess.downloadPrompt', { defaultValue: 'Your proposal is ready. Download the official PDF proposal or technical manifest below.' })}
                     badge={t('offerSuccess.badge', { defaultValue: 'Step 07: Offer Ready' })}
-                    className="flex flex-col items-center"
+                    className="flex flex-col items-center mb-0"
                 />
             </div>
 
             <DocumentsSection offerId={offerId} />
 
             {!offerId ? (
-                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-700">
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-xs text-amber-700">
                     {t('offerSuccess.savingHelp', { defaultValue: 'If you do not see download buttons, the offer may still be saving. Please wait a moment.' })}
                 </p>
             ) : null}
 
             {offerId ? (
-                <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t border-slate-200">
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-slate-200">
                     <Link to={`/dashboard/offers/${offerId}`}>
-                        <Button variant="primary" size="lg" className="gap-2 rounded-xl">
-                            <Eye className="h-4.5 w-4.5" />
+                        <Button variant="primary" size="md" className="gap-2 rounded-xl text-xs font-bold">
+                            <Eye className="h-4 w-4" />
                             {t('offerSuccess.viewDetails', { defaultValue: 'View Full Offer Details' })}
-                            <ArrowRight className="h-4.5 w-4.5" />
+                            <ArrowRight className="h-4 w-4" />
                         </Button>
                     </Link>
 
-                    <Button variant="secondary" size="lg" className="gap-2 rounded-xl" onClick={handleStartNewConfigurator}>
-                        <RotateCcw className="h-4.5 w-4.5" />
+                    <Button variant="secondary" size="md" className="gap-2 rounded-xl text-xs font-semibold" onClick={handleStartNewConfigurator}>
+                        <RotateCcw className="h-4 w-4" />
                         {t('configurator.generateOffer.startNewConfigurator', { defaultValue: 'Start New Configurator' })}
                     </Button>
                 </div>

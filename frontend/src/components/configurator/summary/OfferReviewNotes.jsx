@@ -214,17 +214,17 @@ export default function OfferReviewNotes() {
 
             <div className="mt-4">
                 {accountActivationBlock || (
-                    <div className="relative overflow-hidden rounded-2xl p-5 text-white bg-slate-900 border border-slate-800 shadow-soft sm:py-5 sm:px-6">
+                    <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-r from-[#0d2818] via-[#123821] to-[#0d2818] border border-emerald-800/40 shadow-soft sm:py-5 sm:px-6">
                         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-3.5">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-emerald-400 border border-white/10">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs">
                                     <Check className="h-5 w-5" />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <h4 className="text-sm sm:text-base font-bold text-white">
+                                    <h4 className="text-sm sm:text-base font-black text-white tracking-tight">
                                         {t('configurator.summary.generate.reviewLabel', { defaultValue: 'Project summary reviewed' })}
                                     </h4>
-                                    <p className="text-xs text-slate-300">
+                                    <p className="text-xs sm:text-[13px] font-medium text-emerald-100/90 leading-relaxed">
                                         {t('configurator.summary.generate.reviewCopy', { defaultValue: 'All sections remain editable until the offer is generated.' })}
                                     </p>
                                 </div>
@@ -232,7 +232,7 @@ export default function OfferReviewNotes() {
                             <button
                                 onClick={handleGenerate}
                                 disabled={isCalculating}
-                                className="h-10 min-w-[160px] rounded-lg bg-primary-500 hover:bg-primary-600 active:scale-[0.99] text-white font-bold text-xs sm:text-sm px-5 py-2 transition-all duration-200 flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
+                                className="h-11 min-w-[170px] rounded-xl bg-primary-500 hover:bg-primary-600 active:scale-[0.99] text-white font-bold text-xs sm:text-sm px-6 py-2.5 transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-primary-500/25 disabled:opacity-50"
                             >
                                 {isCalculating ? (
                                     <>
@@ -241,7 +241,7 @@ export default function OfferReviewNotes() {
                                     </>
                                 ) : (
                                     <>
-                                        <span>{t('configurator.summary.generate.cta', { defaultValue: 'Generate offer' })}</span>
+                                        <span>{t('configurator.summary.generate.cta', { defaultValue: 'Generate Offer' })}</span>
                                         <ArrowRight className="h-4 w-4" />
                                     </>
                                 )}

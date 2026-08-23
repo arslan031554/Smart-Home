@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Instagram, Mail, MapPin, Phone, Settings, Youtube, Send, Loader2 } from 'lucide-react';
 import { deckNavigation } from '../data/deckContent';
 import { usePresentationContent } from '../data/usePresentationContent';
+import { useTranslation } from 'react-i18next';
 import api from '../../utils/api';
 
 const socials = [
@@ -11,6 +12,7 @@ const socials = [
 ];
 
 export default function Footer() {
+  const { t } = useTranslation();
   const { companyDescription, contactInfo, footer, nav, pages, services, siteImages } = usePresentationContent();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('idle'); // idle, loading, success, error
@@ -45,17 +47,16 @@ export default function Footer() {
   const footerNavItems = [
     { label: nav.home, href: '/', children: [] },
     ...deckNavigation.map((group) => ({
-      label: group.label,
+      label: t(`presentation.navigation.${group.key}`, { defaultValue: group.label }),
       href: group.items?.[0]?.route ?? '/',
       children: (group.items || []).map((item) => ({
-        label: item.menuLabel,
+        label: t(`presentation.navigation.items.${item.slug}`, { defaultValue: item.menuLabel }),
         href: item.route,
       })),
     })),
     { label: pages.portfolio.title, href: '/portfolio', children: [] },
     { label: pages.about.title, href: '/despre', children: [] },
     { label: pages.contact.title, href: '/contact', children: [] },
-    // { label: footer.configurator, href: '/configurator', children: [] },
   ];
 
   return (

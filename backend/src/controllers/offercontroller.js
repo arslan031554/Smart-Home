@@ -265,6 +265,7 @@ export const createOfferFromConfig = async (req, res, next) => {
           if (room.roomTypeId) continue;
           if (!defaultRoomTypeId) {
             const first = await RoomType.findOne({
+              where: { isActive: true },
               order: [["name", "ASC"]],
               attributes: ["id"],
             });
@@ -321,6 +322,7 @@ export const createOfferFromConfig = async (req, res, next) => {
           if (!roomTypeId) {
             if (!defaultRoomTypeId) {
               const first = await RoomType.findOne({
+                where: { isActive: true },
                 order: [["name", "ASC"]],
                 attributes: ["id"],
               });

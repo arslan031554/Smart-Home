@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAdminPortfolioProjects, addPortfolioProject, updatePortfolioProject, deletePortfolioProject } from '../features/portfolio/portfolioSlice';
-import { Plus, Search, Edit, Trash2, Save, X, Image as ImageIcon, Briefcase, Loader2, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Save, X, Image as ImageIcon, Briefcase, Loader2, Upload, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Button, Badge, Card, Modal, EmptyState, SectionTitle, Input, AnimatedPageWrapper, Skeleton } from '../components/common/UIComponents';
 import api from '../utils/api';
 import { clsx } from 'clsx';
@@ -379,15 +379,42 @@ export default function AdminPortfolioManagement() {
                 title="Delete Portfolio Project"
                 maxWidth="max-w-md"
                 footer={
-                    <div className="flex justify-end gap-3 w-full">
-                        <Button variant="ghost" onClick={() => setDeleteModal({ isOpen: false, itemId: null })}>Cancel</Button>
-                        <Button variant="danger" onClick={confirmDelete}>Delete Project</Button>
+                    <div className="grid w-full grid-cols-2 gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full justify-center !rounded-xl !min-h-11 border-gray-200 bg-white font-bold text-textPrimary shadow-sm hover:bg-gray-50 active:scale-[0.98]"
+                            onClick={() => setDeleteModal({ isOpen: false, itemId: null })}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="danger"
+                            className="w-full justify-center !rounded-xl !min-h-11 bg-red-600 font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 active:scale-[0.98]"
+                            onClick={confirmDelete}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            Delete Project
+                        </Button>
                     </div>
                 }
             >
-                <p className="text-sm text-textSecondary py-4">
-                    Are you sure you want to delete this portfolio project? This action cannot be undone and will remove it from the public presentation site.
-                </p>
+                <div className="mx-auto flex max-w-sm flex-col items-center gap-5 px-2 py-4 text-center sm:px-4 sm:py-6">
+                    <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/20 bg-gradient-to-b from-red-500/15 to-red-500/5 text-red-500 shadow-sm ring-8 ring-red-500/5">
+                        <AlertTriangle className="h-8 w-8 stroke-[2.2]" />
+                    </div>
+                    <div className="space-y-2">
+                        <h4 className="text-xl font-heading font-black tracking-tight text-textPrimary">Are you sure?</h4>
+                        <p className="text-sm font-medium leading-relaxed text-textSecondary">
+                            Are you sure you want to delete this portfolio project? This action cannot be undone and will remove it from the public presentation site.
+                        </p>
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-400">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>Irreversible Action</span>
+                    </div>
+                </div>
             </Modal>
         </AnimatedPageWrapper>
     );

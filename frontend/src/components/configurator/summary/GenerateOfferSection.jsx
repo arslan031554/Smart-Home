@@ -145,15 +145,15 @@ export default function GenerateOfferSection() {
     }
 
     return (
-        <Card className="flex flex-col items-center justify-center space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center text-white shadow-soft relative overflow-hidden sm:p-6">
+        <Card className="flex flex-col items-center justify-center space-y-5 rounded-2xl border border-emerald-800/40 bg-gradient-to-r from-[#0d2818] via-[#123821] to-[#0d2818] p-5 text-center text-white shadow-soft relative overflow-hidden sm:p-6">
             <div className="w-full relative z-10 space-y-6">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/10">
-                        <FileText className="w-6 h-6 text-primary-400" />
+                    <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center border border-emerald-500/30 text-emerald-300 shadow-xs">
+                        <FileText className="w-6 h-6 text-emerald-300" />
                     </div>
                     <div className="space-y-1">
-                        <h3 className="text-xl font-bold tracking-tight">{t('configurator.summary.generate.title', { defaultValue: 'Generate Offer' })}</h3>
-                        <p className="text-xs sm:text-sm font-medium text-slate-300 max-w-lg mx-auto leading-relaxed">
+                        <h3 className="text-xl font-bold tracking-tight text-white">{t('configurator.summary.generate.title', { defaultValue: 'Generate Offer' })}</h3>
+                        <p className="text-xs sm:text-sm font-medium text-emerald-100/90 max-w-lg mx-auto leading-relaxed">
                             {t('configurator.summary.generate.subtitle', { defaultValue: 'Your configuration is ready. Generate the offer to save the backend totals and project details.' })}
                         </p>
                     </div>
@@ -163,7 +163,7 @@ export default function GenerateOfferSection() {
                     <Button
                         size="lg"
                         onClick={handleGenerate}
-                        className="h-11 min-w-[200px] px-6 text-xs sm:text-sm font-bold bg-primary-500 hover:bg-primary-600 text-white rounded-lg shadow-xs active:scale-[0.99] transition-all group/btn sm:h-12 sm:min-w-[240px] disabled:opacity-50"
+                        className="h-11 min-w-[200px] px-6 text-xs sm:text-sm font-bold bg-primary-500 hover:bg-primary-600 text-white rounded-xl shadow-md shadow-primary-500/25 active:scale-[0.99] transition-all group/btn sm:h-12 sm:min-w-[240px] disabled:opacity-50"
                         disabled={isCalculating}
                     >
                         <span className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export default function GenerateOfferSection() {
                         </span>
                     </Button>
 
-                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                    <p className="text-[10px] text-emerald-200/80 font-medium uppercase tracking-wider">
                         {t('configurator.summary.generate.footer', { defaultValue: 'Document generation may take a few seconds' })}
                     </p>
                 </div>

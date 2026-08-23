@@ -22,6 +22,7 @@ import {
     Info,
     Zap,
     AlertCircle,
+    AlertTriangle,
     Box,
     Euro,
     Percent,
@@ -980,23 +981,43 @@ export default function MasterDataManagement({
                 title={t('adminPages.masterData.modal.deleteTitle')}
                 maxWidth="max-w-md"
                 footer={
-                    <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-                        <Button variant="ghost" className="w-full justify-center sm:w-auto" onClick={() => setDeleteModal({ isOpen: false, itemId: null })}>{t('adminPages.masterData.modal.cancel')}</Button>
-                        <Button variant="danger" className="w-full justify-center bg-red-600 px-8 shadow-lg shadow-red-500/10 hover:bg-red-700 sm:w-auto" onClick={confirmDelete}>{t('adminPages.masterData.modal.terminate')}</Button>
+                    <div className="grid w-full grid-cols-2 gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full justify-center !rounded-xl !min-h-11 border-gray-200 bg-white font-bold text-textPrimary shadow-sm hover:bg-gray-50 active:scale-[0.98]"
+                            onClick={() => setDeleteModal({ isOpen: false, itemId: null })}
+                        >
+                            {t('adminPages.masterData.modal.cancel')}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="danger"
+                            className="w-full justify-center !rounded-xl !min-h-11 bg-red-600 font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 active:scale-[0.98]"
+                            onClick={confirmDelete}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            {t('adminPages.masterData.modal.terminate')}
+                        </Button>
                     </div>
                 }
             >
-                <div className="mx-auto flex max-w-sm flex-col items-center gap-5 px-2 py-6 text-center sm:px-4 sm:py-8">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-sm border border-red-500/20 bg-red-50 text-red-600 shadow-sm">
-                        <AlertCircle className="h-8 w-8" />
+                <div className="mx-auto flex max-w-sm flex-col items-center gap-5 px-2 py-4 text-center sm:px-4 sm:py-6">
+                    <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/20 bg-gradient-to-b from-red-500/15 to-red-500/5 text-red-500 shadow-sm ring-8 ring-red-500/5">
+                        <AlertTriangle className="h-8 w-8 stroke-[2.2]" />
                     </div>
                     <div className="space-y-2">
-                        <h4 className="text-xl font-bold text-textPrimary">{t('adminPages.masterData.modal.areYouSure')}</h4>
-                        <p className="text-sm font-medium leading-6 text-textSecondary">
+                        <h4 className="text-xl font-heading font-black tracking-tight text-textPrimary">
+                            {t('adminPages.masterData.modal.areYouSure')}
+                        </h4>
+                        <p className="text-sm font-medium leading-relaxed text-textSecondary">
                             {t('adminPages.masterData.modal.deleteDesc')}
                         </p>
                     </div>
-                    <Badge variant="error" className="rounded-sm border-none px-4 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em]">{t('adminPages.masterData.modal.irreversible')}</Badge>
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-400">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>{t('adminPages.masterData.modal.irreversible')}</span>
+                    </div>
                 </div>
             </Modal>
         </AnimatedPageWrapper>

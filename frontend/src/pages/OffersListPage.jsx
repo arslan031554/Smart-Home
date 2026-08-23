@@ -11,6 +11,7 @@ import {
     Calendar,
     Layout,
     AlertCircle,
+    AlertTriangle,
     Edit3,
     FileText,
     Clock3,
@@ -295,25 +296,36 @@ export default function OffersListPage() {
                 title={t('offers.deleteOfferTitle')}
                 maxWidth="max-w-md"
                 footer={(
-                    <div className="flex w-full justify-end gap-3">
-                        <Button variant="ghost" onClick={() => setDeleteModal({ isOpen: false, offerId: null })}>
+                    <div className="grid w-full grid-cols-2 gap-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            className="w-full justify-center !rounded-xl !min-h-11 border-gray-200 bg-white font-bold text-textPrimary shadow-sm hover:bg-gray-50 active:scale-[0.98]"
+                            onClick={() => setDeleteModal({ isOpen: false, offerId: null })}
+                        >
                             {t('offers.cancel')}
                         </Button>
-                        <Button variant="danger" onClick={confirmDelete}>
+                        <Button
+                            type="button"
+                            variant="danger"
+                            className="w-full justify-center !rounded-xl !min-h-11 bg-red-600 font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 active:scale-[0.98]"
+                            onClick={confirmDelete}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1.5" />
                             {t('offers.confirmDelete')}
                         </Button>
                     </div>
                 )}
             >
-                <div className="space-y-4 py-4 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.4rem] border border-red-500/18 bg-red-500/10 text-red-300">
-                        <AlertCircle className="h-8 w-8" />
+                <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-2 py-4 text-center sm:px-4 sm:py-6">
+                    <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/20 bg-gradient-to-b from-red-500/15 to-red-500/5 text-red-500 shadow-sm ring-8 ring-red-500/5">
+                        <AlertTriangle className="h-8 w-8 stroke-[2.2]" />
                     </div>
-                    <div className="space-y-1">
-                        <h4 className="text-lg font-medium text-textPrimary">{t('offers.areYouSure')}</h4>
-                        <p className="text-sm leading-relaxed text-textSecondary">{t('offers.deleteOfferDesc')}</p>
+                    <div className="space-y-1.5">
+                        <h4 className="text-xl font-heading font-black tracking-tight text-textPrimary">{t('offers.areYouSure')}</h4>
+                        <p className="text-sm font-medium leading-relaxed text-textSecondary">{t('offers.deleteOfferDesc')}</p>
                     </div>
-                    <div className="rounded-[1.2rem] border border-white/8 bg-white/5 px-4 py-3 font-mono text-xs text-textSecondary">
+                    <div className="rounded-xl border border-gray-200/80 bg-gray-50/80 px-4 py-2 font-mono text-xs font-semibold text-textSecondary">
                         Ref: {deleteModal.offerId}
                     </div>
                 </div>
@@ -321,4 +333,3 @@ export default function OffersListPage() {
         </AnimatedPageWrapper>
     );
 }
-

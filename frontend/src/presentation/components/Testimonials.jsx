@@ -21,9 +21,9 @@ export default function Testimonials() {
         </div>
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {testimonials.map((t, index) => (
+          {testimonials.map((item, index) => (
             <Motion.div
-              key={t.name}
+              key={item.name}
               className="gradient-border rounded-2xl bg-white p-7 shadow-xl shadow-slate-200/70"
               initial={{ opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -32,7 +32,7 @@ export default function Testimonials() {
             >
               {/* Stars */}
               <div className="mb-5 flex gap-1">
-                {Array.from({ length: t.rating }).map((_, i) => (
+                {Array.from({ length: item.rating }).map((_, i) => (
                   <Star key={i} size={16} className="fill-emerald text-emerald" />
                 ))}
               </div>
@@ -41,17 +41,17 @@ export default function Testimonials() {
               <Quote className="mb-4 text-emerald/30" size={32} />
 
               {/* Text */}
-              <p className="text-sm leading-7 text-slate-600">"{t.text}"</p>
+              <p className="text-sm leading-7 text-slate-600">"{item.text}"</p>
 
               {/* Author */}
               <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald text-ink text-lg font-black">
-                  {t.name.charAt(0)}
+                  {item.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="font-black text-ink">{t.name}</p>
+                  <p className="font-black text-ink">{item.name}</p>
                   <p className="text-xs font-semibold text-slate-400">
-                    {t.role} · {t.location}
+                    {item.role} · {item.location}
                   </p>
                 </div>
               </div>
