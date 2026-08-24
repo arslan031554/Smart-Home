@@ -15,7 +15,7 @@ import * as followupService from './followupservice.js';
 import sequelize from '../config/database.js';
 import { isValidOfferStatus, normalizeOfferStatus } from '../constants/offerStatus.js';
 import { resolveOfferStatusTransition } from './offerstatusservice.js';
-import { getLocalizedValue, normalizeBusinessLanguage } from '../utils/localization.js';
+import { getLocalizedFlatValue, getLocalizedValue, normalizeBusinessLanguage } from '../utils/localization.js';
 import { normalizeUuid, normalizeUuidArray } from '../utils/idNormalization.js';
 
 function normalizePositiveNumber(value, fallback = 0) {
@@ -25,6 +25,14 @@ function normalizePositiveNumber(value, fallback = 0) {
 
 function normalizeString(value, fallback = '') {
     return typeof value === 'string' ? value : fallback;
+}
+
+function getExactFlatTranslation(source, field, language) {
+    const suffix = language === 'ro' ? 'Ro' : 'En';
+    const direct = source?.[`${field}${suffix}`];
+    if (typeof direct === 'string') return direct.trim();
+    const nested = source?.translations?.[field]?.[language];
+    return typeof nested === 'string' ? nested.trim() : '';
 }
 
 function buildOfferReferenceCandidate(date = new Date()) {
@@ -50,14 +58,23 @@ async function generateUniqueOfferNumber(transaction = null) {
 }
 
 function normalizeProjectInfo(projectInfo = {}, project = null, levels = [], language = 'en') {
+    const nameEn = getLocalizedFlatValue(projectInfo, 'name', 'en', getLocalizedFlatValue(project, 'name', 'en', project?.name || '')) || '';
+    const nameRo = getExactFlatTranslation(projectInfo, 'name', 'ro') || getExactFlatTranslation(project, 'name', 'ro');
+    const descriptionEn = getLocalizedFlatValue(projectInfo, 'description', 'en', getLocalizedFlatValue(project, 'description', 'en', project?.description || '')) || '';
+    const descriptionRo = getExactFlatTranslation(projectInfo, 'description', 'ro') || getExactFlatTranslation(project, 'description', 'ro');
+
     return {
-        name: normalizeString(projectInfo.name, project?.name || ''),
+        name: nameEn || normalizeString(projectInfo.name, project?.name || ''),
+        nameEn,
+        nameRo,
         buildingType: projectInfo.buildingType || project?.buildingTypeId || project?.buildingType?.id || '',
         buildingTypeName: normalizeString(projectInfo.buildingTypeName, project?.buildingType ? getLocalizedValue(project.buildingType, 'name', language, project?.buildingType?.name || '') : ''),
         buildingTypeDescription: normalizeString(projectInfo.buildingTypeDescription, project?.buildingType ? getLocalizedValue(project.buildingType, 'description', language, project?.buildingType?.description || '') : ''),
         levelsCount: Math.max(1, parseInt((projectInfo.levelsCount ?? project?.levelsCount ?? levels.length ?? 1), 10) || 1),
         area: projectInfo.area ?? project?.builtUpArea ?? '',
-        description: normalizeString(projectInfo.description, project?.description || ''),
+        description: descriptionEn || normalizeString(projectInfo.description, project?.description || ''),
+        descriptionEn,
+        descriptionRo,
         projectComplexity: normalizeString(projectInfo.projectComplexity, project?.projectComplexity || ''),
         projectMultiplicationIndex: Math.max(1, parseInt((projectInfo.projectMultiplicationIndex ?? project?.multiplicationIndex ?? 1), 10) || 1),
         clientType: normalizeString(projectInfo.clientType, 'private'),
@@ -124,6 +141,8 @@ function buildStoredCalculationSnapshot(offerData = {}, project = null, calculat
         services: selectedServiceIds,
         multiplicationIndex: projectInfo.projectMultiplicationIndex,
         customerComments: offerData.customerComments || null,
+        customerCommentsEn: offerData.customerCommentsEn ?? offerData.customerComments ?? '',
+        customerCommentsRo: offerData.customerCommentsRo ?? '',
         language,
         calculationBreakdown: buildStoredCalculationBreakdown(offerData, calculation, project),
         status: isValidOfferStatus(offerData.status) ? normalizeOfferStatus(offerData.status) : undefined,

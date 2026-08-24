@@ -5,7 +5,7 @@ import { Card } from '../../common/UIComponents';
 import { MessageSquareText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export default function CustomerComments({ comments }) {
+export default function CustomerComments({ comments, commentsEn, commentsRo }) {
     const dispatch = useDispatch();
     const { t } = useTranslation();
 
@@ -21,13 +21,32 @@ export default function CustomerComments({ comments }) {
                 </div>
             </div>
 
-            <textarea
-                value={comments || ''}
-                onChange={(e) => dispatch(setComments(e.target.value))}
-                rows={3}
-                placeholder={t('configurator.summary.customerCommentsPlaceholder', { defaultValue: 'Enter any customer comments to include in the offer...' })}
-                className="w-full bg-[#f9faf6] border border-slate-200/80 rounded-xl px-4 py-3 text-xs sm:text-sm text-textPrimary placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none shadow-xs"
-            />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                    { language: 'en', value: commentsEn ?? comments ?? '' },
+                    { language: 'ro', value: commentsRo ?? '' },
+                ].map((field) => (
+                    <label key={field.language} className="space-y-1.5">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                            {t('configurator.summary.customerCommentsLanguage', {
+                                language: t(`language.${field.language}`),
+                                defaultValue: 'Customer Comments ({{language}})',
+                            })}
+                        </span>
+                        <textarea
+                            value={field.value}
+                            onChange={(e) => dispatch(setComments({ language: field.language, value: e.target.value }))}
+                            rows={4}
+                            placeholder={t(`configurator.summary.customerCommentsPlaceholder${field.language === 'ro' ? 'Ro' : ''}`, {
+                                defaultValue: field.language === 'ro'
+                                    ? 'Introdu comentariile clientului în limba română...'
+                                    : 'Enter any customer comments to include in the offer...',
+                            })}
+                            className="w-full bg-[#f9faf6] border border-slate-200/80 rounded-xl px-4 py-3 text-xs sm:text-sm text-textPrimary placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none shadow-xs"
+                        />
+                    </label>
+                ))}
+            </div>
 
             <p className="text-[10px] text-textSecondary mt-2 uppercase tracking-wider text-center">{t('configurator.summary.customerCommentsFooter', { defaultValue: 'The current value above will be saved into the final offer record.' })}</p>
         </Card>

@@ -236,7 +236,7 @@ export default function AdminDashboard() {
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="border-b border-gray-100 bg-[#f6f8f3]">
-                                                <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('adminPages.dashboard.table.idProject', { defaultValue: 'Offer / Project' })}</th>
+                                                <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('adminPages.dashboard.table.idProject', { defaultValue: 'Project' })}</th>
                                                 <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('adminPages.dashboard.table.status', { defaultValue: 'Status' })}</th>
                                                 <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('adminPages.dashboard.table.valueExclVat', { defaultValue: 'Value Excl. VAT' })}</th>
                                             </tr>
@@ -249,8 +249,7 @@ export default function AdminDashboard() {
                                                     onClick={() => navigate(`/admin/offers/${offer.id}`)}
                                                 >
                                                     <td className="px-5 py-4">
-                                                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-textSecondary">{offer.offerNumber || offer.id}</p>
-                                                        <p className="mt-1 text-sm font-semibold text-textPrimary">{offer.projectName || t('adminPages.dashboard.untitledProject', { defaultValue: 'Untitled project' })}</p>
+                                                        <p className="text-sm font-semibold text-textPrimary">{offer.projectName || t('adminPages.dashboard.untitledProject', { defaultValue: 'Untitled project' })}</p>
                                                         <p className="mt-1 text-xs text-textSecondary">{formatDate(offer.updatedAt || offer.createdAt)}</p>
                                                     </td>
                                                     <td className="px-5 py-4">

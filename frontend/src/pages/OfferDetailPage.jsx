@@ -28,7 +28,6 @@ import {
     Home,
     ImageOff,
     FileText,
-    Palette,
     Tag,
     Gauge,
     Hash,
@@ -57,12 +56,13 @@ import {
     PremiumTableWrapper,
     Alert,
 } from '@/components/common/UIComponents';
-import { fetchOfferById, duplicateOffer, deleteOffer, updateOfferStatus, updateOfferColor } from '@/features/offers/offersSlice';
+import { fetchOfferById, duplicateOffer, deleteOffer, updateOfferStatus } from '@/features/offers/offersSlice';
 import { fetchPublicMasterData } from '@/features/admin/adminSlice';
 import api from '@/utils/api';
 import { reopenOfferById } from '@/features/configurator/configuratorSlice';
 import { useTranslation } from 'react-i18next';
 import { hasAdminAccess } from '@/constants/adminPermissions';
+import { getActiveConfiguratorLanguage, getConfiguratorText } from '@/utils/configuratorText';
 
 const FUNCTION_ICON_MAP = {
     Sun,
@@ -84,7 +84,6 @@ const PUBLIC_MASTER_DATA_KEYS = [
     'room-types',
     'smart-functions',
     'product-ranges',
-    'colors',
     'services',
     'offer-conditions',
     'disclaimers',
@@ -109,7 +108,7 @@ function humanizeValue(value, fallback = '-') {
         .join(' ');
 }
 
-function aggregateUsedFunctions(levels = [], functionMap = new Map()) {
+function aggregateUsedFunctions(levels = [], functionMap = new Map(), language = 'en') {
     const aggregated = new Map();
 
     (Array.isArray(levels) ? levels : []).forEach((level) => {
@@ -136,7 +135,7 @@ function aggregateUsedFunctions(levels = [], functionMap = new Map()) {
 
                 existing.quantity += quantity;
                 existing.rooms.push({
-                    roomName: room?.name || 'Room',
+                    roomName: getConfiguratorText(room, 'name', language, 'Room'),
                     levelName: level?.name || 'Level',
                 });
                 aggregated.set(functionId, existing);
@@ -147,7 +146,7 @@ function aggregateUsedFunctions(levels = [], functionMap = new Map()) {
     return Array.from(aggregated.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function buildLevelSummaries(levels = [], roomTypeMap = new Map(), functionMap = new Map()) {
+function buildLevelSummaries(levels = [], roomTypeMap = new Map(), functionMap = new Map(), language = 'en') {
     return (Array.isArray(levels) ? levels : []).map((level, levelIndex) => ({
         id: level?.id || `level-${levelIndex}`,
         name: level?.name || `Level ${levelIndex + 1}`,
@@ -175,7 +174,7 @@ function buildLevelSummaries(levels = [], roomTypeMap = new Map(), functionMap =
 
             return {
                 id: room?.id || `${level?.id || levelIndex}-room-${roomIndex}`,
-                name: room?.name || roomTypeMap.get(room?.type)?.name || 'Room',
+                name: getConfiguratorText(room, 'name', language, roomTypeMap.get(room?.type)?.name || 'Room'),
                 typeName: roomTypeMap.get(room?.type)?.name || humanizeValue(room?.type, 'Room'),
                 roomCount,
                 functions,
@@ -193,22 +192,9 @@ export default function OfferDetailPage() {
     const { currentOffer: offer, loading } = useSelector((state) => state.offers);
     const { user } = useSelector((state) => state.auth);
     const adminState = useSelector((state) => state.admin);
-    const [updatingColor, setUpdatingColor] = useState(false);
     const [exporting, setExporting] = useState(null);
     const [sendingReminder, setSendingReminder] = useState(false);
     const [accepting, setAccepting] = useState(false);
-
-    const handleSaveColorSelection = async (colorId) => {
-        if (updatingColor || !id) return;
-        setUpdatingColor(true);
-        try {
-            await dispatch(updateOfferColor({ id, colorId })).unwrap();
-        } catch (err) {
-            console.error('Failed to update color:', err);
-        } finally {
-            setUpdatingColor(false);
-        }
-    };
 
     useEffect(() => {
         if (!id) return;
@@ -266,14 +252,17 @@ export default function OfferDetailPage() {
     const snapshot = offer.calculationSnapshot || {};
     const snapshotProjectInfo = snapshot.projectInfo || {};
     const snapshotLevels = Array.isArray(snapshot.levels) ? snapshot.levels : [];
-    const projectName = snapshotProjectInfo.name ?? offer.project?.name ?? offer.projectName ?? t('offers.detail.projectFallback');
+    const activeLanguage = getActiveConfiguratorLanguage(i18n);
+    const projectName = getConfiguratorText(
+        snapshotProjectInfo,
+        'name',
+        activeLanguage,
+        getConfiguratorText(offer.project || {}, 'name', activeLanguage, offer.projectName ?? t('offers.detail.projectFallback')),
+    );
     const buildingTypeName = snapshotProjectInfo.buildingTypeName ?? offer.project?.buildingType?.name ?? offer.buildingType ?? t('offers.detail.unknownBuildingType');
     const productRanges = Array.isArray(adminState.productRanges) && adminState.productRanges.length > 0
         ? adminState.productRanges
         : (Array.isArray(adminState.publicProductRanges) ? adminState.publicProductRanges : []);
-    const colors = Array.isArray(adminState.colors) && adminState.colors.length > 0
-        ? adminState.colors
-        : (Array.isArray(adminState.publicColors) ? adminState.publicColors : []);
     const roomTypes = Array.isArray(adminState.roomTypes) ? adminState.roomTypes : [];
     const smartFunctions = Array.isArray(adminState.smartFunctions) ? adminState.smartFunctions : [];
     const conditions = Array.isArray(adminState.conditions) ? adminState.conditions : [];
@@ -291,7 +280,6 @@ export default function OfferDetailPage() {
         subtotal: product.subtotal,
         imageUrl: product.imageUrl || null,
         rangeName: product.rangeName || null,
-        colorName: product.colorName || null,
         lineType: product.lineType === 'RELATED' ? 'RELATED' : 'STANDARD',
     }));
     const hardwareItems = allHardwareItems.filter((item) => item.lineType !== 'RELATED');
@@ -325,18 +313,24 @@ export default function OfferDetailPage() {
     const grossTotal = snapshotBreakdown.grossTotal ?? (productsSubtotal + servicesSubtotal);
     const customerEmail = offer?.project?.user?.email || offer?.customerEmail;
     const selectedRangeId = snapshot.selectedRangeId ?? snapshot.rangeId ?? null;
-    const selectedColorId = snapshot.selectedColorId ?? snapshot.colorId ?? null;
     const selectedRange = productRanges.find((item) => item.id === selectedRangeId) || null;
-    const selectedColor = colors.find((item) => item.id === selectedColorId) || null;
     const rangeLabel = selectedRange?.name || allHardwareItems.find((item) => item.rangeName)?.rangeName || t('offers.detail.notSelected', { defaultValue: 'Not selected' });
-    const colorLabel = selectedColor?.name || allHardwareItems.find((item) => item.colorName)?.colorName || t('offers.detail.notSelected', { defaultValue: 'Not selected' });
     const buildingDescription = snapshotProjectInfo.buildingTypeDescription || offer.project?.buildingType?.description || '';
-    const projectDescription = snapshotProjectInfo.description || offer.project?.description || '';
-    const customerComments = offer.customerComments || snapshot.customerComments || '';
+    const projectDescription = getConfiguratorText(
+        snapshotProjectInfo,
+        'description',
+        activeLanguage,
+        getConfiguratorText(offer.project || {}, 'description', activeLanguage, ''),
+    );
+    const customerComments = getConfiguratorText({
+        customerComments: snapshot.customerComments ?? offer.customerComments,
+        customerCommentsEn: snapshot.customerCommentsEn,
+        customerCommentsRo: snapshot.customerCommentsRo,
+    }, 'customerComments', activeLanguage, offer.customerComments || '');
     const clientType = snapshotProjectInfo.clientType || 'private';
     const companyName = snapshotProjectInfo.companyName || '';
-    const levelSummaries = buildLevelSummaries(snapshotLevels, roomTypeMap, smartFunctionMap);
-    const usedFunctions = aggregateUsedFunctions(snapshotLevels, smartFunctionMap);
+    const levelSummaries = buildLevelSummaries(snapshotLevels, roomTypeMap, smartFunctionMap, activeLanguage);
+    const usedFunctions = aggregateUsedFunctions(snapshotLevels, smartFunctionMap, activeLanguage);
     const normalizedStatus = String(offer.status || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
     const isAdminUser = hasAdminAccess(user);
     const canAcceptOffer = isDashboardOfferRoute && normalizedStatus === 'offer_generated';
@@ -468,644 +462,579 @@ export default function OfferDetailPage() {
             label: t('offers.detail.rangeLabel', { defaultValue: 'Product Range' }),
             value: rangeLabel,
         },
-        {
-            icon: Palette,
-            label: t('offers.detail.colorLabel', { defaultValue: 'Color / Finish' }),
-            value: colorLabel,
-        },
     ].filter(Boolean);
 
     return (
         <AnimatedPageWrapper className="mx-auto max-w-7xl pb-12 px-2 sm:px-4 lg:px-6 mt-4">
             <div className="bg-white border border-gray-200 shadow-sm hover:shadow-md relative rounded-sm p-4 sm:p-5 lg:p-6 transition-all duration-700 group/bg space-y-8">
-            <div className="flex items-center justify-between gap-4">
-                <Link to={backListRoute} className="inline-flex items-center gap-2 text-sm font-medium text-textSecondary transition-colors hover:text-primary-300">
-                    <ArrowLeft className="h-4 w-4" />
-                    {t('offers.detail.backToOffers')}
-                </Link>
-            </div>
+                <div className="flex items-center justify-between gap-4">
+                    <Link to={backListRoute} className="inline-flex items-center gap-2 text-sm font-medium text-textSecondary transition-colors hover:text-primary-300">
+                        <ArrowLeft className="h-4 w-4" />
+                        {t('offers.detail.backToOffers')}
+                    </Link>
+                </div>
 
-            <div className="bg-primary-600/5 border border-primary-500/10 overflow-hidden rounded-sm px-5 py-6 sm:px-6 relative">
-                <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
+                <div className="bg-primary-600/5 border border-primary-500/10 overflow-hidden rounded-sm px-5 py-6 sm:px-6 relative">
+                    <div className="absolute -right-24 top-0 h-64 w-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
 
-                <div className="relative z-10 space-y-8">
-                    <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="space-y-5">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <StatusBadge status={offer.status} />
-                                <Badge variant="neutral" className="gap-2">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    {t('offers.detail.established', { date: formatDate(offer.createdAt) })}
-                                </Badge>
-                                <Badge variant="primary" className="gap-2">
-                                    <ShieldCheck className="h-3.5 w-3.5" />
-                                    {t('offers.detail.technicalVerified')}
-                                </Badge>
-                            </div>
+                    <div className="relative z-10 space-y-8">
+                        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+                            <div className="space-y-5">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <StatusBadge status={offer.status} />
+                                    <Badge variant="neutral" className="gap-2">
+                                        <Calendar className="h-3.5 w-3.5" />
+                                        {t('offers.detail.established', { date: formatDate(offer.createdAt) })}
+                                    </Badge>
+                                    <Badge variant="primary" className="gap-2">
+                                        <ShieldCheck className="h-3.5 w-3.5" />
+                                        {t('offers.detail.technicalVerified')}
+                                    </Badge>
+                                </div>
 
-                            <SectionTitle
-                                title={projectName}
-                                subtitle={t('offers.detail.subtitle')}
-                                badge={t('offers.detail.recordReference', { id })}
-                                className="mb-0"
-                            />
+                                <SectionTitle
+                                    title={projectName}
+                                    subtitle={t('offers.detail.subtitle')}
+                                    badge={t('offers.detail.recordReference', { id })}
+                                    className="mb-0"
+                                />
 
-                            <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                <span className="inline-flex items-center gap-2 rounded-sm border border-primary-500/15 bg-white px-4 py-2 shadow-sm">
-                                    <Building2 className="h-4 w-4 text-primary-300" />
-                                    {buildingTypeName}
-                                </span>
-                                <span className="inline-flex items-center gap-2 rounded-sm border border-primary-500/15 bg-white px-4 py-2 shadow-sm">
-                                    <MapPin className="h-4 w-4 text-primary-300" />
-                                    {rangeLabel}
-                                </span>
-                                <span className="inline-flex items-center gap-2 rounded-sm border border-primary-500/15 bg-white px-4 py-2 shadow-sm">
-                                    <ClipboardList className="h-4 w-4 text-primary-300" />
-                                    {offer.offerNumber ? String(offer.offerNumber).split('-').slice(0, -1).join('-') : ''}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 xl:justify-end mt-4 xl:mt-0">
-                            {/* Actions Group 1: Print & Email */}
-                            <div className="flex items-center gap-1 rounded-sm border border-primary-500/15 bg-white p-1 shadow-sm">
-                                <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.print')} onClick={handlePrint}>
-                                    <Printer className="h-4 w-4" />
-                                </Button>
-                                {canUseEmailShortcut ? (
-                                    <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.email')} onClick={handleEmail}>
-                                        <Mail className="h-4 w-4" />
-                                    </Button>
-                                ) : null}
-                            </div>
-
-                            {/* Actions Group 2: Manage */}
-                            <div className="flex items-center gap-1 rounded-sm border border-primary-500/15 bg-white p-1 shadow-sm">
-                                <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.edit')} onClick={handleEditOffer}>
-                                    <Edit3 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.duplicate')} onClick={handleDuplicateOffer}>
-                                    <Copy className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-red-400 hover:bg-red-50 hover:text-red-600" title={t('offers.detail.delete')} onClick={handleDeleteOffer}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-
-                            {/* Actions Group 3: Primary actions */}
-                            <div className="flex items-center gap-2">
-                                <Button size="sm" className="gap-2 shadow-sm" onClick={() => handleExport('pdf')} disabled={!!exporting}>
-                                    {exporting === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                                    {t('offers.detail.exportPdf')}
-                                </Button>
-                                {isAdminUser ? (
-                                    <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm" onClick={() => handleExport('excel')} disabled={!!exporting}>
-                                        {exporting === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                                        {t('offers.detail.exportExcel', { defaultValue: 'Export Excel' })}
-                                    </Button>
-                                ) : null}
-                                {canSendReminderEmail ? (
-                                    <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm" onClick={handleSendReminderEmail} disabled={sendingReminder}>
-                                        {sendingReminder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-                                        {t('offers.detail.sendReminderEmail', { defaultValue: 'Send Reminder Email' })}
-                                    </Button>
-                                ) : null}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        {[
-                            {
-                                icon: Layers3,
-                                label: t('offers.detail.rooms'),
-                                value: roomsCount || offer.roomsCount || 0,
-                                color: '#60b93f',
-                                bg: 'rgba(96,185,63,0.10)',
-                                border: 'rgba(96,185,63,0.22)',
-                                glow: 'rgba(96,185,63,0.18)',
-                            },
-                            {
-                                icon: Zap,
-                                label: t('offers.detail.smartFeatures'),
-                                value: functionsCount || offer.functionsCount || 0,
-                                color: '#f59e0b',
-                                bg: 'rgba(245,158,11,0.10)',
-                                border: 'rgba(245,158,11,0.22)',
-                                glow: 'rgba(245,158,11,0.15)',
-                            },
-                            {
-                                icon: Box,
-                                label: t('offers.detail.lineItems', { count: allHardwareItems.length }),
-                                value: allHardwareItems.length,
-                                color: '#3b82f6',
-                                bg: 'rgba(59,130,246,0.10)',
-                                border: 'rgba(59,130,246,0.22)',
-                                glow: 'rgba(59,130,246,0.15)',
-                            },
-                            {
-                                icon: Wrench,
-                                label: t('offers.detail.servicesTitle'),
-                                value: services.length,
-                                color: '#8b5cf6',
-                                bg: 'rgba(139,92,246,0.10)',
-                                border: 'rgba(139,92,246,0.22)',
-                                glow: 'rgba(139,92,246,0.15)',
-                            },
-                        ].map((item, idx) => (
-                            <div
-                                key={item.label}
-                                className="db-stat-card group relative overflow-hidden rounded-sm p-4 cursor-default"
-                                style={{
-                                    '--sc': item.color,
-                                    '--sb': item.bg,
-                                    '--sborder': item.border,
-                                    '--sglow': item.glow,
-                                    animationDelay: `${idx * 80}ms`,
-                                }}
-                            >
-                                <div className="relative z-10 flex items-start justify-between gap-3">
-                                    <div className="space-y-2.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary leading-none">
-                                            {item.label}
-                                        </p>
-                                        <p className="font-heading text-4xl font-black leading-none" style={{ color: item.color }}>
-                                            {item.value}
-                                        </p>
-                                    </div>
-                                    <div
-                                        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-sm transition-transform duration-300 group-hover:scale-110 shadow-sm"
-                                        style={{ background: item.bg, border: `1px solid ${item.border}`, color: item.color }}
-                                    >
-                                        <item.icon className="h-4.5 w-4.5" />
-                                    </div>
+                                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
+                                    <span className="inline-flex items-center gap-2 rounded-sm border border-primary-500/15 bg-white px-4 py-2 shadow-sm">
+                                        <Building2 className="h-4 w-4 text-primary-300" />
+                                        {buildingTypeName}
+                                    </span>
+                                    <span className="inline-flex items-center gap-2 rounded-sm border border-primary-500/15 bg-white px-4 py-2 shadow-sm">
+                                        <MapPin className="h-4 w-4 text-primary-300" />
+                                        {rangeLabel}
+                                    </span>
+                                    <span className="inline-flex items-center gap-2 rounded-sm border border-primary-500/15 bg-white px-4 py-2 shadow-sm">
+                                        <ClipboardList className="h-4 w-4 text-primary-300" />
+                                        {offer.offerNumber ? String(offer.offerNumber).split('-').slice(0, -1).join('-') : ''}
+                                    </span>
                                 </div>
                             </div>
-                        ))}
+
+                            <div className="flex flex-wrap items-center gap-3 xl:justify-end mt-4 xl:mt-0">
+                                {/* Actions Group 1: Print & Email */}
+                                <div className="flex items-center gap-1 rounded-sm border border-primary-500/15 bg-white p-1 shadow-sm">
+                                    <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.print')} onClick={handlePrint}>
+                                        <Printer className="h-4 w-4" />
+                                    </Button>
+                                    {canUseEmailShortcut ? (
+                                        <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.email')} onClick={handleEmail}>
+                                            <Mail className="h-4 w-4" />
+                                        </Button>
+                                    ) : null}
+                                </div>
+
+                                {/* Actions Group 2: Manage */}
+                                <div className="flex items-center gap-1 rounded-sm border border-primary-500/15 bg-white p-1 shadow-sm">
+                                    <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.edit')} onClick={handleEditOffer}>
+                                        <Edit3 className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-textSecondary hover:text-primary-500" title={t('offers.detail.duplicate')} onClick={handleDuplicateOffer}>
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" className="h-8 w-8 rounded-sm p-0 text-red-400 hover:bg-red-50 hover:text-red-600" title={t('offers.detail.delete')} onClick={handleDeleteOffer}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+
+                                {/* Actions Group 3: Primary actions */}
+                                <div className="flex items-center gap-2">
+                                    <Button size="sm" className="gap-2 shadow-sm" onClick={() => handleExport('pdf')} disabled={!!exporting}>
+                                        {exporting === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                        {t('offers.detail.exportPdf')}
+                                    </Button>
+                                    {isAdminUser ? (
+                                        <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm" onClick={() => handleExport('excel')} disabled={!!exporting}>
+                                            {exporting === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                            {t('offers.detail.exportExcel', { defaultValue: 'Export Excel' })}
+                                        </Button>
+                                    ) : null}
+                                    {canSendReminderEmail ? (
+                                        <Button variant="outline" size="sm" className="gap-2 bg-white shadow-sm" onClick={handleSendReminderEmail} disabled={sendingReminder}>
+                                            {sendingReminder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+                                            {t('offers.detail.sendReminderEmail', { defaultValue: 'Send Reminder Email' })}
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            {[
+                                {
+                                    icon: Layers3,
+                                    label: t('offers.detail.rooms'),
+                                    value: roomsCount || offer.roomsCount || 0,
+                                    color: '#60b93f',
+                                    bg: 'rgba(96,185,63,0.10)',
+                                    border: 'rgba(96,185,63,0.22)',
+                                    glow: 'rgba(96,185,63,0.18)',
+                                },
+                                {
+                                    icon: Zap,
+                                    label: t('offers.detail.smartFeatures'),
+                                    value: functionsCount || offer.functionsCount || 0,
+                                    color: '#f59e0b',
+                                    bg: 'rgba(245,158,11,0.10)',
+                                    border: 'rgba(245,158,11,0.22)',
+                                    glow: 'rgba(245,158,11,0.15)',
+                                },
+                                {
+                                    icon: Box,
+                                    label: t('offers.detail.lineItems', { count: allHardwareItems.length }),
+                                    value: allHardwareItems.length,
+                                    color: '#3b82f6',
+                                    bg: 'rgba(59,130,246,0.10)',
+                                    border: 'rgba(59,130,246,0.22)',
+                                    glow: 'rgba(59,130,246,0.15)',
+                                },
+                                {
+                                    icon: Wrench,
+                                    label: t('offers.detail.servicesTitle'),
+                                    value: services.length,
+                                    color: '#8b5cf6',
+                                    bg: 'rgba(139,92,246,0.10)',
+                                    border: 'rgba(139,92,246,0.22)',
+                                    glow: 'rgba(139,92,246,0.15)',
+                                },
+                            ].map((item, idx) => (
+                                <div
+                                    key={item.label}
+                                    className="db-stat-card group relative overflow-hidden rounded-sm p-4 cursor-default"
+                                    style={{
+                                        '--sc': item.color,
+                                        '--sb': item.bg,
+                                        '--sborder': item.border,
+                                        '--sglow': item.glow,
+                                        animationDelay: `${idx * 80}ms`,
+                                    }}
+                                >
+                                    <div className="relative z-10 flex items-start justify-between gap-3">
+                                        <div className="space-y-2.5">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary leading-none">
+                                                {item.label}
+                                            </p>
+                                            <p className="font-heading text-4xl font-black leading-none" style={{ color: item.color }}>
+                                                {item.value}
+                                            </p>
+                                        </div>
+                                        <div
+                                            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-sm transition-transform duration-300 group-hover:scale-110 shadow-sm"
+                                            style={{ background: item.bg, border: `1px solid ${item.border}`, color: item.color }}
+                                        >
+                                            <item.icon className="h-4.5 w-4.5" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_0.95fr]">
-                <div className="space-y-8">
-                    <section className="space-y-4">
-                        <SectionTitle
-                            title={t('offers.detail.projectChapter', { defaultValue: 'PROJECT' })}
-                            className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100"
-                        />
+                <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.35fr_0.95fr]">
+                    <div className="space-y-8">
+                        <section className="space-y-4">
+                            <SectionTitle
+                                title={t('offers.detail.projectChapter', { defaultValue: 'PROJECT' })}
+                                className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100"
+                            />
 
-                        <Card className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                {projectFacts.map((fact) => (
-                                    <div key={fact.label} className="rounded-sm border border-gray-100 bg-gray-50 p-4">
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
-                                                <fact.icon className="h-4.5 w-4.5" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{fact.label}</p>
-                                                <p className="mt-2 text-sm font-medium leading-relaxed text-textPrimary">{fact.value}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {(buildingDescription || projectDescription) ? (
-                                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    {buildingDescription ? (
-                                        <div className="rounded-sm border border-gray-100 bg-gray-50 p-4">
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                                {t('offers.detail.buildingDescriptionLabel', { defaultValue: 'Building Description' })}
-                                            </p>
-                                            <p className="mt-3 text-sm leading-relaxed text-textPrimary">{buildingDescription}</p>
-                                        </div>
-                                    ) : null}
-                                    {projectDescription ? (
-                                        <div className="rounded-sm border border-gray-100 bg-gray-50 p-4">
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                                {t('offers.detail.projectNotesLabel', { defaultValue: 'Project Notes' })}
-                                            </p>
-                                            <p className="mt-3 text-sm leading-relaxed text-textPrimary">{projectDescription}</p>
-                                        </div>
-                                    ) : null}
-                                </div>
-                            ) : null}
-
-                            {/* Post-Offer Color Finish Selection */}
-                            <div className="mt-6 rounded-sm border border-slate-200 bg-slate-50/80 p-5 space-y-4">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <Palette className="h-4 w-4 text-primary-500" />
-                                            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-textPrimary">
-                                                {t('offers.detail.colorSelectionTitle', { defaultValue: 'Color & Finish Selection' })}
-                                            </h4>
-                                            <Badge variant={selectedColorId ? "primary" : "neutral"}>
-                                                {selectedColorId ? colorLabel : t('offers.detail.colorPendingBadge', { defaultValue: 'Select with client' })}
-                                            </Badge>
-                                        </div>
-                                        <p className="text-xs text-textSecondary">
-                                            {t('offers.detail.colorSelectionSubtitle', { defaultValue: 'Choose the aesthetic finish together with the client after issuing the offer.' })}
-                                        </p>
-                                    </div>
-                                    {updatingColor && (
-                                        <div className="flex items-center gap-2 text-xs font-semibold text-primary-600">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>{t('offers.detail.updatingColor', { defaultValue: 'Updating offer finish...' })}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-2">
-                                    {(Array.isArray(colors) ? colors : []).filter((c) => c?.isVisible !== false).map((col) => {
-                                        const isChosen = selectedColorId === col.id;
-                                        const hexTone = col.hex || '#64748B';
-                                        return (
-                                            <button
-                                                key={col.id}
-                                                type="button"
-                                                disabled={updatingColor}
-                                                onClick={() => handleSaveColorSelection(col.id)}
-                                                className={clsx(
-                                                    'flex items-center gap-3 p-2.5 rounded-sm border text-left transition-all duration-200 cursor-pointer hover:shadow-md',
-                                                    isChosen
-                                                        ? 'border-primary-500 bg-white ring-2 ring-primary-500/20 shadow-sm'
-                                                        : 'border-slate-200 bg-white hover:border-slate-300'
-                                                )}
-                                            >
-                                                <div
-                                                    className="h-6 w-6 rounded-full border border-black/10 shrink-0 flex items-center justify-center shadow-xs"
-                                                    style={{ backgroundColor: hexTone }}
-                                                >
-                                                    {isChosen && (
-                                                        <Check className={clsx("h-3.5 w-3.5", (hexTone.toUpperCase() === '#FFFFFF' || hexTone.toUpperCase() === '#F8FAFC') ? 'text-slate-800' : 'text-white')} />
-                                                    )}
+                            <Card className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    {projectFacts.map((fact) => (
+                                        <div key={fact.label} className="rounded-sm border border-gray-100 bg-gray-50 p-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50/50 text-primary-500">
+                                                    <fact.icon className="h-4.5 w-4.5" />
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-bold truncate text-slate-800">{col.name}</p>
-                                                    <p className="text-[9px] uppercase tracking-wider text-slate-400 font-mono">{col.code || hexTone}</p>
+                                                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{fact.label}</p>
+                                                    <p className="mt-2 text-sm font-medium leading-relaxed text-textPrimary">{fact.value}</p>
                                                 </div>
-                                            </button>
-                                        );
-                                    })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {(buildingDescription || projectDescription) ? (
+                                    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        {buildingDescription ? (
+                                            <div className="rounded-sm border border-gray-100 bg-gray-50 p-4">
+                                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                                    {t('offers.detail.buildingDescriptionLabel', { defaultValue: 'Building Description' })}
+                                                </p>
+                                                <p className="mt-3 text-sm leading-relaxed text-textPrimary">{buildingDescription}</p>
+                                            </div>
+                                        ) : null}
+                                        {projectDescription ? (
+                                            <div className="rounded-sm border border-gray-100 bg-gray-50 p-4">
+                                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                                    {t('offers.detail.projectNotesLabel', { defaultValue: 'Project Notes' })}
+                                                </p>
+                                                <p className="mt-3 text-sm leading-relaxed text-textPrimary">{projectDescription}</p>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+
+                                <div className="mt-8 space-y-5">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                                {t('offers.detail.projectConfiguration', { defaultValue: 'Project Configuration' })}
+                                            </p>
+                                            <p className="mt-1 text-sm text-textSecondary">
+                                                {t('offers.detail.projectConfigurationHelp', { defaultValue: 'All configured levels, rooms, and in-room smart functions used in this offer.' })}
+                                            </p>
+                                        </div>
+                                        <Badge variant="neutral">{t('offers.detail.rooms', { defaultValue: 'Rooms' })}: {roomsCount}</Badge>
+                                    </div>
+
+                                    {levelSummaries.length ? levelSummaries.map((level) => (
+                                        <div key={level.id} className="space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <Layers3 className="h-4 w-4 text-primary-300" />
+                                                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-textPrimary">{level.name}</h3>
+                                            </div>
+
+                                            {level.rooms.length ? (
+                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    {level.rooms.map((room) => (
+                                                        <div key={room.id} className="rounded-sm border border-gray-100 bg-white p-5 shadow-sm">
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-primary-300">
+                                                                        <Home className="h-5 w-5" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-sm font-medium text-textPrimary">{room.name}</p>
+                                                                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{room.typeName}</p>
+                                                                    </div>
+                                                                </div>
+                                                                {room.roomCount > 1 ? (
+                                                                    <Badge variant="primary">x {room.roomCount}</Badge>
+                                                                ) : null}
+                                                            </div>
+
+                                                            <div className="mt-4">
+                                                                {room.functions.length ? (
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {room.functions.map((roomFunction) => (
+                                                                            <div key={`${room.id}-${roomFunction.id}`} className="inline-flex items-center gap-2 rounded-full border border-primary-500/18 bg-primary-500/10 px-3 py-1.5 text-xs text-textPrimary">
+                                                                                <FunctionIcon iconName={roomFunction.icon} className="h-3.5 w-3.5 text-primary-300" />
+                                                                                <span>{roomFunction.name}</span>
+                                                                                <span className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
+                                                                                    x {roomFunction.quantity}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-sm text-textSecondary">
+                                                                        {t('offers.detail.noRoomFunctions', { defaultValue: 'No smart functions were selected for this room.' })}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <Card className="rounded-sm p-6 text-sm text-textSecondary bg-white border border-gray-100 shadow-sm">
+                                                    {t('offers.detail.noRoomsLevel', { defaultValue: 'No rooms are defined on this level.' })}
+                                                </Card>
+                                            )}
+                                        </div>
+                                    )) : (
+                                        <Card className="rounded-sm p-6 text-sm text-textSecondary bg-white border border-gray-100 shadow-sm">
+                                            {t('offers.detail.noLevels', { defaultValue: 'No levels are stored in this offer.' })}
+                                        </Card>
+                                    )}
+                                </div>
+                            </Card>
+                        </section>
+
+                        <section className="space-y-4">
+                            <SectionTitle title={t('offers.detail.functionsChapter', { defaultValue: 'FUNCTIONS' })} className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100" />
+                            {usedFunctions.length ? (
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    {usedFunctions.map((item) => (
+                                        <Card key={item.id || item.name} className="rounded-sm p-4 bg-white border border-gray-100 shadow-sm">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary-50/50 border border-primary-500/20 text-primary-500">
+                                                        <FunctionIcon iconName={item.icon} className="h-4 w-4 text-primary-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-textPrimary">{item.name}</p>
+                                                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{item.rooms?.length || 0} rooms</p>
+                                                    </div>
+                                                </div>
+                                                <Badge variant="primary" className="!rounded-sm !py-1 !px-2">x {item.totalQty || item.quantity}</Badge>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : (
+                                <Card className="rounded-sm p-8 text-center bg-white border border-gray-100 shadow-sm"><p className="text-sm text-textSecondary">{t('offers.detail.noFunctions', { defaultValue: 'No smart functions with quantity greater than zero were stored in this offer.' })}</p></Card>
+                            )}
+                        </section>
+
+
+                        <section className="space-y-4">
+                            <SectionTitle title={t('offers.detail.productsChapter', { defaultValue: 'PRODUCTS' })} className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100" />
+                            <PremiumTableWrapper>
+                                <thead><tr className="border-b border-white/8 bg-white/5"><th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.photo', { defaultValue: 'Photo' })}</th><th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.componentSpec')}</th><th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.quantity')}</th><th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.unitNet')}</th><th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.totalNet')}</th></tr></thead>
+                                <tbody className="divide-y divide-white/8">
+                                    {hardwareItems.map((item, idx) => (
+                                        <tr key={`${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5"><td className="px-6 py-5"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-sm border border-white/8 bg-white/5">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /> : <ImageOff className="h-5 w-5 text-textSecondary" />}</div></td><td className="px-6 py-5"><p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>{item.description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.code}</span>{item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}{item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}</div></td><td className="px-6 py-5 text-center"><span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">{item.qty}</span></td><td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td><td className="px-6 py-5 text-right"><p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p></td></tr>
+                                    ))}
+                                    {relatedHardwareItems.length ? <tr><td colSpan="5" className="px-6 py-4"><div className="rounded-md border border-primary-500/12 bg-primary-500/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-300">{t('offers.detail.relatedProducts', { defaultValue: 'Related Products' })}</div></td></tr> : null}
+                                    {relatedHardwareItems.map((item, idx) => (
+                                        <tr key={`related-${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5"><td className="px-6 py-5"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-sm border border-white/8 bg-white/5">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /> : <ImageOff className="h-5 w-5 text-textSecondary" />}</div></td><td className="px-6 py-5"><p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>{item.description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary-300">{item.code}</span><Badge variant="primary">{t('offers.detail.autoCalculated', { defaultValue: 'Auto calculated' })}</Badge>{item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}{item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}</div></td><td className="px-6 py-5 text-center"><span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">{item.qty}</span></td><td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td><td className="px-6 py-5 text-right"><p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p></td></tr>
+                                    ))}
+                                    {allHardwareItems.length === 0 ? <tr><td colSpan="5" className="px-6 py-10 text-center text-sm text-textSecondary">{t('offers.detail.noHardware', { defaultValue: 'No hardware line items were generated for this offer yet.' })}</td></tr> : null}
+                                </tbody>
+                            </PremiumTableWrapper>
+                        </section>
+                        <section className="space-y-4">
+                            <SectionTitle
+                                title={t('offers.detail.servicesChapter', { defaultValue: 'SERVICES' })}
+                                className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100"
+                            />
+
+                            <PremiumTableWrapper>
+                                <thead>
+                                    <tr className="border-b border-white/8 bg-white/5">
+                                        <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                            {t('offers.detail.serviceName', { defaultValue: 'Service' })}
+                                        </th>
+                                        <th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                            {t('offers.detail.quantity')}
+                                        </th>
+                                        <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                            {t('offers.detail.unitNet')}
+                                        </th>
+                                        <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                            {t('offers.detail.totalNet')}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/8">
+                                    {services.length ? services.map((service) => (
+                                        <tr key={service.serviceId || service.id || service.serviceCode} className="align-top transition-colors hover:bg-white/5">
+                                            <td className="px-6 py-5">
+                                                <p className="text-sm font-medium text-textPrimary">{service.serviceName ?? service.name}</p>
+                                                {service.description ? (
+                                                    <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{service.description}</p>
+                                                ) : null}
+                                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                    {service.serviceCode ? <Badge variant="neutral">{service.serviceCode}</Badge> : null}
+                                                    {service.pricingMode ? (
+                                                        <Badge variant="primary">
+                                                            {humanizeValue(service.pricingMode, t('offers.detail.calculatedPricing', { defaultValue: 'Calculated pricing' }))}
+                                                        </Badge>
+                                                    ) : null}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-5 text-center">
+                                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">
+                                                    {service.calcQty ?? 1}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(service.unitPrice ?? 0)}</td>
+                                            <td className="px-6 py-5 text-right">
+                                                <p className="text-sm font-semibold text-textPrimary">{formatCurrency(service.subtotal ?? 0)}</p>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="4" className="px-6 py-10 text-center text-sm text-textSecondary">
+                                                {t('offers.detail.noServices')}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </PremiumTableWrapper>
+                        </section>
+                    </div>
+
+                    <aside className="space-y-6">
+                        <div className="bg-white border border-gray-100 shadow-sm rounded-sm p-5">
+                            <div className="space-y-8">
+                                <div>
+                                    <Badge variant="primary" className="mb-4">{t('offers.detail.grandTotalChapter', { defaultValue: 'GRAND TOTAL' })}</Badge>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between text-sm text-textSecondary">
+                                            <span>{t('offers.detail.productsTotalPerProject', { defaultValue: 'Products Total / Project' })}</span>
+                                            <span className="font-medium text-textPrimary">{formatCurrency(snapshotBreakdown.productsSubtotalPerProject ?? (projectMultiplier > 0 ? productsSubtotal / projectMultiplier : productsSubtotal))}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-textSecondary">
+                                            <span>{t('offers.detail.servicesTotalPerProject', { defaultValue: 'Services Total / Project' })}</span>
+                                            <span className="font-medium text-textPrimary">{formatCurrency(snapshotBreakdown.servicesSubtotalPerProject ?? (projectMultiplier > 0 ? servicesSubtotal / projectMultiplier : servicesSubtotal))}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-textSecondary">
+                                            <span>{t('offers.detail.productsServices')} / {t('offers.detail.perProject', { defaultValue: 'Per Project' })}</span>
+                                            <span className="font-medium text-textPrimary">{formatCurrency(totalPerProject)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-textSecondary">
+                                            <span>{t('offers.detail.quantity')}</span>
+                                            <span className="font-medium text-textPrimary">x {projectMultiplier}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-textSecondary">
+                                            <span>{t('offers.detail.grossTotal', { defaultValue: 'Gross Total' })}</span>
+                                            <span className="font-medium text-textPrimary">{formatCurrency(grossTotal)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-sm text-emerald-300">
+                                            <span className="inline-flex items-center gap-2">
+                                                <TrendingDown className="h-4 w-4" />
+                                                {t('offers.detail.discount')} ({Number(discountPercent || 0).toFixed(2)}%)
+                                            </span>
+                                            <span className="font-medium">-{formatCurrency(discountAmount)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-sm border border-primary-500/18 bg-primary-500/10 px-5 py-5">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-200">{t('offers.detail.grandTotal')}</p>
+                                    <p className="mt-3 font-heading text-5xl font-semibold leading-none text-textPrimary">{formatCurrency(grandTotal)}</p>
+                                    <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.exclVat')}</p>
+                                </div>
+                                {canAcceptOffer ? (
+                                    <Button
+                                        size="md"
+                                        className="w-full gap-2"
+                                        onClick={handleAcceptOffer}
+                                        disabled={accepting}
+                                    >
+                                        {accepting ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : null}
+                                        {t('offers.detail.accept')}
+                                        <ArrowRight className="h-4.5 w-4.5" />
+                                    </Button>
+                                ) : null}
+
+                                <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
+                                    {t('offers.detail.validFor')}
+                                </p>
+                            </div>
+                        </div>
+
+                        <Card className="rounded-sm p-6">
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                    <FileText className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.offerConditionsTitle', { defaultValue: 'OFFER CONDITIONS' })}</h3>
+                                    <p className="text-sm text-textSecondary">{t('offers.detail.offerConditionsHelp', { defaultValue: 'Commercial terms configured for this offer flow.' })}</p>
                                 </div>
                             </div>
 
-                            <div className="mt-8 space-y-5">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div>
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                            {t('offers.detail.projectConfiguration', { defaultValue: 'Project Configuration' })}
-                                        </p>
-                                        <p className="mt-1 text-sm text-textSecondary">
-                                            {t('offers.detail.projectConfigurationHelp', { defaultValue: 'All configured levels, rooms, and in-room smart functions used in this offer.' })}
-                                        </p>
-                                    </div>
-                                    <Badge variant="neutral">{t('offers.detail.rooms', { defaultValue: 'Rooms' })}: {roomsCount}</Badge>
-                                </div>
-
-                                {levelSummaries.length ? levelSummaries.map((level) => (
-                                    <div key={level.id} className="space-y-4">
-                                        <div className="flex items-center gap-2">
-                                            <Layers3 className="h-4 w-4 text-primary-300" />
-                                            <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-textPrimary">{level.name}</h3>
+                            <div className="space-y-3">
+                                {conditions.length ? conditions.map((condition, index) => (
+                                    <div key={condition.id || index} className="flex items-start gap-3 rounded-sm border border-white/8 bg-white/5 px-4 py-4">
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-xs font-semibold text-primary-300">
+                                            {index + 1}
                                         </div>
-
-                                        {level.rooms.length ? (
-                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                                {level.rooms.map((room) => (
-                                                    <div key={room.id} className="rounded-sm border border-gray-100 bg-white p-5 shadow-sm">
-                                                        <div className="flex items-start justify-between gap-3">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-primary-300">
-                                                                    <Home className="h-5 w-5" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-textPrimary">{room.name}</p>
-                                                                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{room.typeName}</p>
-                                                                </div>
-                                                            </div>
-                                                            {room.roomCount > 1 ? (
-                                                                <Badge variant="primary">x {room.roomCount}</Badge>
-                                                            ) : null}
-                                                        </div>
-
-                                                        <div className="mt-4">
-                                                            {room.functions.length ? (
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {room.functions.map((roomFunction) => (
-                                                                        <div key={`${room.id}-${roomFunction.id}`} className="inline-flex items-center gap-2 rounded-full border border-primary-500/18 bg-primary-500/10 px-3 py-1.5 text-xs text-textPrimary">
-                                                                            <FunctionIcon iconName={roomFunction.icon} className="h-3.5 w-3.5 text-primary-300" />
-                                                                            <span>{roomFunction.name}</span>
-                                                                            <span className="rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">
-                                                                                x {roomFunction.quantity}
-                                                                            </span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                <p className="text-sm text-textSecondary">
-                                                                    {t('offers.detail.noRoomFunctions', { defaultValue: 'No smart functions were selected for this room.' })}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <Card className="rounded-sm p-6 text-sm text-textSecondary bg-white border border-gray-100 shadow-sm">
-                                                {t('offers.detail.noRoomsLevel', { defaultValue: 'No rooms are defined on this level.' })}
-                                            </Card>
-                                        )}
+                                        <p className="text-sm leading-relaxed text-textPrimary">{condition.text}</p>
                                     </div>
                                 )) : (
-                                    <Card className="rounded-sm p-6 text-sm text-textSecondary bg-white border border-gray-100 shadow-sm">
-                                        {t('offers.detail.noLevels', { defaultValue: 'No levels are stored in this offer.' })}
-                                    </Card>
+                                    <p className="text-sm text-textSecondary">
+                                        {t('offers.detail.noOfferConditions', { defaultValue: 'No offer conditions are currently configured.' })}
+                                    </p>
                                 )}
                             </div>
                         </Card>
-                    </section>
 
-                    <section className="space-y-4">
-                        <SectionTitle title={t('offers.detail.functionsChapter', { defaultValue: 'FUNCTIONS' })} className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100" />
-                        {usedFunctions.length ? (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                {usedFunctions.map((item) => (
-                                    <Card key={item.id || item.name} className="rounded-sm p-4 bg-white border border-gray-100 shadow-sm">
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary-50/50 border border-primary-500/20 text-primary-500">
-                                                    <FunctionIcon iconName={item.icon} className="h-4 w-4 text-primary-500" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-textPrimary">{item.name}</p>
-                                                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{item.rooms?.length || 0} rooms</p>
-                                                </div>
-                                            </div>
-                                            <Badge variant="primary" className="!rounded-sm !py-1 !px-2">x {item.totalQty || item.quantity}</Badge>
-                                        </div>
-                                    </Card>
-                                ))}
+                        <Card className="rounded-sm border border-amber-500/20 bg-amber-500/10 p-6">
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-amber-500/20 bg-amber-500/10 text-amber-300">
+                                    <Shield className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.disclaimerTitle', { defaultValue: 'DISCLAIMER' })}</h3>
+                                    <p className="text-sm text-textSecondary">{t('offers.detail.disclaimerHelp', { defaultValue: 'Important notices entered in master data.' })}</p>
+                                </div>
                             </div>
-                        ) : (
-                            <Card className="rounded-sm p-8 text-center bg-white border border-gray-100 shadow-sm"><p className="text-sm text-textSecondary">{t('offers.detail.noFunctions', { defaultValue: 'No smart functions with quantity greater than zero were stored in this offer.' })}</p></Card>
-                        )}
-                    </section>
 
+                            <div className="space-y-3">
+                                {disclaimers.length ? disclaimers.map((disclaimer, index) => (
+                                    <div key={disclaimer.id || index} className="rounded-sm border border-amber-500/12 bg-black/10 px-4 py-4">
+                                        <p className="text-sm leading-relaxed text-textPrimary">{disclaimer.text}</p>
+                                    </div>
+                                )) : (
+                                    <p className="text-sm text-textSecondary">
+                                        {t('offers.detail.noDisclaimers', { defaultValue: 'No disclaimer text is currently configured.' })}
+                                    </p>
+                                )}
+                            </div>
+                        </Card>
 
-                    <section className="space-y-4">
-                        <SectionTitle title={t('offers.detail.productsChapter', { defaultValue: 'PRODUCTS' })} className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100" />
-                        <PremiumTableWrapper>
-                            <thead><tr className="border-b border-white/8 bg-white/5"><th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.photo', { defaultValue: 'Photo' })}</th><th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.componentSpec')}</th><th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.quantity')}</th><th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.unitNet')}</th><th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.detail.totalNet')}</th></tr></thead>
-                            <tbody className="divide-y divide-white/8">
-                                {hardwareItems.map((item, idx) => (
-                                    <tr key={`${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5"><td className="px-6 py-5"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-sm border border-white/8 bg-white/5">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /> : <ImageOff className="h-5 w-5 text-textSecondary" />}</div></td><td className="px-6 py-5"><p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>{item.description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">{item.code}</span>{item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}{item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}</div></td><td className="px-6 py-5 text-center"><span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">{item.qty}</span></td><td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td><td className="px-6 py-5 text-right"><p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p></td></tr>
-                                ))}
-                                {relatedHardwareItems.length ? <tr><td colSpan="5" className="px-6 py-4"><div className="rounded-md border border-primary-500/12 bg-primary-500/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-300">{t('offers.detail.relatedProducts', { defaultValue: 'Related Products' })}</div></td></tr> : null}
-                                {relatedHardwareItems.map((item, idx) => (
-                                    <tr key={`related-${item.code}-${idx}`} className="align-top transition-colors hover:bg-white/5"><td className="px-6 py-5"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-sm border border-white/8 bg-white/5">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" /> : <ImageOff className="h-5 w-5 text-textSecondary" />}</div></td><td className="px-6 py-5"><p className="text-sm font-medium uppercase tracking-[0.02em] text-textPrimary">{item.name}</p>{item.description ? <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{item.description}</p> : null}<div className="mt-3 flex flex-wrap items-center gap-2"><span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary-300">{item.code}</span><Badge variant="primary">{t('offers.detail.autoCalculated', { defaultValue: 'Auto calculated' })}</Badge>{item.rangeName ? <Badge variant="neutral">{item.rangeName}</Badge> : null}{item.colorName ? <Badge variant="primary">{item.colorName}</Badge> : null}</div></td><td className="px-6 py-5 text-center"><span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">{item.qty}</span></td><td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(item.price || 0)}</td><td className="px-6 py-5 text-right"><p className="text-sm font-semibold text-textPrimary">{formatCurrency(item.subtotal || 0)}</p></td></tr>
-                                ))}
-                                {allHardwareItems.length === 0 ? <tr><td colSpan="5" className="px-6 py-10 text-center text-sm text-textSecondary">{t('offers.detail.noHardware', { defaultValue: 'No hardware line items were generated for this offer yet.' })}</td></tr> : null}
-                            </tbody>
-                        </PremiumTableWrapper>
-                    </section>
-                    <section className="space-y-4">
-                        <SectionTitle
-                            title={t('offers.detail.servicesChapter', { defaultValue: 'SERVICES' })}
-                            className="!mb-6 rounded-sm bg-primary-600 px-4 py-3 shadow-sm [&_h2]:text-sm [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:!text-white [&_h2]:sm:text-sm [&_h2]:lg:text-sm [&_p]:mt-1 [&_p]:text-xs [&_p]:text-primary-100"
-                        />
+                        <Card className="rounded-sm p-6">
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                    <MessageSquareText className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.customerCommentsTitle', { defaultValue: 'CUSTOMER COMMENTS' })}</h3>
+                                    <p className="text-sm text-textSecondary">{t('offers.detail.customerCommentsHelp', { defaultValue: 'This field is stored with the offer. Use Edit if you want to change it.' })}</p>
+                                </div>
+                            </div>
 
-                        <PremiumTableWrapper>
-                            <thead>
-                                <tr className="border-b border-white/8 bg-white/5">
-                                    <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.serviceName', { defaultValue: 'Service' })}
-                                    </th>
-                                    <th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.quantity')}
-                                    </th>
-                                    <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.unitNet')}
-                                    </th>
-                                    <th className="px-6 py-5 text-right text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                                        {t('offers.detail.totalNet')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/8">
-                                {services.length ? services.map((service) => (
-                                    <tr key={service.serviceId || service.id || service.serviceCode} className="align-top transition-colors hover:bg-white/5">
-                                        <td className="px-6 py-5">
-                                            <p className="text-sm font-medium text-textPrimary">{service.serviceName ?? service.name}</p>
-                                            {service.description ? (
-                                                <p className="mt-2 max-w-[34rem] text-sm leading-relaxed text-textSecondary">{service.description}</p>
-                                            ) : null}
-                                            <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                {service.serviceCode ? <Badge variant="neutral">{service.serviceCode}</Badge> : null}
-                                                {service.pricingMode ? (
-                                                    <Badge variant="primary">
-                                                        {humanizeValue(service.pricingMode, t('offers.detail.calculatedPricing', { defaultValue: 'Calculated pricing' }))}
-                                                    </Badge>
+                            <textarea
+                                readOnly
+                                rows={6}
+                                value={customerComments}
+                                placeholder={t('offers.detail.customerCommentsPlaceholder', { defaultValue: 'No customer comments were saved for this offer.' })}
+                                className="w-full resize-none rounded-sm border border-white/8 bg-white/5 px-5 py-4 text-sm leading-relaxed text-textPrimary placeholder:text-textSecondary focus:outline-none"
+                            />
+                        </Card>
+
+                        <Card className="rounded-sm p-6">
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-primary-300">
+                                    <Bell className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.lifecycle')}</h3>
+                                    <p className="text-sm text-textSecondary">{t('offers.detail.autoGeneratedNote')}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {follow?.enabled ? (
+                                    <div className="space-y-4 rounded-sm border border-white/8 bg-white/5 p-5">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.nextContact')}</span>
+                                            <Badge variant="neutral">{formatDate(follow.nextReminderAt)}</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.channel')}</span>
+                                            <div className="flex gap-2">
+                                                {follow.channels?.email ? (
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.emailChannel')}>
+                                                        <Mail className="h-3.5 w-3.5" />
+                                                    </div>
+                                                ) : null}
+                                                {follow.channels?.sms ? (
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.smsChannel')}>
+                                                        <MessageSquare className="h-3.5 w-3.5" />
+                                                    </div>
                                                 ) : null}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-5 text-center">
-                                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/8 bg-white/5 text-sm font-medium text-textPrimary">
-                                                {service.calcQty ?? 1}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-5 text-right text-sm font-medium text-textSecondary">{formatCurrency(service.unitPrice ?? 0)}</td>
-                                        <td className="px-6 py-5 text-right">
-                                            <p className="text-sm font-semibold text-textPrimary">{formatCurrency(service.subtotal ?? 0)}</p>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-10 text-center text-sm text-textSecondary">
-                                            {t('offers.detail.noServices')}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </PremiumTableWrapper>
-                    </section>
-                </div>
-
-                <aside className="space-y-6">
-                    <div className="bg-white border border-gray-100 shadow-sm rounded-sm p-5">
-                        <div className="space-y-8">
-                            <div>
-                                <Badge variant="primary" className="mb-4">{t('offers.detail.grandTotalChapter', { defaultValue: 'GRAND TOTAL' })}</Badge>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between text-sm text-textSecondary">
-                                        <span>{t('offers.detail.productsTotalPerProject', { defaultValue: 'Products Total / Project' })}</span>
-                                        <span className="font-medium text-textPrimary">{formatCurrency(snapshotBreakdown.productsSubtotalPerProject ?? (projectMultiplier > 0 ? productsSubtotal / projectMultiplier : productsSubtotal))}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-textSecondary">
-                                        <span>{t('offers.detail.servicesTotalPerProject', { defaultValue: 'Services Total / Project' })}</span>
-                                        <span className="font-medium text-textPrimary">{formatCurrency(snapshotBreakdown.servicesSubtotalPerProject ?? (projectMultiplier > 0 ? servicesSubtotal / projectMultiplier : servicesSubtotal))}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-textSecondary">
-                                        <span>{t('offers.detail.productsServices')} / {t('offers.detail.perProject', { defaultValue: 'Per Project' })}</span>
-                                        <span className="font-medium text-textPrimary">{formatCurrency(totalPerProject)}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-textSecondary">
-                                        <span>{t('offers.detail.quantity')}</span>
-                                        <span className="font-medium text-textPrimary">x {projectMultiplier}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-textSecondary">
-                                        <span>{t('offers.detail.grossTotal', { defaultValue: 'Gross Total' })}</span>
-                                        <span className="font-medium text-textPrimary">{formatCurrency(grossTotal)}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-emerald-300">
-                                        <span className="inline-flex items-center gap-2">
-                                            <TrendingDown className="h-4 w-4" />
-                                            {t('offers.detail.discount')} ({Number(discountPercent || 0).toFixed(2)}%)
-                                        </span>
-                                        <span className="font-medium">-{formatCurrency(discountAmount)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="rounded-sm border border-primary-500/18 bg-primary-500/10 px-5 py-5">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary-200">{t('offers.detail.grandTotal')}</p>
-                                <p className="mt-3 font-heading text-5xl font-semibold leading-none text-textPrimary">{formatCurrency(grandTotal)}</p>
-                                <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.exclVat')}</p>
-                            </div>
-                            {canAcceptOffer ? (
-                                <Button
-                                    size="md"
-                                    className="w-full gap-2"
-                                    onClick={handleAcceptOffer}
-                                    disabled={accepting}
-                                >
-                                    {accepting ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : null}
-                                    {t('offers.detail.accept')}
-                                    <ArrowRight className="h-4.5 w-4.5" />
-                                </Button>
-                            ) : null}
-
-                            <p className="text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
-                                {t('offers.detail.validFor')}
-                            </p>
-                        </div>
-                    </div>
-
-                    <Card className="rounded-sm p-6">
-                        <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                <FileText className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.offerConditionsTitle', { defaultValue: 'OFFER CONDITIONS' })}</h3>
-                                <p className="text-sm text-textSecondary">{t('offers.detail.offerConditionsHelp', { defaultValue: 'Commercial terms configured for this offer flow.' })}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            {conditions.length ? conditions.map((condition, index) => (
-                                <div key={condition.id || index} className="flex items-start gap-3 rounded-sm border border-white/8 bg-white/5 px-4 py-4">
-                                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-primary-500/18 bg-primary-500/12 text-xs font-semibold text-primary-300">
-                                        {index + 1}
-                                    </div>
-                                    <p className="text-sm leading-relaxed text-textPrimary">{condition.text}</p>
-                                </div>
-                            )) : (
-                                <p className="text-sm text-textSecondary">
-                                    {t('offers.detail.noOfferConditions', { defaultValue: 'No offer conditions are currently configured.' })}
-                                </p>
-                            )}
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-sm border border-amber-500/20 bg-amber-500/10 p-6">
-                        <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-amber-500/20 bg-amber-500/10 text-amber-300">
-                                <Shield className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.disclaimerTitle', { defaultValue: 'DISCLAIMER' })}</h3>
-                                <p className="text-sm text-textSecondary">{t('offers.detail.disclaimerHelp', { defaultValue: 'Important notices entered in master data.' })}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            {disclaimers.length ? disclaimers.map((disclaimer, index) => (
-                                <div key={disclaimer.id || index} className="rounded-sm border border-amber-500/12 bg-black/10 px-4 py-4">
-                                    <p className="text-sm leading-relaxed text-textPrimary">{disclaimer.text}</p>
-                                </div>
-                            )) : (
-                                <p className="text-sm text-textSecondary">
-                                    {t('offers.detail.noDisclaimers', { defaultValue: 'No disclaimer text is currently configured.' })}
-                                </p>
-                            )}
-                        </div>
-                    </Card>
-
-                    <Card className="rounded-sm p-6">
-                        <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                <MessageSquareText className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.customerCommentsTitle', { defaultValue: 'CUSTOMER COMMENTS' })}</h3>
-                                <p className="text-sm text-textSecondary">{t('offers.detail.customerCommentsHelp', { defaultValue: 'This field is stored with the offer. Use Edit if you want to change it.' })}</p>
-                            </div>
-                        </div>
-
-                        <textarea
-                            readOnly
-                            rows={6}
-                            value={customerComments}
-                            placeholder={t('offers.detail.customerCommentsPlaceholder', { defaultValue: 'No customer comments were saved for this offer.' })}
-                            className="w-full resize-none rounded-sm border border-white/8 bg-white/5 px-5 py-4 text-sm leading-relaxed text-textPrimary placeholder:text-textSecondary focus:outline-none"
-                        />
-                    </Card>
-
-                    <Card className="rounded-sm p-6">
-                        <div className="mb-5 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/18 bg-primary-500/12 text-primary-300">
-                                <Bell className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-medium text-textPrimary">{t('offers.detail.lifecycle')}</h3>
-                                <p className="text-sm text-textSecondary">{t('offers.detail.autoGeneratedNote')}</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            {follow?.enabled ? (
-                                <div className="space-y-4 rounded-sm border border-white/8 bg-white/5 p-5">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.nextContact')}</span>
-                                        <Badge variant="neutral">{formatDate(follow.nextReminderAt)}</Badge>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('offers.detail.channel')}</span>
-                                        <div className="flex gap-2">
-                                            {follow.channels?.email ? (
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.emailChannel')}>
-                                                    <Mail className="h-3.5 w-3.5" />
-                                                </div>
-                                            ) : null}
-                                            {follow.channels?.sms ? (
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-primary-300" title={t('offers.detail.smsChannel')}>
-                                                    <MessageSquare className="h-3.5 w-3.5" />
-                                                </div>
-                                            ) : null}
                                         </div>
+                                        <Badge variant="primary">{getFollowupReasonLabel(follow.reason)}</Badge>
                                     </div>
-                                    <Badge variant="primary">{getFollowupReasonLabel(follow.reason)}</Badge>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-textSecondary">{t('offers.detail.noFollowup')}</p>
-                            )}
-                        </div>
-                    </Card>
-                </aside>
-            </div>
+                                ) : (
+                                    <p className="text-sm text-textSecondary">{t('offers.detail.noFollowup')}</p>
+                                )}
+                            </div>
+                        </Card>
+                    </aside>
+                </div>
             </div>
             {/* Scoped styles */}
             <style>{`
@@ -1136,4 +1065,3 @@ export default function OfferDetailPage() {
         </AnimatedPageWrapper>
     );
 }
-

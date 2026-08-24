@@ -30,6 +30,16 @@ ProjectRoom.init({
         type: DataTypes.STRING,
         allowNull: false
     },
+    translations: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {}
+    },
+    translations: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {}
+    },
     roomCount: {
         type: DataTypes.INTEGER,
         defaultValue: 1

@@ -109,11 +109,13 @@ function normalizeProductPriceForWrite(d, { requirePrice }) {
 function applyFlatTranslationFields(d) {
     const translations = normalizeTranslations(d.translations);
     const localizedFields = ['name', 'description', 'text'];
+    let hasTranslationInput = Object.prototype.hasOwnProperty.call(d, 'translations');
 
     for (const field of localizedFields) {
         for (const language of ['en', 'ro']) {
             const key = `${field}${language.charAt(0).toUpperCase()}${language.slice(1)}`;
             if (!Object.prototype.hasOwnProperty.call(d, key)) continue;
+            hasTranslationInput = true;
 
             const rawValue = d[key];
             const normalizedValue = typeof rawValue === 'string' ? rawValue.trim() : '';
@@ -126,14 +128,28 @@ function applyFlatTranslationFields(d) {
                 if (Object.keys(translations[field]).length === 0) { delete translations[field]; }
             }
 
+            // English remains the canonical database value for legacy consumers and
+            // uniqueness constraints. Romanian lives only in the translation map.
+            if (language === 'en') {
+                d[field] = normalizedValue;
+            }
+
             delete d[key];
+        }
+
+        const canonicalValue = typeof d[field] === 'string' ? d[field].trim() : '';
+        const translatedEnglish = translations[field]?.en;
+
+        if (!canonicalValue && translatedEnglish) {
+            d[field] = translatedEnglish;
+        } else if (canonicalValue && !translatedEnglish) {
+            translations[field] = { ...(translations[field] || {}), en: canonicalValue };
+            hasTranslationInput = true;
         }
     }
 
-    if (Object.keys(translations).length > 0) {
-        d.translations = translations;
-    } else if (Object.prototype.hasOwnProperty.call(d, 'translations')) {
-        d.translations = {};
+    if (hasTranslationInput) {
+        d.translations = normalizeTranslations(translations);
     }
 }
 const normalizePayload = (modelName, data) => {
@@ -764,7 +780,7 @@ async function updateProductFull(id, data) {
 export const syncRelations = async (modelName, id, otherModelIds, relationField) => {
     const record = await models[modelName].findByPk(id);
     if (!record) throw new Error(`${modelName} not found`);
-    
+
     const methodName = `set${relationField}`;
     if (typeof record[methodName] === 'function') {
         await record[methodName](otherModelIds);

@@ -3,7 +3,8 @@ import { useDispatch } from 'react-redux';
 import {
     Search, Filter, Calendar, Download, Eye, Layers, Clock,
     CheckCircle, Bell, Loader2, Euro, Mail, AlertTriangle,
-    RotateCcw, MessageSquare, FileText,
+    RotateCcw, MessageSquare, FileText, ChevronLeft, ChevronRight,
+    ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/offers/StatusBadge';
 import {
@@ -50,7 +51,7 @@ export default function AdminOffersMonitor() {
     const [pagination, setPagination] = useState({
         total: 0,
         page: 1,
-        limit: 20,
+        limit: 10,
         totalPages: 1,
         sort: 'created_at_desc',
     });
@@ -79,7 +80,7 @@ export default function AdminOffersMonitor() {
     const [localOwner, setLocalOwner] = useState('');
     const [filterError, setFilterError] = useState('');
 
-    const fetchAdminOffers = useCallback(async (nextPage = pagination.page) => {
+    const fetchAdminOffers = useCallback(async (nextPage = pagination.page, nextLimit = pagination.limit) => {
         const requestId = requestIdRef.current + 1;
         requestIdRef.current = requestId;
         const activeClientFilter = clientFilter.trim();
@@ -90,7 +91,7 @@ export default function AdminOffersMonitor() {
         try {
             const params = {
                 page: nextPage,
-                limit: pagination.limit,
+                limit: nextLimit,
                 sort,
             };
             if (statusFilter !== 'all') params.followup_status = statusFilter;
@@ -112,8 +113,8 @@ export default function AdminOffersMonitor() {
             setPagination({
                 total: hasUnexpectedProject ? items.length : Number(data.total || items.length || 0),
                 page: Number(data.page || nextPage),
-                limit: Number(data.limit || pagination.limit),
-                totalPages: hasUnexpectedProject ? Math.max(1, Math.ceil(items.length / pagination.limit)) : Number(data.totalPages || 1),
+                limit: Number(data.limit || nextLimit),
+                totalPages: hasUnexpectedProject ? Math.max(1, Math.ceil(items.length / nextLimit)) : Number(data.totalPages || 1),
                 sort: data.sort || sort,
             });
         } catch (error) {
@@ -136,8 +137,32 @@ export default function AdminOffersMonitor() {
     }, [searchParams]);
 
     useEffect(() => {
-        fetchAdminOffers(1);
+        fetchAdminOffers(1, pagination.limit);
     }, [clientFilter, dateFrom, dateTo, maxValue, minValue, ownerFilter, projectFilter, sort, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > pagination.totalPages || newPage === pagination.page || offersLoading) return;
+        fetchAdminOffers(newPage, pagination.limit);
+    };
+
+    const handleLimitChange = (newLimit) => {
+        const parsedLimit = Number(newLimit) || 10;
+        fetchAdminOffers(1, parsedLimit);
+    };
+
+    const getPageNumbers = () => {
+        const { page, totalPages } = pagination;
+        if (totalPages <= 7) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+        if (page <= 4) {
+            return [1, 2, 3, 4, 5, '...', totalPages];
+        }
+        if (page >= totalPages - 3) {
+            return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+        return [1, '...', page - 1, page, page + 1, '...', totalPages];
+    };
 
     const locale = i18n.language?.startsWith('ro') ? 'ro-RO' : 'en-GB';
     const formatCurrency = (value) => new Intl.NumberFormat(locale, {
@@ -319,7 +344,7 @@ export default function AdminOffersMonitor() {
         setUpdatingFollowupId(offer.id);
         try {
             await dispatch(updateFollowUpSettings({ id: offer.id, ...patch })).unwrap();
-            await fetchAdminOffers(pagination.page);
+            await fetchAdminOffers(pagination.page, pagination.limit);
         } finally {
             setUpdatingFollowupId(null);
         }
@@ -389,37 +414,36 @@ export default function AdminOffersMonitor() {
     }).length;
 
     return (
-        <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-6 pb-20">
-            <div className="bg-white border border-gray-200 shadow-sm relative rounded-sm p-5 sm:p-6 mb-6">
-                <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="space-y-6">
-                        <div>
-                            <div className="inline-flex items-center gap-2 mb-2">
-                                <Badge variant="neutral" className="!rounded-sm !text-[10px] !py-1 !px-2.5 uppercase font-bold tracking-widest text-primary-600 bg-primary-50">
-                                    {t('offers.adminMonitor.badge', { defaultValue: 'ADMIN / OFFER PIPELINE' })}
-                                </Badge>
-                            </div>
-                            <h1 className="text-2xl font-bold leading-tight text-textPrimary sm:text-3xl">
-                                {t('offers.adminMonitor.title', { defaultValue: 'Global Offer Monitoring' })}
-                            </h1>
-                            <p className="text-sm leading-relaxed text-textSecondary mt-1.5">
-                                {t('offers.adminMonitor.subtitle', { defaultValue: 'Track customer follow-ups, offer status and transaction progress from one view.' })}
-                            </p>
+        <AnimatedPageWrapper className="mx-auto max-w-7xl space-y-4 pb-12">
+            {/* Header banner */}
+            <div className="bg-white border border-gray-200 shadow-sm relative rounded-sm p-4 sm:p-5 mb-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div className="inline-flex items-center gap-2 mb-1.5">
+                            <Badge variant="neutral" className="!rounded-sm !text-[10px] !py-0.5 !px-2 uppercase font-bold tracking-widest text-primary-600 bg-primary-50">
+                                {t('offers.adminMonitor.badge', { defaultValue: 'ADMIN / OFFER PIPELINE' })}
+                            </Badge>
                         </div>
+                        <h1 className="text-xl font-bold leading-tight text-textPrimary sm:text-2xl">
+                            {t('offers.adminMonitor.title', { defaultValue: 'Global Offer Monitoring' })}
+                        </h1>
+                        <p className="text-xs sm:text-sm leading-relaxed text-textSecondary mt-1">
+                            {t('offers.adminMonitor.subtitle', { defaultValue: 'Track customer follow-ups, offer status and transaction progress from one view.' })}
+                        </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full xl:w-auto xl:self-start">
+                    <div className="flex items-center gap-2.5 shrink-0">
                         <Button
                             variant="outline"
-                            size="md"
+                            size="sm"
                             onClick={handleExportCSV}
-                            className="!rounded-sm flex-1 sm:flex-none justify-center h-10 px-5 text-[11px] font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all duration-300 border-gray-200 text-gray-600 hover:text-primary-600 hover:border-primary-500/40 bg-white hover:bg-primary-50/50 w-full sm:w-auto"
+                            className="!rounded-sm justify-center h-9 px-4 text-xs font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all duration-200 border-gray-200 text-gray-700 hover:text-primary-600 hover:border-primary-500/40 bg-white"
                         >
-                            <Download className="mr-2 h-4 w-4" />
+                            <Download className="mr-1.5 h-3.5 w-3.5" />
                             {t('offers.adminMonitor.exportData', { defaultValue: 'Export data' })}
                         </Button>
-                        <Link to="/configurator" className="w-full sm:w-auto flex-1 sm:flex-none">
-                            <Button size="md" className="!rounded-sm justify-center h-10 px-6 text-[11px] font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all duration-300 w-full">
+                        <Link to="/configurator">
+                            <Button size="sm" className="!rounded-sm justify-center h-9 px-4 text-xs font-bold uppercase tracking-wider shadow-sm hover:shadow-md transition-all duration-200">
                                 {t('offers.adminMonitor.newOffer', { defaultValue: 'New offer' })}
                             </Button>
                         </Link>
@@ -427,24 +451,25 @@ export default function AdminOffersMonitor() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            {/* Stat metric cards */}
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4 mb-4">
                 {[
                     { value: pendingFollowups, label: t('offers.adminMonitor.stats.activeFollowups', { defaultValue: 'Active follow-ups' }), desc: t('offers.adminMonitor.stats.updatedRecords', { defaultValue: 'Updated from current records' }), color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.22)' },
                     { value: pagination.total, label: t('offers.adminMonitor.stats.offersPipeline', { defaultValue: 'Offers in pipeline' }), desc: t('offers.adminMonitor.stats.updatedRecords', { defaultValue: 'Updated from current records' }), color: '#60b93f', bg: 'rgba(96,185,63,0.10)', border: 'rgba(96,185,63,0.22)' },
                     { value: overdueActions, label: t('offers.adminMonitor.stats.overdueActions', { defaultValue: 'Overdue actions' }), desc: t('offers.adminMonitor.stats.updatedRecords', { defaultValue: 'Updated from current records' }), color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.22)' },
                     { value: t('offers.adminMonitor.stats.live', { defaultValue: 'LIVE' }), label: t('offers.adminMonitor.stats.adminMonitoring', { defaultValue: 'Admin monitoring' }), desc: t('offers.adminMonitor.stats.realtimeView', { defaultValue: 'Real-time administrative view' }), color: '#8b5cf6', bg: 'rgba(139,92,246,0.10)', border: 'rgba(139,92,246,0.22)' },
                 ].map((stat, idx) => (
-                    <div key={idx} className="bg-white border shadow-sm rounded-sm p-5 hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderColor: stat.border }}>
-                        <div className="flex flex-col justify-between h-full space-y-4">
+                    <div key={idx} className="bg-white border shadow-sm rounded-sm p-3.5 sm:p-4 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200" style={{ borderColor: stat.border }}>
+                        <div className="flex flex-col justify-between h-full space-y-2">
                             <div>
-                                <span className="text-3xl font-black block mb-2 leading-none" style={{ color: stat.color }}>
+                                <span className="text-2xl sm:text-3xl font-black block mb-1 leading-none" style={{ color: stat.color }}>
                                     {stat.value}
                                 </span>
                                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 leading-snug">
                                     {stat.label}
                                 </h3>
                             </div>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">
+                            <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500">
                                 {stat.desc}
                             </p>
                         </div>
@@ -453,11 +478,11 @@ export default function AdminOffersMonitor() {
             </div>
 
             {/* Unified Filter Bar */}
-            <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-4 mb-6 w-full overflow-hidden">
-                <div className="flex flex-wrap items-center gap-3 w-full">
+            <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-3 sm:p-3.5 mb-4 w-full">
+                <div className="flex flex-wrap items-center gap-2.5 w-full">
                     {/* Search Field */}
-                    <div className="relative flex-1 min-w-[200px]">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-textSecondary" />
+                    <div className="relative flex-1 min-w-[180px]">
+                        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-textSecondary" />
                         <input
                             type="text"
                             placeholder={t('offers.adminMonitor.clientSearchPlaceholder', { defaultValue: 'Search customer or email' })}
@@ -467,16 +492,16 @@ export default function AdminOffersMonitor() {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleApplyFilters();
                             }}
-                            className="w-full rounded-full border border-gray-300/80 bg-white py-2.5 pl-10 pr-4 text-sm text-graphite placeholder:text-gray-400 focus:border-emerald/40 focus:outline-none focus:ring-2 focus:ring-emerald/10 transition-all font-medium"
+                            className="w-full rounded-full border border-gray-300/80 bg-white py-2 pl-9 pr-3 text-xs sm:text-sm text-graphite placeholder:text-gray-400 focus:border-emerald/40 focus:outline-none focus:ring-2 focus:ring-emerald/10 transition-all font-medium"
                         />
                     </div>
 
                     {/* Status Dropdown */}
-                    <div className="relative min-w-[150px]">
+                    <div className="relative min-w-[130px]">
                         <select
                             value={localStatus}
                             onChange={(e) => setLocalStatus(e.target.value)}
-                            className="w-full bg-white border border-gray-300/80 rounded-full px-4 py-2.5 text-sm text-graphite font-medium focus:outline-none focus:border-emerald/40 focus:ring-2 focus:ring-emerald/10 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1.25rem] bg-[right_0.6rem_center] pr-8"
+                            className="w-full bg-white border border-gray-300/80 rounded-full px-3 py-2 text-xs sm:text-sm text-graphite font-medium focus:outline-none focus:border-emerald/40 focus:ring-2 focus:ring-emerald/10 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.5rem_center] pr-7"
                         >
                             <option value="all">{t('offers.adminMonitor.filters.allStatuses', { defaultValue: 'All statuses' })}</option>
                             {FOLLOWUP_STATUS_FILTERS.map(({ value, translationKey }) => (
@@ -488,7 +513,7 @@ export default function AdminOffersMonitor() {
                     </div>
 
                     {/* Value Range Dropdown */}
-                    <div className="relative min-w-[140px]">
+                    <div className="relative min-w-[130px]">
                         <select
                             value={localValueRange}
                             onChange={(e) => {
@@ -498,7 +523,7 @@ export default function AdminOffersMonitor() {
                                     setLocalMaxVal('');
                                 }
                             }}
-                            className="w-full bg-white border border-gray-300/80 rounded-full px-4 py-2.5 text-sm text-graphite font-medium focus:outline-none focus:border-emerald/40 focus:ring-2 focus:ring-emerald/10 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1.25rem] bg-[right_0.6rem_center] pr-8"
+                            className="w-full bg-white border border-gray-300/80 rounded-full px-3 py-2 text-xs sm:text-sm text-graphite font-medium focus:outline-none focus:border-emerald/40 focus:ring-2 focus:ring-emerald/10 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.5rem_center] pr-7"
                         >
                             <option value="all">{t('offers.adminMonitor.filters.allValues', { defaultValue: 'All values' })}</option>
                             <option value="under_5k">{t('offers.adminMonitor.filters.under5k', { defaultValue: 'Under €5,000' })}</option>
@@ -510,7 +535,7 @@ export default function AdminOffersMonitor() {
                     </div>
 
                     {/* Date Preset Dropdown */}
-                    <div className="relative min-w-[140px]">
+                    <div className="relative min-w-[125px]">
                         <select
                             value={localDateRange}
                             onChange={(e) => {
@@ -520,7 +545,7 @@ export default function AdminOffersMonitor() {
                                     setLocalDateTo('');
                                 }
                             }}
-                            className="w-full bg-white border border-gray-300/80 rounded-full px-4 py-2.5 text-sm text-graphite font-medium focus:outline-none focus:border-emerald/40 focus:ring-2 focus:ring-emerald/10 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1.25rem] bg-[right_0.6rem_center] pr-8"
+                            className="w-full bg-white border border-gray-300/80 rounded-full px-3 py-2 text-xs sm:text-sm text-graphite font-medium focus:outline-none focus:border-emerald/40 focus:ring-2 focus:ring-emerald/10 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1.1rem] bg-[right_0.5rem_center] pr-7"
                         >
                             <option value="all">{t('offers.adminMonitor.filters.allDates', { defaultValue: 'All dates' })}</option>
                             <option value="today">{t('offers.adminMonitor.filters.today', { defaultValue: 'Today' })}</option>
@@ -531,7 +556,7 @@ export default function AdminOffersMonitor() {
                     </div>
 
                     {/* Owner Input */}
-                    <div className="relative min-w-[140px]">
+                    <div className="relative min-w-[120px]">
                         <input
                             type="text"
                             placeholder={t('offers.adminMonitor.filters.owner', { defaultValue: 'Owner' })}
@@ -541,16 +566,16 @@ export default function AdminOffersMonitor() {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleApplyFilters();
                             }}
-                            className="w-full rounded-full border border-gray-300/80 bg-white py-2.5 px-4 text-sm text-graphite placeholder:text-gray-400 focus:border-emerald/40 focus:outline-none focus:ring-2 focus:ring-emerald/10 transition-all font-medium"
+                            className="w-full rounded-full border border-gray-300/80 bg-white py-2 px-3.5 text-xs sm:text-sm text-graphite placeholder:text-gray-400 focus:border-emerald/40 focus:outline-none focus:ring-2 focus:ring-emerald/10 transition-all font-medium"
                         />
                     </div>
 
                     {/* Apply & Reset Buttons */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                         <Button
                             variant="primary"
                             onClick={handleApplyFilters}
-                            className="inline-flex h-10 min-w-[68px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-emerald px-4 text-[10px] font-semibold uppercase tracking-[0.05em] text-ink transition-all duration-300 hover:bg-[#58ad37] hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/20 disabled:pointer-events-none disabled:opacity-55 shadow-sm"
+                            className="inline-flex h-9 min-w-[64px] shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-emerald px-3.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-ink transition-all duration-200 hover:bg-[#58ad37] hover:-translate-y-0.5 active:translate-y-0 shadow-sm"
                         >
                             {t('offers.adminMonitor.filters.apply', { defaultValue: 'Apply' })}
                         </Button>
@@ -558,26 +583,26 @@ export default function AdminOffersMonitor() {
                         <Button
                             variant="outline"
                             onClick={resetFilters}
-                            className="inline-flex h-10 min-w-[76px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-emerald/30 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.05em] text-emerald transition-all duration-300 hover:border-emerald hover:bg-emerald/10 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-500/20 disabled:pointer-events-none disabled:opacity-55 shadow-sm"
+                            className="inline-flex h-9 min-w-[70px] shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-emerald/30 bg-white px-2.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-emerald transition-all duration-200 hover:border-emerald hover:bg-emerald/10 hover:-translate-y-0.5 active:translate-y-0 shadow-sm"
                         >
-                            <RotateCcw className="h-3.5 w-3.5" />
+                            <RotateCcw className="h-3 w-3" />
                             <span>{t('offers.adminMonitor.filters.resetShort', { defaultValue: 'Reset' })}</span>
                         </Button>
                     </div>
                 </div>
 
                 {filterError ? (
-                    <p role="alert" className="mt-3 text-sm font-medium text-red-600">
+                    <p role="alert" className="mt-2 text-xs font-medium text-red-600">
                         {filterError}
                     </p>
                 ) : null}
 
                 {/* Sub-inputs for custom ranges */}
                 {(localValueRange === 'custom' || localDateRange === 'custom') && (
-                    <div className="flex flex-wrap gap-4 pt-2 border-t border-emerald-500/8 mt-1 animate-slide-up">
+                    <div className="flex flex-wrap gap-3 pt-2 border-t border-emerald-500/8 mt-2 animate-slide-up">
                         {localValueRange === 'custom' && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-semibold text-textSecondary uppercase tracking-wider">
                                     {t('offers.adminMonitor.filters.customValueRange', { defaultValue: 'Value Range (€)' })}:
                                 </span>
                                 <input
@@ -590,7 +615,7 @@ export default function AdminOffersMonitor() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleApplyFilters();
                                     }}
-                                    className="w-24 bg-white border border-gray-300/80 rounded-full px-3 py-1.5 text-xs text-graphite placeholder:text-gray-400 focus:outline-none focus:border-emerald/45"
+                                    className="w-20 bg-white border border-gray-300/80 rounded-full px-2.5 py-1 text-xs text-graphite placeholder:text-gray-400 focus:outline-none focus:border-emerald/45"
                                 />
                                 <span className="text-xs text-textSecondary">-</span>
                                 <input
@@ -603,14 +628,14 @@ export default function AdminOffersMonitor() {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleApplyFilters();
                                     }}
-                                    className="w-24 bg-white border border-gray-300/80 rounded-full px-3 py-1.5 text-xs text-graphite placeholder:text-gray-400 focus:outline-none focus:border-emerald/45"
+                                    className="w-20 bg-white border border-gray-300/80 rounded-full px-2.5 py-1 text-xs text-graphite placeholder:text-gray-400 focus:outline-none focus:border-emerald/45"
                                 />
                             </div>
                         )}
 
                         {localDateRange === 'custom' && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-textSecondary uppercase tracking-wider">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-semibold text-textSecondary uppercase tracking-wider">
                                     {t('offers.adminMonitor.filters.customDateRange', { defaultValue: 'Date Range' })}:
                                 </span>
                                 <input
@@ -618,7 +643,7 @@ export default function AdminOffersMonitor() {
                                     max={localDateTo || undefined}
                                     value={localDateFrom}
                                     onChange={(e) => setLocalDateFrom(e.target.value)}
-                                    className="bg-white border border-gray-300/80 rounded-full px-3 py-1.5 text-xs text-graphite focus:outline-none focus:border-emerald/45"
+                                    className="bg-white border border-gray-300/80 rounded-full px-2.5 py-1 text-xs text-graphite focus:outline-none focus:border-emerald/45"
                                 />
                                 <span className="text-xs text-textSecondary">{t('offers.adminMonitor.filters.to', { defaultValue: 'to' })}</span>
                                 <input
@@ -626,7 +651,7 @@ export default function AdminOffersMonitor() {
                                     min={localDateFrom || undefined}
                                     value={localDateTo}
                                     onChange={(e) => setLocalDateTo(e.target.value)}
-                                    className="bg-white border border-gray-300/80 rounded-full px-3 py-1.5 text-xs text-graphite focus:outline-none focus:border-emerald/45"
+                                    className="bg-white border border-gray-300/80 rounded-full px-2.5 py-1 text-xs text-graphite focus:outline-none focus:border-emerald/45"
                                 />
                             </div>
                         )}
@@ -635,215 +660,249 @@ export default function AdminOffersMonitor() {
             </div>
 
             {projectFilter ? (
-                <Card className="rounded-[1.5rem] p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Card className="rounded-sm p-3 mb-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminProjects.projectFilter', { defaultValue: 'Project Filter' })}</p>
-                            <p className="mt-1 text-sm font-medium text-textPrimary">{projectFilterLabel || projectFilter}</p>
+                            <p className="mt-0.5 text-xs font-semibold text-textPrimary">{projectFilterLabel || projectFilter}</p>
                         </div>
-                        <Link to="/admin/projects" className="text-sm font-medium text-primary-300 transition-colors hover:text-primary-200">
+                        <Link to="/admin/projects" className="text-xs font-semibold text-primary-600 transition-colors hover:text-primary-700">
                             {t('adminProjects.backToProjects', { defaultValue: 'Back to Projects' })}
                         </Link>
                     </div>
                 </Card>
             ) : null}
+
             {offersError ? (
-                <Card className="rounded-[2rem] p-6">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm font-medium text-red-300">{offersError}</p>
-                        <Button size="sm" variant="secondary" onClick={() => fetchAdminOffers(pagination.page)}>
+                <Card className="rounded-sm p-4 mb-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs font-medium text-red-600">{offersError}</p>
+                        <Button size="sm" variant="secondary" onClick={() => fetchAdminOffers(pagination.page, pagination.limit)}>
                             {t('offers.adminMonitor.retry', { defaultValue: 'Retry' })}
                         </Button>
                     </div>
                 </Card>
             ) : null}
 
-            {/* Follow-up tasks grid widening */}
-            <div className="space-y-4">
-                <SectionTitle
-                    title={t('offers.adminMonitor.followupTitle')}
-                    badge={t('offers.adminMonitor.pendingTasks', { count: pendingFollowups })}
-                    className="mb-0"
-                />
+            {/* Action Required: Customer Follow-ups Section (Scrollable & Space-Optimized) */}
+            <div className="space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <SectionTitle
+                        title={t('offers.adminMonitor.followupTitle')}
+                        badge={t('offers.adminMonitor.pendingTasks', { count: pendingFollowups })}
+                        className="mb-0"
+                    />
+                    {followupOffers.length > 0 && (
+                        <div className="text-xs text-textSecondary font-medium flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-primary-500" />
+                            <span>{followupOffers.length} {t('offers.adminMonitor.followupTasksTotal', { defaultValue: 'active follow-ups' })}</span>
+                        </div>
+                    )}
+                </div>
 
                 {followupOffers.length === 0 ? (
-                    <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-8 mb-6">
+                    <div className="bg-white border border-gray-200 shadow-sm rounded-sm p-6 mb-4 text-center">
                         <p className="text-sm text-textSecondary">{t('offers.adminMonitor.noTask')}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
-                        {followupOffers.map((offer) => (
-                            <div key={displayText(offer.id || offer.offerNumber)} className="bg-white border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-primary-500/30 group relative h-full flex flex-col rounded-sm transition-all duration-300">
+                    <div className="max-h-[460px] overflow-y-auto pr-1.5 pb-2 custom-scrollbar">
+                        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+                            {followupOffers.map((offer) => (
+                                <div key={displayText(offer.id || offer.offerNumber)} className="bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-500/30 group relative flex flex-col rounded-sm transition-all duration-200">
+                                    <div className="p-4 flex flex-col h-full justify-between">
+                                        <div>
+                                            {/* Status + Reason row */}
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className={clsx(
+                                                            'h-2 w-2 rounded-full shrink-0',
+                                                            offer.followUp.status === 'pending' ? 'bg-amber-400' :
+                                                                offer.followUp.status === 'snoozed' ? 'bg-sky-400' :
+                                                                    String(offer.followUp.status).startsWith('attempted') ? 'bg-red-400' : 'bg-emerald-400',
+                                                        )} />
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-textSecondary truncate">
+                                                            {getFollowUpStatusLabel(offer.followUp.status)}
+                                                        </span>
+                                                    </div>
+                                                    <Badge variant="warning" className="!text-[10px] !py-0.5 !px-2 max-w-full truncate">
+                                                        {getFollowUpReasonLabel(offer.followUp.reason)}
+                                                    </Badge>
+                                                </div>
 
-                                <div className="relative z-10 flex h-full flex-col p-6">
-                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <div className={clsx(
-                                                    'h-2.5 w-2.5 rounded-full',
-                                                    offer.followUp.status === 'pending' ? 'bg-amber-400' :
-                                                        offer.followUp.status === 'snoozed' ? 'bg-sky-400' :
-                                                            String(offer.followUp.status).startsWith('attempted') ? 'bg-red-400' : 'bg-emerald-400',
-                                                )} />
-                                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
-                                                    {getFollowUpStatusLabel(offer.followUp.status)}
+                                                <div className="flex shrink-0 gap-1">
+                                                    {offer.followUp.channels?.email ? <Badge variant="cyan" className="!text-[9px] !py-0.5 !px-1.5">{t('offers.adminMonitor.channels.email')}</Badge> : null}
+                                                    {offer.followUp.channels?.sms ? <Badge variant="neutral" className="!text-[9px] !py-0.5 !px-1.5">{t('offers.adminMonitor.channels.sms')}</Badge> : null}
+                                                </div>
+                                            </div>
+
+                                            {/* Project & Client */}
+                                            <div className="mt-3">
+                                                <h3 className="text-sm font-bold text-textPrimary leading-snug truncate" title={displayText(offer.projectName)}>
+                                                    {displayText(offer.projectName, t('offers.adminMonitor.untitledProject', { defaultValue: 'Untitled project' }))}
+                                                </h3>
+                                                <p className="text-xs text-textSecondary mt-0.5 truncate">
+                                                    {displayText(offer.customerName, t('offers.adminMonitor.anonymousClient'))}
                                                 </p>
                                             </div>
-                                            <Badge variant="warning" className="max-w-full whitespace-normal text-left leading-snug">
-                                                {getFollowUpReasonLabel(offer.followUp.reason)}
-                                            </Badge>
+
+                                            {/* Valuation & Type */}
+                                            <div className="mt-2.5 flex items-center flex-wrap gap-1.5">
+                                                <Badge variant="neutral" className="!text-[11px] font-bold !py-0.5 !px-2 text-primary-700 bg-primary-50 border-primary-200/60">
+                                                    {formatCurrency(offer.totalAmount)}
+                                                </Badge>
+                                                {offer.buildingType ? (
+                                                    <Badge variant="neutral" className="!text-[10px] !py-0.5 !px-2 text-gray-600 bg-gray-100">
+                                                        {formatBuildingType(offer.buildingType)}
+                                                    </Badge>
+                                                ) : null}
+                                            </div>
+
+                                            {/* Reminder Due Time */}
+                                            <div className="mt-2.5 rounded-sm border border-gray-150 bg-gray-50/80 px-3 py-2 flex items-center justify-between">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                                                    {t('offers.adminMonitor.table.followup')}
+                                                </span>
+                                                <div className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold">
+                                                    <Clock className="h-3.5 w-3.5 text-primary-500" />
+                                                    <span>{formatDate(offer.followUp.nextReminderAt)}</span>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="flex min-w-0 flex-wrap justify-end gap-2">
-                                            {offer.followUp.channels?.email ? <Badge variant="cyan" className="max-w-full">{t('offers.adminMonitor.channels.email')}</Badge> : null}
-                                            {offer.followUp.channels?.sms ? <Badge variant="neutral" className="max-w-full">{t('offers.adminMonitor.channels.sms')}</Badge> : null}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-5 space-y-2">
-                                        <h3 className="break-words text-[1.15rem] font-medium leading-tight text-textPrimary">
-                                            {displayText(offer.projectName, t('offers.adminMonitor.untitledProject', { defaultValue: 'Untitled project' }))}
-                                        </h3>
-                                        <div className="min-w-0 space-y-1">
-                                            <p className="break-all text-sm font-medium text-primary-300">{displayText(offer.offerNumber || offer.id)}</p>
-                                            {/* <p className="break-all text-sm leading-relaxed text-textSecondary">{t('offers.adminMonitor.reference', { id: displayText(offer.id) })}</p> */}
-                                            <p className="break-words text-sm text-textSecondary">
-                                                {displayText(offer.customerName, t('offers.adminMonitor.anonymousClient'))}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-5 flex min-w-0 flex-wrap gap-2">
-                                        <Badge variant="neutral" className="max-w-full">{formatCurrency(offer.totalAmount)}</Badge>
-                                        {offer.buildingType ? (
-                                            <Badge variant="neutral" className="max-w-full whitespace-normal text-left leading-snug">
-                                                {formatBuildingType(offer.buildingType)}
-                                            </Badge>
-                                        ) : null}
-                                    </div>
-
-                                    <div className="mt-5 rounded-sm border border-gray-200 bg-gray-50 p-4 shadow-sm">
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-textSecondary">
-                                            {t('offers.adminMonitor.table.followup')}
-                                        </p>
-                                        <div className="mt-3 flex items-center gap-2 text-sm text-gray-700 font-medium">
-                                            <Clock className="h-4 w-4 text-primary-500" />
-                                            <span>{formatDate(offer.followUp.nextReminderAt)}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-5 space-y-3">
-                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                            <Button
-                                                size="sm"
-                                                variant={offer.followUp.channels?.email ? 'accent' : 'outline'}
-                                                className="min-w-0 w-full justify-center gap-2 whitespace-normal px-3 text-center leading-tight"
-                                                disabled={updatingFollowupId === offer.id}
-                                                onClick={() => handleFollowupChannelToggle(offer, {
-                                                    channelEmail: !offer.followUp.channels?.email,
-                                                })}
-                                            >
-                                                <Mail className="h-4 w-4" />
-                                                {offer.followUp.channels?.email
-                                                    ? t('offers.adminMonitor.channels.emailOn', { defaultValue: 'Email On' })
-                                                    : t('offers.adminMonitor.channels.emailOff', { defaultValue: 'Email Off' })}
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant={offer.followUp.channels?.sms ? 'accent' : 'outline'}
-                                                className="min-w-0 w-full justify-center gap-2 whitespace-normal px-3 text-center leading-tight"
-                                                disabled={updatingFollowupId === offer.id}
-                                                onClick={() => handleFollowupChannelToggle(offer, {
-                                                    channelSms: !offer.followUp.channels?.sms,
-                                                })}
-                                            >
-                                                <MessageSquare className="h-4 w-4" />
-                                                {offer.followUp.channels?.sms
-                                                    ? t('offers.adminMonitor.channels.smsOn', { defaultValue: 'SMS On' })
-                                                    : t('offers.adminMonitor.channels.smsOff', { defaultValue: 'SMS Off' })}
-                                            </Button>
-                                        </div>
-
-                                        <Button
-                                            size="sm"
-                                            className="min-w-0 w-full justify-center gap-2 whitespace-normal px-3 text-center leading-tight"
-                                            disabled={!offer.customerEmail}
-                                            onClick={() => {
-                                                if (!offer.customerEmail) return;
-                                                window.location.href = `mailto:${offer.customerEmail}?subject=${encodeURIComponent(`Offer follow-up: ${offer.offerNumber || offer.projectName || offer.id}`)}`;
-                                            }}
-                                        >
-                                            <Mail className="h-4 w-4" />
-                                            {t('offers.adminMonitor.contactClient')}
-                                        </Button>
-
-                                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                            <Link to={`/admin/offers/${offer.id}`} className="block">
-                                                <Button size="sm" variant="secondary" className="min-w-0 w-full justify-center whitespace-normal px-3 text-center leading-tight">
-                                                    {t('offers.adminMonitor.viewHistory')}
+                                        {/* Actions */}
+                                        <div className="mt-3 space-y-2 pt-2 border-t border-gray-100">
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                                <Button
+                                                    size="sm"
+                                                    variant={offer.followUp.channels?.email ? 'accent' : 'outline'}
+                                                    className="!h-7.5 !text-[10px] !py-1 !px-2 w-full justify-center gap-1 font-semibold"
+                                                    disabled={updatingFollowupId === offer.id}
+                                                    onClick={() => handleFollowupChannelToggle(offer, {
+                                                        channelEmail: !offer.followUp.channels?.email,
+                                                    })}
+                                                >
+                                                    <Mail className="h-3 w-3" />
+                                                    {offer.followUp.channels?.email
+                                                        ? t('offers.adminMonitor.channels.emailOn', { defaultValue: 'Email On' })
+                                                        : t('offers.adminMonitor.channels.emailOff', { defaultValue: 'Email Off' })}
                                                 </Button>
-                                            </Link>
+                                                <Button
+                                                    size="sm"
+                                                    variant={offer.followUp.channels?.sms ? 'accent' : 'outline'}
+                                                    className="!h-7.5 !text-[10px] !py-1 !px-2 w-full justify-center gap-1 font-semibold"
+                                                    disabled={updatingFollowupId === offer.id}
+                                                    onClick={() => handleFollowupChannelToggle(offer, {
+                                                        channelSms: !offer.followUp.channels?.sms,
+                                                    })}
+                                                >
+                                                    <MessageSquare className="h-3 w-3" />
+                                                    {offer.followUp.channels?.sms
+                                                        ? t('offers.adminMonitor.channels.smsOn', { defaultValue: 'SMS On' })
+                                                        : t('offers.adminMonitor.channels.smsOff', { defaultValue: 'SMS Off' })}
+                                                </Button>
+                                            </div>
+
                                             <Button
                                                 size="sm"
-                                                variant="outline"
-                                                className="min-w-0 w-full justify-center whitespace-normal px-3 text-center leading-tight"
-                                                onClick={() => dispatch(snoozeFollowUp({ id: offer.id }))}
+                                                className="!h-8 !text-xs !py-1 w-full justify-center gap-1.5 font-bold"
+                                                disabled={!offer.customerEmail}
+                                                onClick={() => {
+                                                    if (!offer.customerEmail) return;
+                                                    window.location.href = `mailto:${offer.customerEmail}?subject=${encodeURIComponent(`Offer follow-up: ${offer.offerNumber || offer.projectName || offer.id}`)}`;
+                                                }}
                                             >
-                                                {t('offers.adminMonitor.snooze')}
+                                                <Mail className="h-3.5 w-3.5" />
+                                                {t('offers.adminMonitor.contactClient')}
                                             </Button>
+
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                                <Link to={`/admin/offers/${offer.id}`} className="block">
+                                                    <Button size="sm" variant="secondary" className="!h-7 !text-[10px] !py-1 w-full justify-center font-semibold">
+                                                        {t('offers.adminMonitor.viewHistory')}
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="!h-7 !text-[10px] !py-1 w-full justify-center font-semibold"
+                                                    onClick={() => dispatch(snoozeFollowUp({ id: offer.id }))}
+                                                >
+                                                    {t('offers.adminMonitor.snooze')}
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
 
-            <section className="space-y-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* Transaction Ledger Table Section */}
+            <section className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <SectionTitle
                         title={t('offers.adminMonitor.ledgerTitle')}
                         badge={t('offers.adminMonitor.totalOffers', { count: pagination.total })}
                         className="mb-0 animate-none"
                     />
 
-                    {/* Inline Sort Control */}
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className="font-semibold text-textSecondary uppercase tracking-wider">
-                            {t('offers.adminMonitor.sort.sortBy', { defaultValue: 'Sort by' })}:
-                        </span>
-                        <select
-                            value={sort}
-                            onChange={(e) => setSort(e.target.value)}
-                            className="bg-white border border-gray-300/80 rounded-full px-3 py-1.5 text-xs text-graphite font-semibold focus:outline-none focus:border-emerald/45 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:1rem] bg-[right_0.4rem_center] pr-7"
-                        >
-                            <option value="created_at_desc">{t('offers.adminMonitor.sort.newest', { defaultValue: 'Newest' })}</option>
-                            <option value="created_at_asc">{t('offers.adminMonitor.sort.oldest', { defaultValue: 'Oldest' })}</option>
-                            <option value="value_desc">{t('offers.adminMonitor.sort.valueHigh', { defaultValue: 'Value high' })}</option>
-                            <option value="value_asc">{t('offers.adminMonitor.sort.valueLow', { defaultValue: 'Value low' })}</option>
-                            <option value="status_asc">{t('offers.adminMonitor.sort.statusAsc', { defaultValue: 'Status A-Z' })}</option>
-                            <option value="status_desc">{t('offers.adminMonitor.sort.statusDesc', { defaultValue: 'Status Z-A' })}</option>
-                        </select>
+                    {/* Inline Controls: Rows per page & Sort */}
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-textSecondary uppercase tracking-wider text-[11px]">
+                                {t('offers.adminMonitor.paginationLimit', { defaultValue: 'Show' })}:
+                            </span>
+                            <select
+                                value={pagination.limit}
+                                onChange={(e) => handleLimitChange(e.target.value)}
+                                className="bg-white border border-gray-300/80 rounded-full px-2.5 py-1 text-xs text-graphite font-semibold focus:outline-none focus:border-emerald/45 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:0.9rem] bg-[right_0.3rem_center] pr-6 shadow-sm"
+                            >
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-textSecondary uppercase tracking-wider text-[11px]">
+                                {t('offers.adminMonitor.sort.sortBy', { defaultValue: 'Sort' })}:
+                            </span>
+                            <select
+                                value={sort}
+                                onChange={(e) => setSort(e.target.value)}
+                                className="bg-white border border-gray-300/80 rounded-full px-3 py-1 text-xs text-graphite font-semibold focus:outline-none focus:border-emerald/45 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27 fill=%27none%27%3E%3Cpath stroke=%27%233f4d47%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27m6 8 4 4 4-4%27/%3E%3C/svg%3E')] bg-[length:0.9rem] bg-[right_0.3rem_center] pr-6 shadow-sm"
+                            >
+                                <option value="created_at_desc">{t('offers.adminMonitor.sort.newest', { defaultValue: 'Newest' })}</option>
+                                <option value="created_at_asc">{t('offers.adminMonitor.sort.oldest', { defaultValue: 'Oldest' })}</option>
+                                <option value="value_desc">{t('offers.adminMonitor.sort.valueHigh', { defaultValue: 'Value high' })}</option>
+                                <option value="value_asc">{t('offers.adminMonitor.sort.valueLow', { defaultValue: 'Value low' })}</option>
+                                <option value="status_asc">{t('offers.adminMonitor.sort.statusAsc', { defaultValue: 'Status A-Z' })}</option>
+                                <option value="status_desc">{t('offers.adminMonitor.sort.statusDesc', { defaultValue: 'Status Z-A' })}</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-sm mb-6">
+                <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-sm mb-4">
                     {offersLoading && !offers.length ? (
-                        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4">
-                            <Loader2 className="h-9 w-9 animate-spin text-primary-500" />
-                            <p className="text-sm font-bold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.loading')}</p>
+                        <div className="flex min-h-[220px] flex-col items-center justify-center gap-3">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+                            <p className="text-xs font-bold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.loading')}</p>
                         </div>
                     ) : offers.length === 0 ? (
-                        <div className="flex min-h-[260px] flex-col items-center justify-center gap-4 px-6 text-center">
-                            <Bell className="h-9 w-9 text-primary-300" />
+                        <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 text-center">
+                            <Bell className="h-8 w-8 text-primary-300" />
                             <div>
-                                <p className="text-lg font-bold text-gray-800">{t('offers.adminMonitor.emptyTitle', { defaultValue: 'No offers match these filters' })}</p>
-                                <p className="mt-2 text-sm text-textSecondary">{t('offers.adminMonitor.emptyDesc', { defaultValue: 'Reset filters or widen the date and value range.' })}</p>
+                                <p className="text-base font-bold text-gray-800">{t('offers.adminMonitor.emptyTitle', { defaultValue: 'No offers match these filters' })}</p>
+                                <p className="mt-1 text-xs text-textSecondary">{t('offers.adminMonitor.emptyDesc', { defaultValue: 'Reset filters or widen the date and value range.' })}</p>
                             </div>
                         </div>
                     ) : (
-                        <div className="relative overflow-x-auto">
+                        <div className="relative overflow-x-auto custom-scrollbar">
                             {offersLoading ? (
                                 <div className="absolute inset-x-0 top-0 z-10 h-1 overflow-hidden bg-gray-100">
                                     <div className="h-full w-1/3 animate-pulse bg-primary-500" />
@@ -852,64 +911,64 @@ export default function AdminOffersMonitor() {
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-b border-gray-200 bg-gray-50">
-                                        <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.table.offerId')}</th>
-                                        <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.table.clientProject')}</th>
-                                        <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.table.valuation')}</th>
-                                        <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.table.status')}</th>
-                                        <th className="px-6 py-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.table.followup')}</th>
-                                        <th className="px-6 py-5 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('offers.adminMonitor.table.actions')}</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('offers.adminMonitor.table.offerId')}</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('offers.adminMonitor.table.clientProject')}</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('offers.adminMonitor.table.valuation')}</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('offers.adminMonitor.table.status')}</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('offers.adminMonitor.table.followup')}</th>
+                                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-textSecondary">{t('offers.adminMonitor.table.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {offers.map((offer) => (
-                                        <tr key={displayText(offer.id || offer.offerNumber)} className="transition-colors hover:bg-gray-50">
-                                            <td className="px-6 py-5">
+                                        <tr key={displayText(offer.id || offer.offerNumber)} className="transition-colors hover:bg-gray-50/80">
+                                            <td className="px-4 py-3">
                                                 <p className="text-sm font-bold text-gray-800">{displayText(offer.offerNumber || offer.id)}</p>
-                                                <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-textSecondary">{displayText(offer.id)}</p>
-                                                <p className="mt-2 text-sm text-textSecondary">{formatDate(offer.createdAt)}</p>
+                                                <p className="text-[11px] font-semibold uppercase tracking-wider text-textSecondary">{displayText(offer.id)}</p>
+                                                <p className="mt-0.5 text-xs text-textSecondary">{formatDate(offer.createdAt)}</p>
                                             </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-10 w-10 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50 text-primary-600 shadow-sm">
-                                                        <Layers className="h-4.5 w-4.5" />
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-primary-500/20 bg-primary-50 text-primary-600 shadow-sm">
+                                                        <Layers className="h-4 w-4" />
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-textPrimary">{displayText(offer.customerName, t('offers.adminMonitor.anonymousClient'))}</p>
-                                                        <p className="mt-1 text-sm text-textSecondary">{displayText(offer.projectName, t('offers.adminMonitor.untitledProject', { defaultValue: 'Untitled project' }))}</p>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-semibold text-textPrimary truncate max-w-[200px]">{displayText(offer.customerName, t('offers.adminMonitor.anonymousClient'))}</p>
+                                                        <p className="text-xs text-textSecondary truncate max-w-[200px]">{displayText(offer.projectName, t('offers.adminMonitor.untitledProject', { defaultValue: 'Untitled project' }))}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-5">
-                                                <p className="font-heading text-3xl font-semibold leading-none text-primary-300">{formatCurrency(offer.totalAmount)}</p>
-                                                {offer.buildingType ? <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{formatBuildingType(offer.buildingType)}</p> : null}
+                                            <td className="px-4 py-3">
+                                                <p className="font-heading text-base sm:text-lg font-bold leading-none text-primary-600">{formatCurrency(offer.totalAmount)}</p>
+                                                {offer.buildingType ? <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-textSecondary">{formatBuildingType(offer.buildingType)}</p> : null}
                                             </td>
-                                            <td className="px-6 py-5">
+                                            <td className="px-4 py-3">
                                                 <StatusBadge status={offer.status} />
                                             </td>
-                                            <td className="px-6 py-5">
+                                            <td className="px-4 py-3">
                                                 {offer.followUp?.enabled ? (
                                                     <div>
-                                                        <p className="text-sm font-medium text-textPrimary">{getFollowUpStatusLabel(offer.followUp.status)}</p>
-                                                        <p className="mt-1 text-sm text-textSecondary">{formatDate(offer.followUp.nextReminderAt)}</p>
+                                                        <p className="text-xs font-semibold text-textPrimary">{getFollowUpStatusLabel(offer.followUp.status)}</p>
+                                                        <p className="text-[11px] text-textSecondary">{formatDate(offer.followUp.nextReminderAt)}</p>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-textSecondary">{t('offers.adminMonitor.noTask')}</span>
+                                                    <span className="text-xs text-textSecondary">{t('offers.adminMonitor.noTask')}</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center justify-center gap-2">
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center justify-center gap-1.5">
                                                     <Link to={`/admin/offers/${offer.id}`}>
-                                                        <button className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300" title={t('offers.adminMonitor.viewOffer')}>
-                                                            <Eye className="h-4 w-4" />
+                                                        <button className="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-textSecondary shadow-sm transition-colors hover:border-primary-500/40 hover:text-primary-600" title={t('offers.adminMonitor.viewOffer')}>
+                                                            <Eye className="h-3.5 w-3.5" />
                                                         </button>
                                                     </Link>
                                                     <button
                                                         onClick={() => handleDownloadOffer(offer)}
-                                                        className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textSecondary transition-colors hover:border-primary-500/18 hover:text-primary-300"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-textSecondary shadow-sm transition-colors hover:border-primary-500/40 hover:text-primary-600"
                                                         title={t('offers.adminMonitor.download')}
                                                         disabled={downloadingOfferId === offer.id}
                                                     >
-                                                        {downloadingOfferId === offer.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                                        {downloadingOfferId === offer.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                                                     </button>
                                                 </div>
                                             </td>
@@ -920,31 +979,98 @@ export default function AdminOffersMonitor() {
                         </div>
                     )}
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-textSecondary">
-                        {t('offers.adminMonitor.pagination', {
-                            defaultValue: 'Page {{page}} of {{totalPages}}',
-                            page: pagination.page,
-                            totalPages: pagination.totalPages,
-                        })}
-                    </p>
-                    <div className="flex gap-2">
-                        <Button
-                            size="sm"
-                            variant="outline"
+
+                {/* Proper Pagination Controls */}
+                <div className="bg-white border border-gray-200 rounded-sm p-3 shadow-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-xs text-textSecondary font-medium">
+                        {pagination.total > 0 ? (
+                            <span>
+                                {t('offers.adminMonitor.showingRange', {
+                                    defaultValue: 'Showing {{from}} to {{to}} of {{total}} offers',
+                                    from: (pagination.page - 1) * pagination.limit + 1,
+                                    to: Math.min(pagination.page * pagination.limit, pagination.total),
+                                    total: pagination.total,
+                                })}
+                            </span>
+                        ) : (
+                            <span>{t('offers.adminMonitor.noEntries', { defaultValue: 'No offers found' })}</span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 self-center sm:self-auto">
+                        {/* First Page */}
+                        <button
+                            type="button"
                             disabled={offersLoading || pagination.page <= 1}
-                            onClick={() => fetchAdminOffers(pagination.page - 1)}
+                            onClick={() => handlePageChange(1)}
+                            className="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={t('offers.adminMonitor.firstPage', { defaultValue: 'First Page' })}
                         >
-                            {t('offers.adminMonitor.previous', { defaultValue: 'Previous' })}
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
+                            <ChevronsLeft className="h-4 w-4" />
+                        </button>
+
+                        {/* Prev Page */}
+                        <button
+                            type="button"
+                            disabled={offersLoading || pagination.page <= 1}
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            className="flex h-8 px-2.5 items-center justify-center gap-1 rounded-sm border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">{t('offers.adminMonitor.previous', { defaultValue: 'Previous' })}</span>
+                        </button>
+
+                        {/* Page Numbers */}
+                        <div className="flex items-center gap-1">
+                            {getPageNumbers().map((pageNum, idx) => {
+                                if (pageNum === '...') {
+                                    return (
+                                        <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-xs text-gray-400 font-bold select-none">
+                                            ...
+                                        </span>
+                                    );
+                                }
+                                const isCurrent = pageNum === pagination.page;
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        type="button"
+                                        disabled={offersLoading}
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={clsx(
+                                            'h-8 min-w-[32px] px-2 text-xs font-bold rounded-sm transition-all duration-200 shadow-sm',
+                                            isCurrent
+                                                ? 'bg-primary-600 text-white shadow-primary-500/20'
+                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-300'
+                                        )}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Next Page */}
+                        <button
+                            type="button"
                             disabled={offersLoading || pagination.page >= pagination.totalPages}
-                            onClick={() => fetchAdminOffers(pagination.page + 1)}
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            className="flex h-8 px-2.5 items-center justify-center gap-1 rounded-sm border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            {t('offers.adminMonitor.next', { defaultValue: 'Next' })}
-                        </Button>
+                            <span className="hidden sm:inline">{t('offers.adminMonitor.next', { defaultValue: 'Next' })}</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+
+                        {/* Last Page */}
+                        <button
+                            type="button"
+                            disabled={offersLoading || pagination.page >= pagination.totalPages}
+                            onClick={() => handlePageChange(pagination.totalPages)}
+                            className="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-primary-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={t('offers.adminMonitor.lastPage', { defaultValue: 'Last Page' })}
+                        >
+                            <ChevronsRight className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
             </section>

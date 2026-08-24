@@ -47,6 +47,8 @@ function normalizeStoredSnapshot(snapshot = {}) {
         range: snapshot.range ?? null,
         color: snapshot.color ?? null,
         customerComments: snapshot.customerComments || '',
+        customerCommentsEn: snapshot.customerCommentsEn ?? snapshot.customerComments ?? '',
+        customerCommentsRo: snapshot.customerCommentsRo ?? '',
         currentOfferId: snapshot.currentOfferId || null,
         currentStep: normalizeStep(snapshot.currentStep),
         language: normalizeLanguage(snapshot.language),

@@ -1,6 +1,5 @@
 import Product from '../../models/Product.js';
 import ProductRangeProduct from '../../models/ProductRangeProduct.js';
-import ProductColorProduct from '../../models/ProductColorProduct.js';
 import ProductFunctionMapping from '../../models/ProductFunctionMapping.js';
 import ProductDependency from '../../models/ProductDependency.js';
 import Service from '../../models/Service.js';
@@ -131,14 +130,13 @@ export const calculateOffer = async (projectData) => {
     }
     const levels = normalizeLevels(projectData.levels);
     const selectedRangeId = isValidUuid(projectData.selectedRangeId || projectData.rangeId) ? (projectData.selectedRangeId || projectData.rangeId) : null;
-    const selectedColorId = isValidUuid(projectData.selectedColorId || projectData.colorId) ? (projectData.selectedColorId || projectData.colorId) : null;
     const multiplicationIndex = Math.max(0.01, Math.min(100, safeNum(projectData.multiplicationIndex, 1.0)));
     const selectedServiceIds = Array.isArray(projectData.selectedServiceIds)
         ? projectData.selectedServiceIds.map((id) => (isValidUuid(id) ? String(id).trim() : null)).filter(Boolean)
         : [];
     const language = normalizeBusinessLanguage(projectData.language);
 
-    const compatibleProductIds = await getCompatibleProductIds(selectedRangeId, selectedColorId);
+    const compatibleProductIds = await getCompatibleProductIds(selectedRangeId);
     const { SmartFunction } = (await import('../../models/index.js')).default;
     const selectedFunctionIds = collectSelectedFunctionIds(levels);
     const smartFunctionRows = selectedFunctionIds.length
@@ -157,15 +155,14 @@ export const calculateOffer = async (projectData) => {
         products: allocatedProducts,
         unmetRequirements,
         allocationDiagnostics,
-    } = await allocateProducts(requirements, compatibleProductIds, selectedRangeId, selectedColorId, language);
+    } = await allocateProducts(requirements, compatibleProductIds, selectedRangeId, language);
     const allocatedServices = await calculateServices({ levels, selectedServiceIds, language }, allocatedProducts, selectedServiceIds);
 
-    const { ProductRange, Color } = (await import('../../models/index.js')).default;
+    const { ProductRange } = (await import('../../models/index.js')).default;
     const rangeRow = selectedRangeId ? await ProductRange.findByPk(selectedRangeId) : null;
-    const colorRow = selectedColorId ? await Color.findByPk(selectedColorId) : null;
     const rangeMultiplier = Math.max(0.01, Math.min(100, safeNum(rangeRow?.priceMultiplier, 1.0)));
 
-    const relatedProducts = await buildRelatedProducts(allocatedProducts, { selectedRangeId, selectedColorId, language });
+    const relatedProducts = await buildRelatedProducts(allocatedProducts, { selectedRangeId, language });
     const calculatedProducts = buildCalculatedProducts(allocatedProducts, { rangeMultiplier, multiplicationIndex });
     const calculatedRelatedProducts = buildCalculatedProducts(relatedProducts, { rangeMultiplier, multiplicationIndex });
     const calculatedServices = buildCalculatedServices(allocatedServices, { multiplicationIndex });
@@ -186,7 +183,6 @@ export const calculateOffer = async (projectData) => {
         services: calculatedServices,
         ...totals,
         rangeName: rangeRow ? getLocalizedValue(rangeRow, 'name', language, rangeRow?.name ?? null) : null,
-        colorName: colorRow ? getLocalizedValue(colorRow, 'name', language, colorRow?.name ?? null) : null,
         rangeMultiplier,
         projectMultiplier: multiplicationIndex,
         noCompatibleProducts: noCompatibleProducts || false,
@@ -243,7 +239,6 @@ const aggregateRequirements = (levels, smartFunctionDemandMap = new Map()) => {
 
 /** Cache for join table/column detection (avoids repeated information_schema queries). */
 let _rangeJoinInfo = null;
-let _colorJoinInfo = null;
 
 /**
  * Resolve ProductRangeProducts table and column names from DB.
@@ -282,52 +277,15 @@ async function getRangeJoinInfo(sequelize) {
 }
 
 /**
- * Resolve ProductColorProducts table and column names from DB.
- */
-async function getColorJoinInfo(sequelize) {
-    if (_colorJoinInfo) return _colorJoinInfo;
-    const [tables] = await sequelize.query(
-        `SELECT table_schema, table_name FROM information_schema.tables
-         WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-         AND LOWER(table_name) LIKE '%product%' AND LOWER(table_name) LIKE '%color%'
-         ORDER BY table_schema, table_name LIMIT 5`
-    );
-    for (const t of tables || []) {
-        const schema = t.table_schema || 'public';
-        const tableName = t.table_name;
-        const [cols] = await sequelize.query(
-            `SELECT column_name FROM information_schema.columns
-             WHERE table_schema = :schema AND table_name = :tableName ORDER BY ordinal_position`,
-            { replacements: { schema, tableName } }
-        );
-        const colNames = (cols || []).map(c => c.column_name);
-        const productCol = colNames.find(c => /product/.test(c) && !/color/.test(c));
-        const colorCol = colNames.find(c => /color/.test(c) || c === 'color_id' || c === 'colorId');
-        if (productCol && colorCol) {
-            const q = (s) => (s !== s.toLowerCase() || s.includes('_') ? `"${s}"` : s);
-            _colorJoinInfo = {
-                table: schema === 'public' ? (tableName !== tableName.toLowerCase() ? `"${tableName}"` : tableName) : `"${schema}"."${tableName}"`,
-                productCol: q(productCol),
-                colorCol: q(colorCol),
-            };
-            return _colorJoinInfo;
-        }
-    }
-    _colorJoinInfo = { table: null, productCol: null, colorCol: null };
-    return _colorJoinInfo;
-}
-
-/**
- * Filters products by range and color; only uses valid UUIDs.
+ * Filters products by range; only uses valid UUIDs.
  * Uses information_schema to detect join table/column names so any DB schema works.
  */
-const getCompatibleProductIds = async (rangeId, colorId) => {
+const getCompatibleProductIds = async (rangeId) => {
     const sequelize = ProductRangeProduct.sequelize;
     let productIds = null;
     const hasRangeFilter = Boolean(rangeId && isValidUuid(rangeId));
-    const hasColorFilter = Boolean(colorId && isValidUuid(colorId));
 
-    if (hasRangeFilter || hasColorFilter) {
+    if (hasRangeFilter) {
         try {
             const models = (await import('../../models/index.js')).default;
             const include = [];
@@ -339,17 +297,6 @@ const getCompatibleProductIds = async (rangeId, colorId) => {
                     attributes: [],
                     through: { attributes: [] },
                     where: { id: rangeId },
-                    required: true,
-                });
-            }
-
-            if (hasColorFilter) {
-                include.push({
-                    model: models.Color,
-                    as: 'colors',
-                    attributes: [],
-                    through: { attributes: [] },
-                    where: { id: colorId },
                     required: true,
                 });
             }
@@ -402,54 +349,13 @@ const getCompatibleProductIds = async (rangeId, colorId) => {
         }
     }
 
-    if (hasColorFilter) {
-        try {
-            let colorProductIds = [];
-            const colorProducts = await ProductColorProduct.findAll({
-                where: productIds?.length ? { colorId, productId: { [Op.in]: productIds } } : { colorId }
-            });
-            colorProductIds = colorProducts.map(p => p.productId).filter(Boolean);
-            if (colorProductIds.length === 0) {
-                const info = await getColorJoinInfo(sequelize);
-                if (info.table && info.productCol && info.colorCol) {
-                    const rows = await sequelize.query(
-                        `SELECT ${info.productCol} AS "productId" FROM ${info.table} WHERE ${info.colorCol} = :colorId`,
-                        { replacements: { colorId }, type: sequelize.QueryTypes.SELECT }
-                    ).catch(() => []);
-                    if (rows?.length) colorProductIds = rows.map(r => r.productId).filter(Boolean);
-                }
-                if (colorProductIds.length === 0) {
-                    for (const [tbl, pCol, cCol] of [
-                        ['"ProductColorProducts"', '"productId"', '"colorId"'],
-                        ['"ProductColorProducts"', 'product_id', 'color_id'],
-                        ['productcolorproducts', 'product_id', 'color_id'],
-                    ]) {
-                        const rows = await sequelize.query(
-                            `SELECT ${pCol} AS "productId" FROM ${tbl} WHERE ${cCol} = :colorId`,
-                            { replacements: { colorId }, type: sequelize.QueryTypes.SELECT }
-                        ).catch(() => []);
-                        if (rows?.length) {
-                            colorProductIds = rows.map(r => r.productId).filter(Boolean);
-                            break;
-                        }
-                    }
-                }
-            }
-            productIds = productIds?.length
-                ? productIds.filter(id => colorProductIds.includes(id))
-                : colorProductIds;
-        } catch (_) {
-            productIds = productIds || [];
-        }
-    }
-
-    if (hasRangeFilter || hasColorFilter) {
+    if (hasRangeFilter) {
         return productIds || [];
     }
     return null;
 };
 
-const allocateProducts = async (requirements, compatibleProductIds, selectedRangeId, selectedColorId, language = 'en') => {
+const allocateProducts = async (requirements, compatibleProductIds, selectedRangeId, language = 'en') => {
     // Fetch all active mappings
     const mappingOptions = {
         where: { isActive: true },
@@ -484,10 +390,9 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
         productCounts[productId] = (productCounts[productId] || 0) + qty;
     };
 
-    // Get range and color names for snapshot
-    const { ProductRange, Color } = (await import('../../models/index.js')).default;
+    // Get the range name for the offer snapshot.
+    const { ProductRange } = (await import('../../models/index.js')).default;
     const range = selectedRangeId ? await ProductRange.findByPk(selectedRangeId) : null;
-    const color = selectedColorId ? await Color.findByPk(selectedColorId) : null;
 
     // channelType: IN = room-level, OUT = level-level, GENERAL = any. Respect scope + channelType.
     const channelAllowed = (m, scope) => {
@@ -666,8 +571,7 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
             unitPrice,
             quantity,
             subtotal: Number((quantity * unitPrice).toFixed(2)),
-            rangeName: range ? getLocalizedValue(range, 'name', language, range?.name ?? 'N/A') : 'N/A',
-            colorName: color ? getLocalizedValue(color, 'name', language, color?.name ?? 'N/A') : 'N/A'
+            rangeName: range ? getLocalizedValue(range, 'name', language, range?.name ?? 'N/A') : 'N/A'
         });
     }
 
@@ -683,7 +587,7 @@ const allocateProducts = async (requirements, compatibleProductIds, selectedRang
     };
 };
 
-async function buildRelatedProducts(products, { selectedRangeId, selectedColorId, language }) {
+async function buildRelatedProducts(products, { selectedRangeId, language }) {
     const standardProducts = Array.isArray(products) ? products : [];
     const mainProductIds = standardProducts.map((product) => product.productId).filter(Boolean);
     if (mainProductIds.length === 0) return [];
@@ -700,9 +604,8 @@ async function buildRelatedProducts(products, { selectedRangeId, selectedColorId
     if (!dependencies.length) return [];
 
     const mainQuantity = new Map(standardProducts.map((product) => [product.productId, Math.max(0, safeNum(product.quantity))]));
-    const { ProductRange, Color } = (await import('../../models/index.js')).default;
+    const { ProductRange } = (await import('../../models/index.js')).default;
     const range = selectedRangeId ? await ProductRange.findByPk(selectedRangeId) : null;
-    const color = selectedColorId ? await Color.findByPk(selectedColorId) : null;
     const aggregate = new Map();
 
     dependencies.forEach((dependency) => {
@@ -732,7 +635,6 @@ async function buildRelatedProducts(products, { selectedRangeId, selectedColorId
             quantity,
             subtotal: Number((quantity * unitPrice).toFixed(2)),
             rangeName: range ? getLocalizedValue(range, 'name', language, range?.name ?? 'N/A') : 'N/A',
-            colorName: color ? getLocalizedValue(color, 'name', language, color?.name ?? 'N/A') : 'N/A',
             lineType: 'RELATED',
             isSystemCalculated: true,
             dependencySources: item.sources

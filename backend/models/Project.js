@@ -49,6 +49,16 @@ Project.init({
         type: DataTypes.TEXT,
         allowNull: true
     },
+    translations: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {}
+    },
+    translations: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {}
+    },
     selectedRangeId: {
         type: DataTypes.UUID,
         allowNull: true

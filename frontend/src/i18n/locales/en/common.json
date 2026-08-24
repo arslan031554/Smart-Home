@@ -271,7 +271,6 @@
     "continue": "Continue Step",
     "reviewSummary": "Review Summary",
     "generateFinalOffer": "Generate Final Offer",
-    "noCompatibleProducts": "No compatible products for range/color. Configure in Admin.",
     "steps": {
       "project": "Project",
       "rooms": "Rooms",
@@ -320,6 +319,8 @@
       "loading": "Loading available product ranges...",
       "badge": "Step 04: Product Range",
       "loadingHelp": "Product ranges are loading. If this persists, please refresh the page.",
+      "readMore": "Read more",
+      "showLess": "Show less",
       "features": {
         "premium": "Premium Finish",
         "reliable": "Reliable Module",
@@ -709,7 +710,7 @@
       "recentOffersTitle": "Recent Technical Offers",
       "recentOffersLink": "All Offers",
       "table": {
-        "idProject": "ID / Project Name",
+        "idProject": "Project Name",
         "status": "Status",
         "valueExclVat": "Value (excl. VAT)"
       },
@@ -1010,6 +1011,12 @@
       "anonymousClient": "Anonymous Client",
       "viewOffer": "View offer",
       "download": "Download",
+      "showingRange": "Showing {{from}} to {{to}} of {{total}} offers",
+      "noEntries": "No offers found",
+      "firstPage": "First Page",
+      "lastPage": "Last Page",
+      "paginationLimit": "Show",
+      "followupTasksTotal": "active follow-ups",
       "channels": {
         "email": "Email",
         "sms": "SMS",

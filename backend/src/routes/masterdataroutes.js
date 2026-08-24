@@ -19,11 +19,16 @@ function isMissingRangeColorMappingError(err) {
 function serializeColorWithRanges(row, productRanges, language) {
     const localized = serializeLocalizedEntity(row, { language, fields: ['name', 'description'] });
     const ranges = Array.isArray(productRanges) ? productRanges : [];
+    const localizedRanges = ranges.map((range) => (
+        typeof range === 'object' && range
+            ? serializeLocalizedEntity(range, { language, fields: ['name', 'description'], includeTranslations: false })
+            : range
+    ));
 
     return {
         ...localized,
-        productRanges: ranges.map((range) => (typeof range === 'object' && range?.id ? range.id : range)).filter(Boolean),
-        productRangeDetails: ranges
+        productRanges: localizedRanges.map((range) => (typeof range === 'object' && range?.id ? range.id : range)).filter(Boolean),
+        productRangeDetails: localizedRanges
             .map((range) => (typeof range === 'object' && range?.id ? { id: range.id, name: range.name } : null))
             .filter(Boolean)
     };
@@ -32,7 +37,7 @@ function serializeColorWithRanges(row, productRanges, language) {
 async function getColorsWithoutRangeMapping({ language, rangeId }) {
     const ranges = await models.ProductRange.findAll({
         where: { isActive: true, isVisible: true },
-        attributes: ['id', 'name'],
+        attributes: ['id', 'name', 'description', 'translations'],
         order: [['name', 'ASC']]
     });
     const selectedRanges = rangeId ? ranges.filter((range) => range.id === rangeId) : ranges;
@@ -144,7 +149,7 @@ router.get('/colors', async (req, res, next) => {
                 include: [{
                     model: models.ProductRange,
                     as: 'productRanges',
-                    attributes: ['id', 'name'],
+                    attributes: ['id', 'name', 'description', 'translations'],
                     through: { attributes: [] },
                     ...(rangeId ? { where: { id: rangeId }, required: true } : {})
                 }],

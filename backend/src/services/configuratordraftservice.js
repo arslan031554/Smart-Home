@@ -31,6 +31,8 @@ function normalizeSnapshot(snapshot = {}) {
         range: snapshot.range ?? null,
         color: snapshot.color ?? null,
         customerComments: snapshot.customerComments || null,
+        customerCommentsEn: snapshot.customerCommentsEn ?? snapshot.customerComments ?? '',
+        customerCommentsRo: snapshot.customerCommentsRo ?? '',
         currentOfferId: snapshot.currentOfferId || null,
         currentStep: normalizeStep(snapshot.currentStep),
         language: normalizeLanguage(snapshot.language),
@@ -58,7 +60,9 @@ function hasMeaningfulProgress(snapshot = {}) {
         (Array.isArray(snapshot.services) && snapshot.services.length > 0) ||
         snapshot.range ||
         snapshot.color ||
-        String(snapshot.customerComments || '').trim()
+        String(snapshot.customerComments || '').trim() ||
+        String(snapshot.customerCommentsEn || '').trim() ||
+        String(snapshot.customerCommentsRo || '').trim()
     );
 }
 

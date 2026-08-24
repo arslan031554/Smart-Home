@@ -7,7 +7,7 @@ import { clearGeneratedOffer } from '@/features/offers/offersSlice';
 import { fetchPublicMasterData } from '@/features/admin/adminSlice';
 import {
     ChevronRight, ChevronLeft, Check, Layout, Star, Settings,
-    FileText, Zap, Save, ShieldCheck, Activity, Monitor, Palette, RotateCcw,
+    FileText, Zap, Save, ShieldCheck, Activity, Monitor, RotateCcw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -68,7 +68,7 @@ function hasCalculationPrerequisites(configuratorState = {}) {
 
     return Boolean(configuratorState.range && hasAnyFunctions);
 }
-const REQUIRED_MASTER_DATA_KEYS = ['building-types', 'room-types', 'smart-functions', 'product-ranges', 'colors', 'services'];
+const REQUIRED_MASTER_DATA_KEYS = ['building-types', 'room-types', 'smart-functions', 'product-ranges', 'services'];
 const OPTIONAL_CONTENT_KEYS = ['offer-conditions', 'disclaimers'];
 
 export default function ConfiguratorPage() {
@@ -150,7 +150,7 @@ export default function ConfiguratorPage() {
 
     useEffect(() => {
         if (!isReady) return;
-        if (currentStep >= 7) return;
+        if (currentStep >= 8) return;
 
         const hasAnyFunctions = (configuratorState.levels || []).some((l) =>
             (l.rooms || []).some((r) => Array.isArray(r.functions) && r.functions.some((fn) => Number(fn?.quantity || 0) > 0))
@@ -170,6 +170,7 @@ export default function ConfiguratorPage() {
         configuratorState.services,
         configuratorState.levels,
         configuratorState.projectInfo?.projectMultiplicationIndex,
+        i18n.resolvedLanguage,
     ]);
 
     useEffect(() => {
@@ -389,7 +390,6 @@ export default function ConfiguratorPage() {
     const calculation = configuratorState.calculation;
     const hasBackendTotal = hasCalculationInputs && calculation != null && typeof calculation.grandTotal === 'number';
     const totalPrice = hasBackendTotal ? calculation.grandTotal : null;
-    const noCompatibleProducts = Boolean(calculation?.noCompatibleProducts);
     const calcError = configuratorState.calcError;
     const isComplete = currentStep === steps.length;
     const progressPct = currentStep === 7
@@ -526,10 +526,6 @@ export default function ConfiguratorPage() {
                 {calcError ? (
                     <p className="text-[11px] font-medium text-amber-700 truncate" title={calcError}>{calcError}</p>
                 ) : null}
-                {noCompatibleProducts && !calcError ? (
-                    <p className="text-[11px] font-medium text-amber-700 truncate">{t('configurator.noCompatibleProducts')}</p>
-                ) : null}
-
                 {/* Action Buttons */}
                 <div className="flex w-full items-center gap-2 sm:w-auto">
                     <Button

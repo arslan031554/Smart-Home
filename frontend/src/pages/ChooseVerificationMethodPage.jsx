@@ -79,7 +79,7 @@ export default function ChooseVerificationMethodPage() {
                     setLocalError(errorMessage);
                 }
             }
-        } catch (_err) {
+        } catch {
             setLocalError(t('errors.requestFailed'));
         }
     };

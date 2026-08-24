@@ -6,7 +6,6 @@ import { Button, Badge, Card, Modal, EmptyState, SectionTitle, Input, AnimatedPa
 import api from '../utils/api';
 import { clsx } from 'clsx';
 import { normalizeApiError } from '../utils/normalizeApiError';
-import { useTranslation } from 'react-i18next';
 
 const defaultFormState = {
     title: '',
@@ -24,7 +23,6 @@ const PROJECT_TYPES = [
 ];
 
 export default function AdminPortfolioManagement() {
-    const { t } = useTranslation();
     const dispatch = useDispatch();
     const { adminProjects: projects, loading } = useSelector((state) => state.portfolio);
 
@@ -122,7 +120,7 @@ export default function AdminPortfolioManagement() {
             try {
                 await dispatch(deletePortfolioProject(deleteModal.itemId)).unwrap();
                 setDeleteModal({ isOpen: false, itemId: null });
-            } catch (error) {
+            } catch {
                 setApiError('Failed to delete project');
                 setDeleteModal({ isOpen: false, itemId: null });
             }

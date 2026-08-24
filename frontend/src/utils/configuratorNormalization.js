@@ -50,10 +50,11 @@ export function buildNormalizedOfferPayload(configuratorState = {}) {
         levels: normalizeConfiguratorLevels(configuratorState.levels || []),
         projectInfo: configuratorState.projectInfo || {},
         rangeId: configuratorState.range ?? null,
-        colorId: configuratorState.color ?? null,
         selectedServiceIds: Array.isArray(configuratorState.services) ? configuratorState.services : [],
         multiplicationIndex: configuratorState.projectInfo?.projectMultiplicationIndex ?? 1,
         customerComments: configuratorState.customerComments || null,
+        customerCommentsEn: configuratorState.customerCommentsEn ?? configuratorState.customerComments ?? '',
+        customerCommentsRo: configuratorState.customerCommentsRo ?? '',
         language: getCurrentBusinessLanguage(configuratorState.language),
     };
 }

@@ -67,23 +67,6 @@ export const deleteUser = createAsyncThunk('admin/deleteUser', async (id, { disp
     }
 });
 
-// Specific Thunks for Colors
-export const fetchColors = createAsyncThunk('admin/fetchColors', async (_, { dispatch }) => {
-    return dispatch(fetchMasterData('colors')).unwrap();
-});
-
-export const addColor = createAsyncThunk('admin/addColor', async (data, { dispatch }) => {
-    return dispatch(addMasterDataItem({ key: 'colors', data })).unwrap();
-});
-
-export const updateColor = createAsyncThunk('admin/updateColor', async ({ id, ...data }, { dispatch }) => {
-    return dispatch(updateMasterDataItem({ key: 'colors', id, data })).unwrap();
-});
-
-export const deleteColor = createAsyncThunk('admin/deleteColor', async (id, { dispatch }) => {
-    return dispatch(deleteMasterDataItem({ key: 'colors', id })).unwrap();
-});
-
 // Specific Thunks for Building Types
 export const fetchBuildingTypes = createAsyncThunk('admin/fetchBuildingTypes', async (_, { dispatch }) => {
     return dispatch(fetchMasterData('building-types')).unwrap();
@@ -308,7 +291,6 @@ const initialState = {
     roomTypes: [],
     smartFunctions: [],
     productRanges: [],
-    colors: [],
     services: [],
     discounts: [],
     conditions: [],
@@ -321,7 +303,6 @@ const initialState = {
     error: null,
     masterDataStatus: {},
     publicProductRanges: [],
-    publicColors: [],
     publicServices: [],
     newsletterSubscribers: [],
 };
@@ -384,13 +365,9 @@ const adminSlice = createSlice({
                 const { key, data } = action.payload;
                 if (!state.masterDataStatus) state.masterDataStatus = {};
                 state.masterDataStatus[key] = 'succeeded';
-                // Keep public ranges/colors separate so admin-loaded hidden items never leak into customer flows.
+                // Keep public ranges separate so admin-loaded hidden items never leak into customer flows.
                 if (key === 'product-ranges') {
                     state.publicProductRanges = data;
-                    return;
-                }
-                if (key === 'colors') {
-                    state.publicColors = data;
                     return;
                 }
                 if (key === 'services') {

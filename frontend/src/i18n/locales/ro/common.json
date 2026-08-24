@@ -270,7 +270,6 @@
     "goBack": "Înapoi",
     "continue": "Continuă",
     "generateFinalOffer": "Generează oferta finală",
-    "noCompatibleProducts": "Niciun produs compatibil pentru gamă/culoare. Configurați în Admin.",
     "reviewSummary": "Revizuiește rezumatul",
     "steps": {
       "project": "Proiect",
@@ -320,6 +319,8 @@
       "loading": "Se încarcă gamele de produse disponibile...",
       "badge": "Pasul 04: Gama de produse",
       "loadingHelp": "Gamele de produse se încarcă. Dacă problema persistă, reîmprospătați pagina.",
+      "readMore": "Citește mai mult",
+      "showLess": "Afișează mai puțin",
       "features": {
         "premium": "Finisaj Premium",
         "reliable": "Modul Fiabil",
@@ -713,7 +714,7 @@
       "recentOffersTitle": "Oferte tehnice recente",
       "recentOffersLink": "Toate ofertele",
       "table": {
-        "idProject": "ID / Nume proiect",
+        "idProject": "Nume proiect",
         "status": "Status",
         "valueExclVat": "Valoare (fără TVA)"
       },
@@ -1014,6 +1015,12 @@
       "anonymousClient": "Client anonim",
       "viewOffer": "Vezi oferta",
       "download": "Descarca",
+      "showingRange": "Afișare {{from}} - {{to}} din {{total}} oferte",
+      "noEntries": "Nicio ofertă găsită",
+      "firstPage": "Prima pagină",
+      "lastPage": "Ultima pagină",
+      "paginationLimit": "Afișează",
+      "followupTasksTotal": "follow-up-uri active",
       "channels": {
         "email": "Email",
         "sms": "SMS",

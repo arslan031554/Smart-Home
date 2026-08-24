@@ -5,7 +5,7 @@ import ProjectSummaryCard from './summary/ProjectSummaryCard';
 import RoomsSummary from './summary/RoomsSummary';
 import RoomFunctionsSummary from './summary/RoomFunctionsSummary';
 import FunctionsSummary from './summary/FunctionsSummary';
-import RangeColorSummary from './summary/RangeColorSummary';
+import RangeSummary from './summary/RangeSummary';
 import ProductsTable from './summary/ProductsTable';
 import ServicesTable from './summary/ServicesTable';
 import FinancialSummary from './summary/FinancialSummary';
@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function SummaryStep() {
     const { t } = useTranslation();
-    const { projectInfo, levels, range, color, customerComments } = useSelector(state => state.configurator);
+    const { projectInfo, levels, range, customerComments, customerCommentsEn, customerCommentsRo } = useSelector(state => state.configurator);
     const levelsCount = levels?.length || 0;
 
     return (
@@ -31,12 +31,16 @@ export default function SummaryStep() {
             <RoomsSummary levels={levels} />
             <RoomFunctionsSummary levels={levels} />
             <FunctionsSummary levels={levels} />
-            <RangeColorSummary range={range} color={color} />
+            <RangeSummary range={range} />
             <ProductsTable />
             <ServicesTable />
             <FinancialSummary />
             <OfferConditions />
-            <CustomerComments comments={customerComments} />
+            <CustomerComments
+                comments={customerComments}
+                commentsEn={customerCommentsEn}
+                commentsRo={customerCommentsRo}
+            />
             <OfferReviewNotes />
         </AnimatedPageWrapper>
     );

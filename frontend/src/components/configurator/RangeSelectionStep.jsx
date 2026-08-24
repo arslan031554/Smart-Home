@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setRange } from '../../features/configurator/configuratorSlice';
-import { CheckCircle2, Sparkles, Box } from 'lucide-react';
-import { Card, SectionTitle, Badge, Alert } from '../common/UIComponents';
+import { CheckCircle2, Box, ChevronDown } from 'lucide-react';
+import { Card, SectionTitle, Alert } from '../common/UIComponents';
 import rangeImage12 from '../../assets/12.JPG';
 import rangeImage13 from '../../assets/13.jfif';
 import rangeImage14 from '../../assets/14.jfif';
@@ -39,6 +39,96 @@ function getRangeFallbackImage(seedValue, index, randomOffset = 0) {
     return RANGE_ASSET_IMAGES[(hash + randomOffset) % RANGE_ASSET_IMAGES.length];
 }
 
+function RangeCard({ rangeItem, isActive, index, onSelect, t }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const fallbackImage = getRangeFallbackImage(
+        rangeItem.id || rangeItem.code || rangeItem.name,
+        index,
+        0
+    );
+    const resolvedImage = resolveRangeImageUrl(rangeItem.imageUrl || rangeItem.image);
+    const imageSrc = resolvedImage || fallbackImage;
+
+    const description = rangeItem.description || '';
+    const shouldTruncate = description.length > 100;
+
+    return (
+        <Card
+            className={`group relative overflow-hidden transition-all duration-300 cursor-pointer border rounded-2xl flex flex-col justify-between ${isActive
+                ? 'border-primary-500 ring-2 ring-primary-500/20 shadow-md'
+                : 'border-slate-200 hover:border-primary-300 shadow-soft hover:shadow-card-hover bg-white'
+                }`}
+            onClick={() => onSelect(rangeItem.id)}
+        >
+            <div>
+                {/* Product Visualization */}
+                <div className="h-44 sm:h-52 overflow-hidden relative">
+                    <img
+                        src={imageSrc}
+                        alt={rangeItem.name}
+                        onError={(event) => {
+                            event.currentTarget.onerror = null;
+                            event.currentTarget.src = fallbackImage;
+                        }}
+                        className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? 'scale-105' : 'group-hover:scale-105 brightness-95 group-hover:brightness-100'}`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+
+                    {isActive && (
+                        <div className="absolute top-3.5 right-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-white shadow-md">
+                            <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                    )}
+
+                    <div className="absolute bottom-3.5 left-4 right-4">
+                        <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug">
+                            {rangeItem.name}
+                        </h3>
+                    </div>
+                </div>
+
+                <div className="p-4 sm:p-5">
+                    {description ? (
+                        <div className="space-y-2">
+                            <p className={`text-xs text-textSecondary leading-relaxed transition-all duration-200 ${!isExpanded && shouldTruncate ? 'line-clamp-2' : ''}`}>
+                                {description}
+                            </p>
+                            {shouldTruncate && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsExpanded((prev) => !prev);
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 hover:text-primary-700 transition-colors focus:outline-none"
+                                >
+                                    <span>
+                                        {isExpanded
+                                            ? t('configurator.range.showLess', { defaultValue: 'Show less' })
+                                            : t('configurator.range.readMore', { defaultValue: 'Read more' })}
+                                    </span>
+                                    <ChevronDown
+                                        className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+                                            }`}
+                                    />
+                                </button>
+                            )}
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+
+            <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0">
+                <div className="h-1 w-full rounded-full bg-slate-100 relative overflow-hidden">
+                    <div
+                        className={`absolute inset-0 bg-primary-600 transition-all duration-500 ${isActive ? 'translate-x-0' : '-translate-x-full group-hover:translate-x-0'}`}
+                    />
+                </div>
+            </div>
+        </Card>
+    );
+}
+
 export default function RangeSelectionStep() {
     const { t } = useTranslation();
     const dispatch = useDispatch();
@@ -71,87 +161,16 @@ export default function RangeSelectionStep() {
 
             <div className="max-h-[520px] sm:max-h-[600px] overflow-y-auto custom-scrollbar p-1 -m-1">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-5">
-                    {RANGES.filter(r => r?.isVisible !== false).map((r, index) => {
-                        const isActive = range === r.id;
-                        const fallbackImage = getRangeFallbackImage(
-                            r.id || r.code || r.name,
-                            index,
-                            0
-                        );
-                        const resolvedImage = resolveRangeImageUrl(r.imageUrl || r.image);
-                        const imageSrc = resolvedImage || fallbackImage;
-
-                        return (
-                            <Card
-                                key={r.id}
-                            className={`group relative overflow-hidden transition-all duration-300 cursor-pointer border rounded-2xl ${isActive
-                                ? 'border-primary-500 ring-2 ring-primary-500/20 shadow-md'
-                                : 'border-slate-200 hover:border-primary-300 shadow-soft hover:shadow-card-hover bg-white'
-                                }`}
-                            onClick={() => dispatch(setRange(r.id))}
-                        >
-                            {/* Product Visualization */}
-                            <div className="h-44 sm:h-52 overflow-hidden relative">
-                                <img
-                                    src={imageSrc}
-                                    alt={r.name}
-                                    onError={(event) => {
-                                        event.currentTarget.onerror = null;
-                                        event.currentTarget.src = fallbackImage;
-                                    }}
-                                    className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? 'scale-105' : 'group-hover:scale-105 brightness-95 group-hover:brightness-100'}`}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
-
-                                {isActive && (
-                                    <div className="absolute top-3.5 right-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-white shadow-md">
-                                        <CheckCircle2 className="h-5 w-5" />
-                                    </div>
-                                )}
-
-                                <div className="absolute bottom-3.5 left-4 right-4">
-                                    <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug">
-                                        {r.name}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <Badge className="bg-white/20 backdrop-blur-md border-none text-[8px] font-bold text-white uppercase tracking-wider px-2 py-0.5">
-                                            {r.code || 'SERIES_' + r.id.slice(0, 3).toUpperCase()}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 p-4 sm:p-5">
-                                {r.description ? (
-                                    <p className="text-xs text-textSecondary leading-relaxed line-clamp-2">
-                                        {r.description}
-                                    </p>
-                                ) : null}
-
-                                <div className="flex flex-wrap gap-1.5">
-                                    {(r.features || [
-                                        t('configurator.range.features.premium', { defaultValue: 'Premium Finish' }),
-                                        t('configurator.range.features.reliable', { defaultValue: 'Reliable Module' }),
-                                        t('configurator.range.features.smart', { defaultValue: 'Smart Integration' }),
-                                    ]).map((feature) => (
-                                        <div key={feature} className="flex items-center gap-1 px-2.5 py-1 bg-slate-50 rounded-lg text-[10px] font-bold text-slate-600 border border-slate-100">
-                                            <Sparkles className="w-2.5 h-2.5 text-primary-500" />
-                                            {feature}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="pt-1">
-                                    <div className="h-1 w-full rounded-full bg-slate-100 relative overflow-hidden">
-                                        <div
-                                            className={`absolute inset-0 bg-primary-600 transition-all duration-500 ${isActive ? 'translate-x-0' : '-translate-x-full group-hover:translate-x-0'}`}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </Card>
-                    );
-                })}
+                    {RANGES.filter(r => r?.isVisible !== false).map((r, index) => (
+                        <RangeCard
+                            key={r.id}
+                            rangeItem={r}
+                            isActive={range === r.id}
+                            index={index}
+                            onSelect={(id) => dispatch(setRange(id))}
+                            t={t}
+                        />
+                    ))}
                 </div>
             </div>
 

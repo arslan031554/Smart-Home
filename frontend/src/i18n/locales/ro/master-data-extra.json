@@ -64,5 +64,10 @@
   "adminPages.masterData.fieldAdded": "{{field}}: Adăugat",
   "adminPages.masterData.entityExample": "de ex. {{entity}} Premium",
   "adminPages.masterData.selectField": "Selectează {{field}}...",
-  "adminPages.masterData.fieldPreview": "Previzualizare {{field}}"
+  "adminPages.masterData.fieldPreview": "Previzualizare {{field}}",
+  "adminPages.masterData.modal.bilingualContent": "Conținut bilingv pentru configurator",
+  "adminPages.masterData.modal.bilingualHelp": "Introduceți textul în engleză și română. Configuratorul afișează limba selectată.",
+  "adminPages.masterData.modal.englishRequired": "{{field}} (engleză) este obligatoriu",
+  "adminPages.masterData.modal.romanianPlaceholder": "Traducere în română",
+  "adminPages.masterData.modal.englishFallback": "Dacă este gol, se folosește textul în engleză."
 }

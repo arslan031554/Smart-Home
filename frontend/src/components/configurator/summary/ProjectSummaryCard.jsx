@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { Card } from '../../common/UIComponents';
 import { Building, MapPin, Hash, Layers, FileText, Tag, User, Briefcase } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getActiveConfiguratorLanguage, getConfiguratorText } from '../../../utils/configuratorText';
 
 const Row = ({ icon: Icon, label, value }) => {
     if (value === undefined || value === null || value === '') return null;
@@ -21,19 +22,20 @@ const Row = ({ icon: Icon, label, value }) => {
 };
 
 export default function ProjectSummaryCard({ projectInfo, levelsCount }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const language = getActiveConfiguratorLanguage(i18n);
     const admin = useSelector((state) => state.admin);
     if (!projectInfo) return null;
 
     const {
-        name,
         buildingType,
         area,
         projectMultiplicationIndex,
-        description,
         clientType,
         companyName,
     } = projectInfo;
+    const name = getConfiguratorText(projectInfo, 'name', language, projectInfo.name || '');
+    const description = getConfiguratorText(projectInfo, 'description', language, projectInfo.description || '');
 
     const selectedBuildingType = admin.buildingTypes?.find((item) => item.id === buildingType) || null;
     const buildingTypeName = selectedBuildingType?.name || buildingType;

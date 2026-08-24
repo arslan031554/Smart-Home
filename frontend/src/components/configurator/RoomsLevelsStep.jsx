@@ -5,27 +5,35 @@ import { Plus, Trash2, Layers, Info, ChevronDown, ChevronUp, Home, Copy, PencilL
 import { clsx } from 'clsx';
 import { Button, Card, SectionTitle, Badge, Modal } from '../common/UIComponents';
 import { normalizeRoomCount } from '../../utils/configuratorNormalization';
+import { getActiveConfiguratorLanguage, getConfiguratorText } from '../../utils/configuratorText';
 import { useTranslation } from 'react-i18next';
 
-function buildNextRoomName(roomType, rooms = []) {
-    const typeName = String(roomType?.name || 'Room').trim() || 'Room';
+function buildNextRoomName(roomType, rooms = [], language = 'en') {
+    const typeName = getConfiguratorText(roomType, 'name', language, language === 'ro' ? 'Cameră' : 'Room');
     const siblingCount = (Array.isArray(rooms) ? rooms : []).filter((room) => room?.type === roomType?.id).length;
     return siblingCount === 0 ? typeName : `${typeName} ${siblingCount + 1}`;
 }
 
 const RoomCard = React.memo(({ room, idx, levelId, roomType, onRemove, onUpdate }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const activeLanguage = getActiveConfiguratorLanguage(i18n);
     const effectiveRoomCount = normalizeRoomCount(room.roomCount ?? room.count);
     const [localRoomCount, setLocalRoomCount] = useState(effectiveRoomCount);
-    const [localRoomName, setLocalRoomName] = useState(room.name || roomType?.name || '');
+    const [localRoomNames, setLocalRoomNames] = useState({
+        en: room.nameEn ?? room.translations?.name?.en ?? room.name ?? getConfiguratorText(roomType, 'name', 'en', ''),
+        ro: room.nameRo ?? room.translations?.name?.ro ?? '',
+    });
 
     React.useEffect(() => {
         setLocalRoomCount(effectiveRoomCount);
     }, [effectiveRoomCount]);
 
     React.useEffect(() => {
-        setLocalRoomName(room.name || roomType?.name || '');
-    }, [room.name, roomType?.name]);
+        setLocalRoomNames({
+            en: room.nameEn ?? room.translations?.name?.en ?? room.name ?? getConfiguratorText(roomType, 'name', 'en', ''),
+            ro: room.nameRo ?? room.translations?.name?.ro ?? '',
+        });
+    }, [room.name, room.nameEn, room.nameRo, room.translations, roomType]);
 
     const handleBlurRoomCount = () => {
         const safe = normalizeRoomCount(localRoomCount);
@@ -33,11 +41,20 @@ const RoomCard = React.memo(({ room, idx, levelId, roomType, onRemove, onUpdate 
         if (safe !== effectiveRoomCount) onUpdate(levelId, room.id, { roomCount: safe });
     };
 
-    const handleBlurRoomName = () => {
-        const trimmed = String(localRoomName || '').trim() || roomType?.name || t('configurator.roomsLevels.roomCard.newRoomName');
-        setLocalRoomName(trimmed);
-        if (trimmed !== String(room.name || '').trim()) {
-            onUpdate(levelId, room.id, { name: trimmed });
+    const handleBlurRoomName = (language) => {
+        const isEnglish = language === 'en';
+        const fallback = isEnglish
+            ? getConfiguratorText(roomType, 'name', 'en', t('configurator.roomsLevels.roomCard.newRoomName'))
+            : '';
+        const trimmed = String(localRoomNames[language] || '').trim() || fallback;
+        setLocalRoomNames((current) => ({ ...current, [language]: trimmed }));
+        const stored = isEnglish
+            ? String(room.nameEn ?? room.name ?? '').trim()
+            : String(room.nameRo ?? '').trim();
+        if (trimmed !== stored) {
+            onUpdate(levelId, room.id, isEnglish
+                ? { name: trimmed, nameEn: trimmed }
+                : { nameRo: trimmed });
         }
     };
 
@@ -50,7 +67,7 @@ const RoomCard = React.memo(({ room, idx, levelId, roomType, onRemove, onUpdate 
                     </div>
                     <div className="min-w-0">
                         <span className="block truncate text-xs font-bold text-textPrimary">
-                            {room.name || roomType?.name || t('configurator.roomsLevels.roomCard.unset')}
+                            {getConfiguratorText(room, 'name', activeLanguage, getConfiguratorText(roomType, 'name', activeLanguage, t('configurator.roomsLevels.roomCard.unset')))}
                         </span>
                         <span className="block text-[10px] font-semibold text-textSecondary uppercase tracking-wider">
                             {roomType?.name || t('configurator.summary.room')}
@@ -70,21 +87,28 @@ const RoomCard = React.memo(({ room, idx, levelId, roomType, onRemove, onUpdate 
 
             <div className="mt-3 space-y-2.5">
                 {/* Room Name Input */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-textSecondary">
-                        {t('configurator.roomsLevels.roomCard.roomName', { defaultValue: 'Room Name' })}
-                    </label>
-                    <div className="relative">
-                        <PencilLine className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            value={localRoomName}
-                            onChange={(event) => setLocalRoomName(event.target.value)}
-                            onBlur={handleBlurRoomName}
-                            placeholder={roomType?.name || t('configurator.roomsLevels.roomCard.newRoomName')}
-                            className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-textPrimary outline-none transition-all focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 shadow-xs"
-                        />
-                    </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    {['en', 'ro'].map((language) => (
+                        <label key={language} className="space-y-1">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                                {t('configurator.roomsLevels.roomCard.roomNameLanguage', {
+                                    language: t(`language.${language}`),
+                                    defaultValue: 'Room Name ({{language}})',
+                                })}
+                            </span>
+                            <div className="relative">
+                                <PencilLine className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={localRoomNames[language]}
+                                    onChange={(event) => setLocalRoomNames((current) => ({ ...current, [language]: event.target.value }))}
+                                    onBlur={() => handleBlurRoomName(language)}
+                                    placeholder={getConfiguratorText(roomType, 'name', language, t('configurator.roomsLevels.roomCard.newRoomName'))}
+                                    className="w-full rounded-xl border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-textPrimary outline-none transition-all focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 shadow-xs"
+                                />
+                            </div>
+                        </label>
+                    ))}
                 </div>
 
                 {/* Identical Room Stepper */}
@@ -185,7 +209,11 @@ export default function RoomsLevelsStep() {
             levelId: level.id,
             room: {
                 type: selectedType.id,
-                name: buildNextRoomName(selectedType, level.rooms),
+                name: buildNextRoomName(selectedType, level.rooms, 'en'),
+                nameEn: buildNextRoomName(selectedType, level.rooms, 'en'),
+                nameRo: selectedType.translations?.name?.ro
+                    ? buildNextRoomName(selectedType, level.rooms, 'ro')
+                    : '',
                 roomCount: 1,
             },
         }));

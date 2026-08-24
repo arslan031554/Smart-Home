@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, ArrowLeft, Send, KeyRound, ExternalLink, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
+import { Mail, ArrowLeft, Send, KeyRound, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
 import { Button, Input } from '@/components/common/UIComponents';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -93,17 +93,6 @@ export default function ForgotPasswordPage() {
 
                 {/* Actions */}
                 <div className="space-y-3 pt-2">
-                    {/* Open Gmail quick shortcut */}
-                    <a
-                        href="https://mail.google.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full bg-emerald px-6 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-emerald/20 transition-all hover:bg-emerald-600 hover:shadow-emerald/30 active:scale-[0.99]"
-                    >
-                        <span>{t('auth.openGmail', { defaultValue: 'Open Gmail' })}</span>
-                        <ExternalLink className="h-4 w-4" />
-                    </a>
-
                     {/* Resend button with cooldown */}
                     <Button
                         variant="secondary"

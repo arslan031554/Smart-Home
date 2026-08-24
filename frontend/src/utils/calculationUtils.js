@@ -52,16 +52,16 @@ export function aggregateFunctionDemand(levels) {
             room.functions?.forEach(func => {
                 const channel = func.channelType || 'IN';
                 const key = `${func.id}__${channel}`;
-                
+
                 if (!demands[key]) {
-                    demands[key] = { 
-                        functionId: func.id, 
-                        channelType: channel, 
+                    demands[key] = {
+                        functionId: func.id,
+                        channelType: channel,
                         demand: 0,
                         roomsAffected: 0
                     };
                 }
-                
+
                 const demandVal = (func.quantity || 1) * qtyMultiplier;
                 demands[key].demand += demandVal;
                 demands[key].roomsAffected += qtyMultiplier;
@@ -78,10 +78,9 @@ export function aggregateFunctionDemand(levels) {
 export function calculateHardwareInventory(levels, adminState, configuratorState = {}) {
     const { products } = adminState;
     const { demands, totalNodes, roomCount } = aggregateFunctionDemand(levels);
-    
+
     const items = [];
     const rangeId = configuratorState.range || null;
-    const colorId = configuratorState.color || null;
 
     // 1. Process each aggregated demand
     demands.forEach(d => {
@@ -89,9 +88,7 @@ export function calculateHardwareInventory(levels, adminState, configuratorState
         const candidates = (products || []).filter(p => {
             const isActive = p.status === 'Active';
             const rangeMatch = !rangeId || !p.allowedRanges || p.allowedRanges.length === 0 || p.allowedRanges.includes(rangeId);
-            const colorMatch = !colorId || !p.allowedColors || p.allowedColors.length === 0 || p.allowedColors.includes(colorId);
-            
-            if (!isActive || !rangeMatch || !colorMatch) return false;
+            if (!isActive || !rangeMatch) return false;
 
             const hasMapping = p.mappings?.some(m => m.functionId === d.functionId && m.channelType === d.channelType);
             return hasMapping;
@@ -145,10 +142,10 @@ export function calculateServices(selectedServices, hardwareBOM, summary) {
         if (s.type === 'per_room') qty = summary.roomCount;
         if (s.type === 'per_level') qty = summary.levelCount || 1;
         if (s.type === 'per_product_qty') qty = hardwareBOM.reduce((sum, item) => sum + item.qty, 0);
-        
+
         const subtotal = (s.price || 0) * qty;
         total += subtotal;
-        
+
         return { ...s, calcQty: qty, subtotal };
     }) || [];
 
@@ -162,10 +159,10 @@ export function calculateFinances({ levels, adminState, configuratorState }) {
     if (!levels || !adminState || !configuratorState) return null;
 
     const units = parseInt(configuratorState.projectInfo?.projectMultiplicationIndex ?? configuratorState.projectMultiplicationIndex, 10) || 1;
-    
+
     // 1. Hardware
     const hardwareSummary = calculateHardwareInventory(levels, adminState, configuratorState);
-    
+
     // 2. Multipliers
     // On public configurator we only load `publicProductRanges`, while in admin
     // we use `productRanges`. Prefer full admin ranges when present, otherwise
@@ -177,7 +174,7 @@ export function calculateFinances({ levels, adminState, configuratorState }) {
 
     const range = allRanges.find(r => r.id === configuratorState.range);
     const rangeMult = range?.priceMultiplier || 1.0;
-    
+
     const hardwareTotalRaw = hardwareSummary.total;
     const hardwarePerUnit = hardwareTotalRaw * rangeMult;
     const grossHardware = hardwarePerUnit * units;
@@ -185,13 +182,13 @@ export function calculateFinances({ levels, adminState, configuratorState }) {
     // 3. Services (Resolve full objects from IDs)
     const selectedServiceIds = configuratorState.services || [];
     const activeServices = (adminState.services || []).filter(s => selectedServiceIds.includes(s.id));
-    
+
     // We need levelCount for service calc
-    const serviceSummary = { 
-        roomCount: hardwareSummary.roomCount, 
-        levelCount: levels.length 
+    const serviceSummary = {
+        roomCount: hardwareSummary.roomCount,
+        levelCount: levels.length
     };
-    
+
     const serviceResults = calculateServices(activeServices, hardwareSummary.items, serviceSummary);
     const servicesTotalOnce = serviceResults.total;
 
@@ -203,7 +200,7 @@ export function calculateFinances({ levels, adminState, configuratorState }) {
     const discountRule = discountRules.find(r => units >= (r.minMultiplier ?? 0) && units <= (r.maxMultiplier ?? 999999));
     const discountPercent = discountRule ? (discountRule.discountPercent || 0) : 0;
     const discountAmount = grossHardware * (discountPercent / 100);
-    
+
     const grandTotal = grossTotal - discountAmount;
 
     return {
@@ -218,8 +215,7 @@ export function calculateFinances({ levels, adminState, configuratorState }) {
         discountAmount,
         grandTotal,
         rangeName: range?.name || 'Standard',
-        rangeMultiplier: rangeMult,
-        colorId: configuratorState.color
+        rangeMultiplier: rangeMult
     };
 }
 

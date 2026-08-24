@@ -56,16 +56,16 @@ export const DashboardStatsCard = ({ title, value, icon: Icon, trend, trendLabel
     </AnimatedCard>
 );
 
-export const SectionTitle = ({ title, subtitle, badge, align = 'left', className }) => (
-    <div className={cn('space-y-4 mb-8 animate-fade-in', align === 'center' && 'text-center', className)}>
+export const SectionTitle = ({ title, subtitle, badge, align = 'left', className, titleClassName }) => (
+    <div className={cn('space-y-2 mb-6 animate-fade-in', align === 'center' && 'text-center', className)}>
         {badge ? (
-            <Badge variant="info" className={cn('mb-2', align === 'center' && 'mx-auto')}>
+            <Badge variant="info" className={cn('mb-1.5', align === 'center' && 'mx-auto')}>
                 {badge}
             </Badge>
         ) : null}
-        <h2 className="text-2xl font-heading font-black uppercase leading-tight tracking-normal text-textPrimary sm:text-3xl lg:text-4xl">{title}</h2>
+        <h2 className={cn('text-lg sm:text-xl font-heading font-bold uppercase leading-tight tracking-wider text-textPrimary', titleClassName)}>{title}</h2>
         {subtitle ? (
-            <p className={cn('text-sm md:text-base text-textSecondary leading-relaxed max-w-3xl', align === 'center' && 'mx-auto')}>
+            <p className={cn('text-xs md:text-sm text-textSecondary leading-relaxed max-w-3xl', align === 'center' && 'mx-auto')}>
                 {subtitle}
             </p>
         ) : null}

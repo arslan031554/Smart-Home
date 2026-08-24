@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import models from '../../models/index.js';
 import * as offerService from './offerservice.js';
-import { getLocalizedValue, normalizeBusinessLanguage, serializeLocalizedEntity } from '../utils/localization.js';
+import { getLocalizedFlatValue, getLocalizedValue, normalizeBusinessLanguage, serializeLocalizedEntity } from '../utils/localization.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -223,7 +223,12 @@ export async function generateBrandedPdf(offerId, actor = null, requestedLang = 
     const products = Array.isArray(offer.products) ? offer.products : [];
     const services = Array.isArray(offer.services) ? offer.services : [];
     const financials = getFinancials(offer);
-    const projectName = project.name || projectInfo.name || '-';
+    const projectName = getLocalizedFlatValue(
+        projectInfo,
+        'name',
+        lang,
+        getLocalizedFlatValue(project, 'name', lang, project.name || '-'),
+    );
     const customerName = project.user?.fullName || '-';
     const customerEmail = project.user?.email || '-';
     const [conditions, disclaimers, productRecords, serviceRecords] = await Promise.all([
@@ -545,7 +550,16 @@ export async function generateBrandedPdf(offerId, actor = null, requestedLang = 
     drawTextListSection(4, translate(lang, 'conditions'), conditionTexts, translate(lang, 'noConditions'));
     drawTextListSection(5, translate(lang, 'disclaimer'), disclaimerTexts, translate(lang, 'noDisclaimer'));
 
-    const customerComments = offer.customerComments || snapshot.customerComments || null;
+    const customerComments = getLocalizedFlatValue(
+        {
+            customerComments: snapshot.customerComments ?? offer.customerComments,
+            customerCommentsEn: snapshot.customerCommentsEn,
+            customerCommentsRo: snapshot.customerCommentsRo,
+        },
+        'customerComments',
+        lang,
+        offer.customerComments || null,
+    );
     if (customerComments) {
         drawTextListSection(6, translate(lang, 'comments'), [customerComments]);
     }

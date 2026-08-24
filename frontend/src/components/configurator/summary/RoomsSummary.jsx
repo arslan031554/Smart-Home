@@ -4,9 +4,11 @@ import { Card } from '../../common/UIComponents';
 import { Layout, Box, Layers } from 'lucide-react';
 import { normalizeRoomCount } from '../../../utils/configuratorNormalization';
 import { useTranslation } from 'react-i18next';
+import { getActiveConfiguratorLanguage, getConfiguratorText } from '../../../utils/configuratorText';
 
 export default function RoomsSummary({ levels }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const language = getActiveConfiguratorLanguage(i18n);
     const roomTypes = useSelector((state) => state.admin.roomTypes) || [];
 
     if (!levels || levels.length === 0) return null;
@@ -40,7 +42,9 @@ export default function RoomsSummary({ levels }) {
                                                     <Box className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs sm:text-sm font-bold text-textPrimary leading-none mb-1">{room.name}</p>
+                                                    <p className="text-xs sm:text-sm font-bold text-textPrimary leading-none mb-1">
+                                                        {getConfiguratorText(room, 'name', language, typeName)}
+                                                    </p>
                                                     <p className="text-[10px] font-semibold text-textSecondary uppercase tracking-wider">{typeName}</p>
                                                 </div>
                                             </div>

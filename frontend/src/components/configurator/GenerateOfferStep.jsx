@@ -16,7 +16,6 @@ function hasMeaningfulOfferState(configurator = {}) {
         String(projectInfo.name || '').trim() ||
         String(projectInfo.buildingType || '').trim() ||
         configurator.range ||
-        configurator.color ||
         levels.some((level) => Array.isArray(level.rooms) && level.rooms.length > 0)
     );
 }
@@ -83,9 +82,10 @@ export default function GenerateOfferStep() {
             projectInfo: configurator.projectInfo || {},
             levels,
             rangeId: configurator.range ?? null,
-            colorId: configurator.color ?? null,
             serviceIds: Array.isArray(configurator.services) ? configurator.services : [],
             customerComments: configurator.customerComments || null,
+            customerCommentsEn: configurator.customerCommentsEn ?? configurator.customerComments ?? '',
+            customerCommentsRo: configurator.customerCommentsRo ?? '',
             offerId: configurator.currentOfferId || null,
             language: currentLang,
         };

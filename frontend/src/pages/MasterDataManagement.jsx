@@ -5,7 +5,6 @@ import {
     fetchRoomTypes, addRoomType, updateRoomType, deleteRoomType,
     fetchSmartFunctions, addSmartFunction, updateSmartFunction, deleteSmartFunction,
     fetchProductRanges, addProductRange, updateProductRange, deleteProductRange,
-    fetchColors, addColor, updateColor, deleteColor,
     fetchServices, addService, updateService, deleteService,
     fetchDiscounts, addDiscount, updateDiscount, deleteDiscount,
     fetchConditions, addCondition, updateCondition, deleteCondition,
@@ -68,10 +67,6 @@ const LOCALIZED_FIELDS_BY_STORE_KEY = {
         { base: 'name', label: 'Name', type: 'text' },
         { base: 'description', label: 'Description', type: 'textarea' }
     ],
-    colors: [
-        { base: 'name', label: 'Name', type: 'text' },
-        { base: 'description', label: 'Description', type: 'textarea' }
-    ],
     services: [
         { base: 'name', label: 'Name', type: 'text' },
         { base: 'description', label: 'Description', type: 'textarea' }
@@ -87,11 +82,18 @@ const LOCALIZED_FIELDS_BY_STORE_KEY = {
 function getLocalizedFieldConfig(storeKey) {
     return LOCALIZED_FIELDS_BY_STORE_KEY[storeKey] || [];
 }
-function buildLocalizedFormState(localizedFields = [], translations = {}) {
+function getLocalizedFormKey(base, language) {
+    return `${base}${language.charAt(0).toUpperCase()}${language.slice(1)}`;
+}
+
+function buildLocalizedFormState(localizedFields = [], source = {}) {
+    const translations = source?.translations || source || {};
     return localizedFields.reduce((acc, field) => {
         LOCALIZED_LANGUAGES.forEach(({ key }) => {
-            const formKey = `${field.base}${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-            acc[formKey] = translations?.[field.base]?.[key] || '';
+            const formKey = getLocalizedFormKey(field.base, key);
+            acc[formKey] = translations?.[field.base]?.[key]
+                || (key === 'en' ? source?.[field.base] : '')
+                || '';
         });
         return acc;
     }, {});
@@ -101,7 +103,6 @@ const ENTITY_CONFIG = {
     roomTypes: { fetch: fetchRoomTypes, add: addRoomType, update: updateRoomType, delete: deleteRoomType },
     smartFunctions: { fetch: fetchSmartFunctions, add: addSmartFunction, update: updateSmartFunction, delete: deleteSmartFunction },
     productRanges: { fetch: fetchProductRanges, add: addProductRange, update: updateProductRange, delete: deleteProductRange },
-    colors: { fetch: fetchColors, add: addColor, update: updateColor, delete: deleteColor },
     services: { fetch: fetchServices, add: addService, update: updateService, delete: deleteService },
     discounts: { fetch: fetchDiscounts, add: addDiscount, update: updateDiscount, delete: deleteDiscount },
     conditions: { fetch: fetchConditions, add: addCondition, update: updateCondition, delete: deleteCondition },
@@ -286,7 +287,7 @@ export default function MasterDataManagement({
             const normalized = { ...defaultFormState, ...item };
 
             // Override with localized translation fields extracted from translations object
-            const localizedFields = buildLocalizedFormState(localizedFieldConfig, item.translations || {});
+            const localizedFields = buildLocalizedFormState(localizedFieldConfig, item);
             Object.assign(normalized, localizedFields);
 
             // Handle relationship/multiselect fields - convert objects to IDs
@@ -325,36 +326,41 @@ export default function MasterDataManagement({
         setIsFormOpen(true);
     };
 
-    const withMirroredLocalizedValues = (payload) => {
+    const withLocalizedValues = (payload) => {
         const next = { ...payload };
         localizedFieldConfig.forEach((field) => {
-            const value = next[field.base] ?? '';
-            LOCALIZED_LANGUAGES.forEach(({ key }) => {
-                next[`${field.base}${key.charAt(0).toUpperCase()}${key.slice(1)}`] = value;
-            });
+            const englishKey = getLocalizedFormKey(field.base, 'en');
+            const romanianKey = getLocalizedFormKey(field.base, 'ro');
+            const englishValue = String(next[englishKey] ?? next[field.base] ?? '').trim();
+            const romanianValue = String(next[romanianKey] ?? '').trim();
+
+            next[field.base] = englishValue;
+            next[englishKey] = englishValue;
+            next[romanianKey] = romanianValue;
         });
         return next;
     };
 
     const pickPayload = (data) => {
-        if (!resolvedFields) return withMirroredLocalizedValues(data);
+        if (!resolvedFields) return withLocalizedValues(data);
         const allowed = new Set(resolvedFields.map(f => f.name));
         localizedFieldConfig.forEach((field) => {
             LOCALIZED_LANGUAGES.forEach(({ key }) => {
-                allowed.add(`${field.base}${key.charAt(0).toUpperCase()}${key.slice(1)}`);
+                allowed.add(getLocalizedFormKey(field.base, key));
             });
         });
         const payload = {};
         for (const k of Object.keys(data || {})) {
             if (allowed.has(k)) payload[k] = data[k];
         }
-        return withMirroredLocalizedValues(payload);
+        return withLocalizedValues(payload);
     };
 
     const validate = (data) => {
-        if (!resolvedFields) return {};
         const errs = {};
-        for (const f of resolvedFields) {
+        const localizedBases = new Set(localizedFieldConfig.map((field) => field.base));
+        for (const f of resolvedFields || []) {
+            if (localizedBases.has(f.name)) continue;
             if (f.required) {
                 const v = data?.[f.name];
                 if (f.type === 'richtext' || f.type === 'text') {
@@ -364,6 +370,23 @@ export default function MasterDataManagement({
                 }
             }
         }
+
+        localizedFieldConfig.forEach((field) => {
+            const configuredField = (resolvedFields || []).find((candidate) => candidate.name === field.base);
+            const isRequired = field.base === 'name' || configuredField?.required;
+            const englishKey = getLocalizedFormKey(field.base, 'en');
+            if (isRequired && !String(data?.[englishKey] || '').trim()) {
+                const localizedLabel = t(
+                    `adminPages.masterData.localizedFields.${field.base}`,
+                    { defaultValue: field.label },
+                );
+                errs[englishKey] = t('adminPages.masterData.modal.englishRequired', {
+                    field: localizedLabel,
+                    defaultValue: '{{field}} (English) is required',
+                });
+            }
+        });
+
         return errs;
     };
 
@@ -695,20 +718,90 @@ export default function MasterDataManagement({
                             {apiError}
                         </div>
                     ) : null}
+                    {localizedFieldConfig.length ? (
+                        <div className={'space-y-5 rounded-2xl border border-primary-500/18 bg-primary-500/5 p-4 sm:p-5'}>
+                            <div className={'border-b border-white/8 pb-4'}>
+                                <p className={'text-[10px] font-semibold uppercase tracking-[0.2em] text-primary-300'}>
+                                    {t('adminPages.masterData.modal.bilingualContent', { defaultValue: 'Bilingual configurator content' })}
+                                </p>
+                                <p className={'mt-1 text-xs text-textSecondary'}>
+                                    {t('adminPages.masterData.modal.bilingualHelp', { defaultValue: 'Enter English and Romanian text. The configurator shows the selected language.' })}
+                                </p>
+                            </div>
+                            {localizedFieldConfig.map((localizedField) => {
+                                const configuredField = (resolvedFields || []).find((field) => field.name === localizedField.base);
+                                const isRequired = localizedField.base === 'name' || configuredField?.required;
+                                const isTextarea = localizedField.type === 'textarea' || configuredField?.type === 'richtext';
+                                const localizedLabel = t(
+                                    `adminPages.masterData.localizedFields.${localizedField.base}`,
+                                    { defaultValue: localizedField.label },
+                                );
+
+                                return (
+                                    <div key={localizedField.base} className={'space-y-2'}>
+                                        <p className={'ml-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary'}>
+                                            {localizedLabel}
+                                        </p>
+                                        <div className={'grid grid-cols-1 gap-4 md:grid-cols-2'}>
+                                            {LOCALIZED_LANGUAGES.map(({ key, label }) => {
+                                                const formKey = getLocalizedFormKey(localizedField.base, key);
+                                                const error = formErrors[formKey];
+                                                const updateValue = (value) => {
+                                                    setFormData((previous) => ({
+                                                        ...previous,
+                                                        [formKey]: value,
+                                                        ...(key === 'en' ? { [localizedField.base]: value } : {}),
+                                                    }));
+                                                    if (error) setFormErrors((previous) => ({ ...previous, [formKey]: null }));
+                                                };
+
+                                                return (
+                                                    <div key={formKey} className={'space-y-2'}>
+                                                        <label className={'ml-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-textPrimary'}>
+                                                            {t(`language.${key}`, { defaultValue: label })} ({key.toUpperCase()})
+                                                            {isRequired && key === 'en' ? ' *' : ''}
+                                                        </label>
+                                                        {isTextarea ? (
+                                                            <textarea
+                                                                rows={configuredField?.type === 'richtext' ? 7 : 3}
+                                                                value={formData[formKey] ?? ''}
+                                                                onChange={(event) => updateValue(event.target.value)}
+                                                                placeholder={key === 'ro'
+                                                                    ? t('adminPages.masterData.modal.romanianPlaceholder', { defaultValue: 'Romanian translation' })
+                                                                    : configuredField?.placeholder}
+                                                                className={clsx(
+                                                                    'w-full rounded-2xl border bg-[#1f1f1f] px-5 py-4 text-sm font-medium leading-relaxed text-textPrimary transition-all placeholder:text-textSecondary focus:outline-none focus:ring-4 focus:ring-primary-500/10',
+                                                                    error ? 'border-red-400/60 focus:border-red-400' : 'border-white/10 focus:border-primary-500/45',
+                                                                )}
+                                                            />
+                                                        ) : (
+                                                            <Input
+                                                                icon={Info}
+                                                                value={formData[formKey] ?? ''}
+                                                                onChange={(event) => updateValue(event.target.value)}
+                                                                error={error}
+                                                                placeholder={key === 'ro'
+                                                                    ? t('adminPages.masterData.modal.romanianPlaceholder', { defaultValue: 'Romanian translation' })
+                                                                    : configuredField?.placeholder}
+                                                            />
+                                                        )}
+                                                        {isTextarea && error ? <p className={'px-2 text-[11px] font-bold text-red-600'}>{error}</p> : null}
+                                                        {key === 'ro' ? (
+                                                            <p className={'px-1 text-[10px] text-textSecondary'}>
+                                                                {t('adminPages.masterData.modal.englishFallback', { defaultValue: 'Falls back to English when empty.' })}
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : null}
                     {!resolvedFields ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Input
-                                label={t('adminPages.masterData.modal.displayName')}
-                                icon={Info}
-                                placeholder={t('adminPages.masterData.entityExample', { entity: localizedEntity, defaultValue: 'e.g. Premium {{entity}}' })}
-                                value={formData.name}
-                                onChange={(e) => {
-                                    const v = e.target.value;
-                                    setFormData({ ...formData, name: v });
-                                    if (formErrors.name) setFormErrors((p) => ({ ...p, name: null }));
-                                }}
-                                error={formErrors.name}
-                            />
                             <Input
                                 label={t('adminPages.masterData.modal.uniqueCode')}
                                 icon={Zap}
@@ -726,6 +819,7 @@ export default function MasterDataManagement({
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {resolvedFields.map((field) => {
+                                if (localizedFieldConfig.some((localizedField) => localizedField.base === field.name)) return null;
                                 if (field.type === 'toggle') {
                                     return (
                                         <div key={field.name} className="flex items-center justify-between rounded-xl border border-white/8 bg-white/5 p-4">

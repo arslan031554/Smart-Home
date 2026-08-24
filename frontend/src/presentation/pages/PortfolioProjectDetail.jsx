@@ -1,20 +1,27 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPortfolioProjects } from '../../features/portfolio/portfolioSlice';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import SeoHead from '../components/SeoHead';
-import { useTranslation } from 'react-i18next';
 
 export default function PortfolioProjectDetail() {
     const { id } = useParams();
     const dispatch = useDispatch();
-    const navigate = useNavigate();
-    const { t } = useTranslation();
     
     const { projects = [], loading } = useSelector((state) => state.portfolio || {});
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [imageSelection, setImageSelection] = useState({ projectId: id, index: 0 });
+    const currentImageIndex = imageSelection.projectId === id ? imageSelection.index : 0;
+    const setCurrentImageIndex = (nextValue) => {
+        setImageSelection((previous) => {
+            const currentIndex = previous.projectId === id ? previous.index : 0;
+            return {
+                projectId: id,
+                index: typeof nextValue === 'function' ? nextValue(currentIndex) : nextValue,
+            };
+        });
+    };
 
     useEffect(() => {
         if (!projects || projects.length === 0) {
@@ -24,7 +31,6 @@ export default function PortfolioProjectDetail() {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        setCurrentImageIndex(0);
     }, [id]);
 
     const projectIndex = projects.findIndex(p => p.id === id);

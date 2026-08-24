@@ -404,22 +404,7 @@ export default function RootLayout() {
               </ul>
             </div>
 
-            <div className="lg:col-span-2">
-              <h4 className="mb-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-primary-300">{t('footer.resources')}</h4>
-              <ul className="space-y-3 text-sm text-textSecondary">
-                <li>
-                  <a href="#" className="transition-colors hover:text-textPrimary">{t('footer.documentation')}</a>
-                </li>
-                <li>
-                  <a href="#" className="transition-colors hover:text-textPrimary">{t('footer.apiAccess')}</a>
-                </li>
-                <li>
-                  <a href="#" className="transition-colors hover:text-textPrimary">{t('footer.support')}</a>
-                </li>
-              </ul>
-            </div>
-
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-6">
               <div className="premium-panel relative overflow-hidden rounded-[2rem] border border-white/10 p-8">
                 <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-primary-500/10 blur-3xl" />
                 <div className="relative z-10 space-y-6">

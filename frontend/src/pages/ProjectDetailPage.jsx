@@ -34,6 +34,7 @@ import api from '@/utils/api';
 import { loadProjectWorkspace, resetConfigurator } from '@/features/configurator/configuratorSlice';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { getActiveConfiguratorLanguage, getConfiguratorText } from '@/utils/configuratorText';
 
 function DetailItem({ icon: Icon, label, value }) {
     return (
@@ -94,7 +95,13 @@ export default function ProjectDetailPage() {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [mutating, setMutating] = useState(false);
     const [mutationError, setMutationError] = useState('');
-    const [editForm, setEditForm] = useState({ name: '', description: '', status: 'active' });
+    const [editForm, setEditForm] = useState({
+        nameEn: '',
+        nameRo: '',
+        descriptionEn: '',
+        descriptionRo: '',
+        status: 'active',
+    });
     const isAdminProjectRoute = location.pathname.startsWith('/admin/projects/');
     const backRoute = isAdminProjectRoute ? '/admin/projects' : '/dashboard/projects';
     const offerRoute = (offerId) => isAdminProjectRoute ? `/admin/offers/${offerId}` : `/dashboard/offers/${offerId}`;
@@ -157,8 +164,10 @@ export default function ProjectDetailPage() {
     const openEditProject = () => {
         setMutationError('');
         setEditForm({
-            name: project?.name || '',
-            description: project?.description || '',
+            nameEn: getConfiguratorText(project || {}, 'name', 'en', project?.name || ''),
+            nameRo: project?.translations?.name?.ro || '',
+            descriptionEn: getConfiguratorText(project || {}, 'description', 'en', project?.description || ''),
+            descriptionRo: project?.translations?.description?.ro || '',
             status: project?.status || 'active',
         });
         setEditOpen(true);
@@ -166,7 +175,7 @@ export default function ProjectDetailPage() {
 
     const handleSaveProject = async () => {
         if (!project || mutating) return;
-        if (!editForm.name.trim()) {
+        if (!editForm.nameEn.trim()) {
             setMutationError(t('projects.detail.nameRequired', { defaultValue: 'Project name is required.' }));
             return;
         }
@@ -175,8 +184,12 @@ export default function ProjectDetailPage() {
         setMutationError('');
         try {
             const response = await api.put(`/projects/${id}`, {
-                name: editForm.name.trim(),
-                description: editForm.description.trim() || null,
+                name: editForm.nameEn.trim(),
+                nameEn: editForm.nameEn.trim(),
+                nameRo: editForm.nameRo.trim(),
+                description: editForm.descriptionEn.trim() || null,
+                descriptionEn: editForm.descriptionEn.trim(),
+                descriptionRo: editForm.descriptionRo.trim(),
                 status: editForm.status,
             });
             setProject(response.data?.data || { ...project, ...editForm });
@@ -224,6 +237,9 @@ export default function ProjectDetailPage() {
         );
     }
 
+    const activeLanguage = getActiveConfiguratorLanguage(i18n);
+    const projectName = getConfiguratorText(project, 'name', activeLanguage, project.name || '');
+    const projectDescription = getConfiguratorText(project, 'description', activeLanguage, project.description || '');
     const buildingTypeName = project.buildingType?.name || null;
 
     return (
@@ -243,7 +259,7 @@ export default function ProjectDetailPage() {
                         </div>
                         <div className="min-w-0">
                             <h1 className="text-xl font-bold leading-tight text-textPrimary sm:text-2xl">
-                                {project.name}
+                                {projectName}
                             </h1>
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                                 {buildingTypeName ? <Badge variant="neutral" className="!rounded-sm !py-0.5 !px-2 shadow-sm">{buildingTypeName}</Badge> : null}
@@ -341,14 +357,14 @@ export default function ProjectDetailPage() {
                     </Card>
                 ) : null}
 
-                {project.description ? (
+                {projectDescription ? (
                     <Card className="rounded-sm p-6 bg-white border border-gray-100 shadow-sm">
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
                                 <FileText className="h-5 w-5 text-primary-300" />
                                 <h3 className="text-lg font-medium text-textPrimary">{t('projects.detail.projectDescription', { defaultValue: 'Project Description' })}</h3>
                             </div>
-                            <p className="text-sm leading-relaxed text-textSecondary">{project.description}</p>
+                            <p className="text-sm leading-relaxed text-textSecondary">{projectDescription}</p>
                         </div>
                     </Card>
                 ) : null}
@@ -442,12 +458,25 @@ export default function ProjectDetailPage() {
             >
                 <div className="space-y-5">
                     {mutationError ? <Alert variant="error">{mutationError}</Alert> : null}
-                    <Input
-                        label={t('projects.detail.projectName', { defaultValue: 'Project Name' })}
-                        required
-                        value={editForm.name}
-                        onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                    />
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <Input
+                            label={t('configurator.projectDefinition.reference.nameLanguageLabel', {
+                                language: t('language.en'),
+                                defaultValue: 'Project Name ({{language}})',
+                            })}
+                            required
+                            value={editForm.nameEn}
+                            onChange={(event) => setEditForm({ ...editForm, nameEn: event.target.value })}
+                        />
+                        <Input
+                            label={t('configurator.projectDefinition.reference.nameLanguageLabel', {
+                                language: t('language.ro'),
+                                defaultValue: 'Project Name ({{language}})',
+                            })}
+                            value={editForm.nameRo}
+                            onChange={(event) => setEditForm({ ...editForm, nameRo: event.target.value })}
+                        />
+                    </div>
                     <Select
                         label={t('projects.detail.status', { defaultValue: 'Status' })}
                         value={editForm.status}
@@ -457,16 +486,26 @@ export default function ProjectDetailPage() {
                         <option value="active">{t('projects.statuses.active', { defaultValue: 'Active' })}</option>
                         <option value="archived">{t('projects.statuses.archived', { defaultValue: 'Archived' })}</option>
                     </Select>
-                    <div className="space-y-2">
-                        <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
-                            {t('projects.detail.projectDescription', { defaultValue: 'Project Description' })}
-                        </label>
-                        <textarea
-                            rows={5}
-                            value={editForm.description}
-                            onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
-                            className="w-full rounded-lg border border-emerald/18 bg-white/95 px-3.5 py-3 text-sm font-medium text-textPrimary shadow-soft transition-all focus:border-emerald/45 focus:outline-none focus:ring-4 focus:ring-emerald/12"
-                        />
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {['en', 'ro'].map((language) => {
+                            const field = language === 'en' ? 'descriptionEn' : 'descriptionRo';
+                            return (
+                                <label key={language} className="space-y-2">
+                                    <span className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                        {t('configurator.projectDefinition.description.languageLabel', {
+                                            language: t(`language.${language}`),
+                                            defaultValue: 'Description ({{language}})',
+                                        })}
+                                    </span>
+                                    <textarea
+                                        rows={5}
+                                        value={editForm[field]}
+                                        onChange={(event) => setEditForm({ ...editForm, [field]: event.target.value })}
+                                        className="w-full rounded-lg border border-emerald/18 bg-white/95 px-3.5 py-3 text-sm font-medium text-textPrimary shadow-soft transition-all focus:border-emerald/45 focus:outline-none focus:ring-4 focus:ring-emerald/12"
+                                    />
+                                </label>
+                            );
+                        })}
                     </div>
                 </div>
             </Modal>
@@ -497,7 +536,7 @@ export default function ProjectDetailPage() {
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-red-500/20 bg-red-50 text-red-600">
                         <Trash2 className="h-7 w-7" />
                     </div>
-                    <p className="font-semibold text-textPrimary">{project.name}</p>
+                    <p className="font-semibold text-textPrimary">{projectName}</p>
                     <p className="text-sm leading-relaxed text-textSecondary">
                         {t('projects.detail.deleteWarning', { defaultValue: 'Deleting this project also permanently deletes all of its offers and generated documents. This action cannot be undone.' })}
                     </p>

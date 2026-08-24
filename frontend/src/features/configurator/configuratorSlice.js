@@ -9,6 +9,7 @@ import {
     normalizeFunctionSelection,
     normalizeRoomCount,
 } from '../../utils/configuratorNormalization';
+import { getConfiguratorText } from '../../utils/configuratorText';
 
 import { generateOffer } from '../offers/offersSlice';
 
@@ -46,6 +47,9 @@ function applyHydratedConfiguratorState(state, snapshot = {}) {
     if (snapshot.range !== undefined) state.range = snapshot.range;
     if (snapshot.color !== undefined) state.color = snapshot.color;
     if (snapshot.customerComments !== undefined) state.customerComments = snapshot.customerComments;
+    if (snapshot.customerCommentsEn !== undefined) state.customerCommentsEn = snapshot.customerCommentsEn;
+    else if (snapshot.customerComments !== undefined) state.customerCommentsEn = snapshot.customerComments;
+    if (snapshot.customerCommentsRo !== undefined) state.customerCommentsRo = snapshot.customerCommentsRo;
     if (snapshot.currentProjectId !== undefined) state.currentProjectId = snapshot.currentProjectId;
     if (snapshot.currentOfferId !== undefined) state.currentOfferId = snapshot.currentOfferId;
     if (snapshot.currentStep !== undefined) {
@@ -60,10 +64,14 @@ function buildProjectInfoFromOffer(offer, levels) {
 
     return {
         name: snapshotProjectInfo.name || project.name || '',
+        nameEn: getConfiguratorText(snapshotProjectInfo, 'name', 'en', project.name || ''),
+        nameRo: getConfiguratorText(snapshotProjectInfo, 'name', 'ro', ''),
         buildingType: snapshotProjectInfo.buildingType || project.buildingType?.id || '',
         levelsCount: Math.max(1, parseInt((snapshotProjectInfo.levelsCount ?? project.levelsCount ?? levels.length ?? 1), 10) || 1),
         area: snapshotProjectInfo.area ?? project.builtUpArea ?? '',
         description: snapshotProjectInfo.description || project.description || '',
+        descriptionEn: getConfiguratorText(snapshotProjectInfo, 'description', 'en', project.description || ''),
+        descriptionRo: getConfiguratorText(snapshotProjectInfo, 'description', 'ro', ''),
         projectComplexity: snapshotProjectInfo.projectComplexity || project.projectComplexity || '',
         projectMultiplicationIndex: Math.max(1, parseInt((snapshotProjectInfo.projectMultiplicationIndex ?? project.multiplicationIndex ?? snapshot.multiplicationIndex ?? 1), 10) || 1),
         clientType: snapshotProjectInfo.clientType || 'private',
@@ -74,10 +82,14 @@ function buildProjectInfoFromOffer(offer, levels) {
 function buildProjectInfoFromProject(project, levels) {
     return {
         name: project?.name || '',
+        nameEn: getConfiguratorText(project, 'name', 'en', project?.name || ''),
+        nameRo: getConfiguratorText(project, 'name', 'ro', ''),
         buildingType: project?.buildingType?.id || project?.buildingTypeId || '',
         levelsCount: Math.max(1, parseInt((project?.levelsCount ?? levels.length ?? 1), 10) || 1),
         area: project?.builtUpArea ?? '',
         description: project?.description || '',
+        descriptionEn: getConfiguratorText(project, 'description', 'en', project?.description || ''),
+        descriptionRo: getConfiguratorText(project, 'description', 'ro', ''),
         projectComplexity: project?.projectComplexity || '',
         projectMultiplicationIndex: Math.max(1, parseInt((project?.multiplicationIndex ?? 1), 10) || 1),
         clientType: 'private',
@@ -106,6 +118,8 @@ function extractOfferConfiguratorState(offer) {
         range: snapshot.selectedRangeId ?? snapshot.rangeId ?? snapshot.range ?? null,
         color: snapshot.selectedColorId ?? snapshot.colorId ?? snapshot.color ?? null,
         customerComments: offer?.customerComments ?? snapshot.customerComments ?? '',
+        customerCommentsEn: snapshot.customerCommentsEn ?? snapshot.customerComments ?? offer?.customerComments ?? '',
+        customerCommentsRo: snapshot.customerCommentsRo ?? '',
         projectInfo: buildProjectInfoFromOffer(offer, levels),
     };
 }
@@ -122,6 +136,8 @@ function extractProjectConfiguratorState(project) {
                         type: room.roomTypeId || room.roomType?.id || '',
                         roomTypeId: room.roomTypeId || room.roomType?.id || '',
                         name: room.name || room.roomType?.name || 'Room',
+                        nameEn: getConfiguratorText(room, 'name', 'en', room.name || room.roomType?.name || 'Room'),
+                        nameRo: getConfiguratorText(room, 'name', 'ro', ''),
                         roomCount: normalizeRoomCount(room.roomCount ?? room.count),
                         functions: Array.isArray(room.functionSelections)
                             ? room.functionSelections.map((selection) => ({
@@ -144,6 +160,8 @@ function extractProjectConfiguratorState(project) {
         range: project?.selectedRangeId ?? null,
         color: project?.selectedColorId ?? null,
         customerComments: '',
+        customerCommentsEn: '',
+        customerCommentsRo: '',
         projectInfo: buildProjectInfoFromProject(project, levels),
     };
 }
@@ -178,6 +196,8 @@ export const syncConfiguratorDraft = createAsyncThunk(
                 range: normalized.rangeId,
                 color: normalized.colorId,
                 customerComments: normalized.customerComments,
+                customerCommentsEn: normalized.customerCommentsEn,
+                customerCommentsRo: normalized.customerCommentsRo,
                 currentProjectId: configurator.currentProjectId || null,
                 currentOfferId: configurator.currentOfferId || null,
                 currentStep: configurator.currentStep || 1,
@@ -237,6 +257,8 @@ export const syncGuestConfiguratorDraft = createAsyncThunk(
                 range: normalized.rangeId,
                 color: normalized.colorId,
                 customerComments: normalized.customerComments,
+                customerCommentsEn: normalized.customerCommentsEn,
+                customerCommentsRo: normalized.customerCommentsRo,
                 currentProjectId: configurator.currentProjectId || null,
                 currentOfferId: configurator.currentOfferId || null,
                 currentStep: configurator.currentStep || 1,
@@ -295,10 +317,14 @@ const initialState = {
     currentStep: 1,
     projectInfo: {
         name: '',
+        nameEn: '',
+        nameRo: '',
         buildingType: '',
         levelsCount: 1,
         area: '',
         description: '',
+        descriptionEn: '',
+        descriptionRo: '',
         projectComplexity: '',
         projectMultiplicationIndex: 1,
         clientType: 'private',
@@ -311,6 +337,8 @@ const initialState = {
     range: null,
     color: null,
     customerComments: '',
+    customerCommentsEn: '',
+    customerCommentsRo: '',
     status: 'idle',
     isGuest: false,
     currentProjectId: null,
@@ -483,7 +511,19 @@ const configuratorSlice = createSlice({
         },
 
         setComments: (state, action) => {
-            state.customerComments = action.payload;
+            if (action.payload && typeof action.payload === 'object') {
+                const language = action.payload.language === 'ro' ? 'ro' : 'en';
+                const value = action.payload.value ?? '';
+                if (language === 'ro') {
+                    state.customerCommentsRo = value;
+                } else {
+                    state.customerComments = value;
+                    state.customerCommentsEn = value;
+                }
+            } else {
+                state.customerComments = action.payload;
+                state.customerCommentsEn = action.payload;
+            }
         },
 
         setRange: (state, action) => {
@@ -509,6 +549,8 @@ const configuratorSlice = createSlice({
             state.range = reopened.range;
             state.color = reopened.color;
             state.customerComments = reopened.customerComments;
+            state.customerCommentsEn = reopened.customerCommentsEn;
+            state.customerCommentsRo = reopened.customerCommentsRo;
             state.projectInfo = { ...state.projectInfo, ...reopened.projectInfo };
             state.currentProjectId = reopened.projectId || null;
             state.currentOfferId = reopened.id;
@@ -559,6 +601,8 @@ const configuratorSlice = createSlice({
                 state.range = workspace.range;
                 state.color = workspace.color;
                 state.customerComments = workspace.customerComments;
+                state.customerCommentsEn = workspace.customerCommentsEn;
+                state.customerCommentsRo = workspace.customerCommentsRo;
                 state.projectInfo = { ...state.projectInfo, ...workspace.projectInfo };
                 state.currentProjectId = workspace.projectId || null;
                 state.currentOfferId = null;
@@ -578,6 +622,8 @@ const configuratorSlice = createSlice({
                 state.range = reopened.range;
                 state.color = reopened.color;
                 state.customerComments = reopened.customerComments;
+                state.customerCommentsEn = reopened.customerCommentsEn;
+                state.customerCommentsRo = reopened.customerCommentsRo;
                 state.projectInfo = { ...state.projectInfo, ...reopened.projectInfo };
                 state.currentProjectId = reopened.projectId || null;
                 state.currentOfferId = reopened.id;

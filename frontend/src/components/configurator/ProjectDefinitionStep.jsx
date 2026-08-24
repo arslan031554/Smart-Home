@@ -58,6 +58,10 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        if (name === 'nameEn') {
+            dispatch(updateProjectInfo({ name: value, nameEn: value }));
+            return;
+        }
         dispatch(updateProjectInfo({ [name]: value }));
     };
 
@@ -194,14 +198,32 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                             <p className="text-xs text-textSecondary">{t('configurator.projectDefinition.reference.subtitle')}</p>
                         </div>
                     </div>
-                    <LocalInput
-                        name="name"
-                        value={projectInfo.name}
-                        onChange={handleChange}
-                        label={t('configurator.projectDefinition.reference.nameLabel')}
-                        placeholder={t('configurator.projectDefinition.reference.namePlaceholder')}
-                        error={validationErrors.name}
-                    />
+                    <div className="grid grid-cols-1 gap-3">
+                        <LocalInput
+                            name="nameEn"
+                            value={projectInfo.nameEn ?? projectInfo.name}
+                            onChange={handleChange}
+                            label={t('configurator.projectDefinition.reference.nameLanguageLabel', {
+                                language: t('language.en'),
+                                defaultValue: 'Project Name ({{language}})',
+                            })}
+                            placeholder={t('configurator.projectDefinition.reference.namePlaceholder')}
+                            error={validationErrors.name}
+                            required
+                        />
+                        <LocalInput
+                            name="nameRo"
+                            value={projectInfo.nameRo || ''}
+                            onChange={handleChange}
+                            label={t('configurator.projectDefinition.reference.nameLanguageLabel', {
+                                language: t('language.ro'),
+                                defaultValue: 'Project Name ({{language}})',
+                            })}
+                            placeholder={t('configurator.projectDefinition.reference.nameRomanianPlaceholder', {
+                                defaultValue: 'e.g. Ansamblu rezidențial inteligent - Corp A',
+                            })}
+                        />
+                    </div>
                 </Card>
             </div>
 
@@ -219,14 +241,42 @@ export default function ProjectDefinitionStep({ validationErrors = {} }) {
                         <p className="text-xs text-textSecondary">{t('configurator.projectDefinition.description.subtitle')}</p>
                     </div>
                 </div>
-                <textarea
-                    name="description"
-                    value={projectInfo.description || ''}
-                    onChange={(e) => dispatch(updateProjectInfo({ description: e.target.value }))}
-                    placeholder={t('configurator.projectDefinition.description.placeholder')}
-                    rows={2}
-                    className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-textPrimary placeholder:text-slate-400 transition-all focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500/10 shadow-xs"
-                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                            {t('configurator.projectDefinition.description.languageLabel', {
+                                language: t('language.en'),
+                                defaultValue: 'Description ({{language}})',
+                            })}
+                        </span>
+                        <textarea
+                            name="descriptionEn"
+                            value={projectInfo.descriptionEn ?? projectInfo.description ?? ''}
+                            onChange={(e) => dispatch(updateProjectInfo({ description: e.target.value, descriptionEn: e.target.value }))}
+                            placeholder={t('configurator.projectDefinition.description.placeholder')}
+                            rows={3}
+                            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-textPrimary placeholder:text-slate-400 transition-all focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500/10 shadow-xs"
+                        />
+                    </label>
+                    <label className="space-y-1.5">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-textSecondary">
+                            {t('configurator.projectDefinition.description.languageLabel', {
+                                language: t('language.ro'),
+                                defaultValue: 'Description ({{language}})',
+                            })}
+                        </span>
+                        <textarea
+                            name="descriptionRo"
+                            value={projectInfo.descriptionRo || ''}
+                            onChange={(e) => dispatch(updateProjectInfo({ descriptionRo: e.target.value }))}
+                            placeholder={t('configurator.projectDefinition.description.romanianPlaceholder', {
+                                defaultValue: 'Descrierea proiectului în limba română...',
+                            })}
+                            rows={3}
+                            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-textPrimary placeholder:text-slate-400 transition-all focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500/10 shadow-xs"
+                        />
+                    </label>
+                </div>
             </Card>
 
             {/* Building Type Selection Grid */}

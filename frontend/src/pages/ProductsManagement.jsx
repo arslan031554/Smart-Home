@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
-    addProduct, deleteProduct, updateProduct, 
-    fetchProducts, fetchSmartFunctions, fetchProductRanges, fetchColors 
+import {
+    addProduct, deleteProduct, updateProduct,
+    fetchProducts, fetchSmartFunctions, fetchProductRanges
 } from '@/features/admin/adminSlice';
 import {
     Plus,
@@ -13,7 +13,6 @@ import {
     Package,
     Tag,
     Layers,
-    Palette,
     Save,
     AlertCircle,
     AlertTriangle,
@@ -75,7 +74,7 @@ function resolveProductImageSrc(value) {
 export default function ProductsManagement() {
     const dispatch = useDispatch();
     const { t } = useTranslation();
-    const { products, smartFunctions, productRanges, colors, loading: adminLoading } = useSelector((state) => state.admin);
+    const { products, smartFunctions, productRanges, loading: adminLoading } = useSelector((state) => state.admin);
     const [searchTerm, setSearchTerm] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -151,7 +150,6 @@ export default function ProductsManagement() {
         productType: 'STANDARD',
         status: 'Active',
         allowedRanges: [],
-        allowedColors: [],
         dependencies: [],
         mappings: []
     });
@@ -160,7 +158,6 @@ export default function ProductsManagement() {
         dispatch(fetchProducts());
         dispatch(fetchSmartFunctions());
         dispatch(fetchProductRanges());
-        dispatch(fetchColors());
     }, [dispatch]);
 
     const formatCurrency = (value) => new Intl.NumberFormat('en-GB', {
@@ -204,13 +201,12 @@ export default function ProductsManagement() {
                 // Map model field isActive to form field status (backward compatibility)
                 status: product.isActive !== false ? 'Active' : 'Inactive',
                 // Localized translations
-                nameEn: product.translations?.name?.en || '',
+                nameEn: product.translations?.name?.en || product.name || '',
                 nameRo: product.translations?.name?.ro || '',
-                descriptionEn: product.translations?.description?.en || '',
+                descriptionEn: product.translations?.description?.en || product.description || '',
                 descriptionRo: product.translations?.description?.ro || '',
                 // Complex relationships - ensure arrays are preserved
                 allowedRanges: Array.isArray(product.allowedRanges) ? product.allowedRanges : (product.productRanges ? product.productRanges.map(r => r.id) : []),
-                allowedColors: Array.isArray(product.allowedColors) ? product.allowedColors : (product.colors ? product.colors.map(c => c.id) : []),
                 dependencies: Array.isArray(product.dependencies) ? product.dependencies.map((dependency) => ({
                     mainProductId: dependency.mainProductId || dependency.productId || '',
                     quantityPerMainProduct: dependency.quantityPerMainProduct || 1,
@@ -228,7 +224,7 @@ export default function ProductsManagement() {
         } else {
             setFormData({
                 code: '', name: '', price: '', description: '', nameEn: '', nameRo: '', descriptionEn: '', descriptionRo: '', image: '', imageFile: null, imagePreview: '', productType: 'STANDARD', status: 'Active',
-                allowedRanges: [], allowedColors: [], dependencies: [], mappings: []
+                allowedRanges: [], dependencies: [], mappings: []
             });
             setEditingId(null);
         }
@@ -248,7 +244,7 @@ export default function ProductsManagement() {
         const priceErr = validatePrice(data.price);
         if (priceErr) errs.price = priceErr;
         if (!String(data.code || '').trim()) errs.code = t('adminPages.products.errors.codeRequired');
-        if (!String(data.name || '').trim()) errs.name = t('adminPages.products.errors.nameRequired');
+        if (!String(data.nameEn || '').trim()) errs.nameEn = t('adminPages.products.errors.nameRequired');
         return errs;
     };
 
@@ -329,10 +325,6 @@ export default function ProductsManagement() {
         const allowedRanges = Array.from(
             new Set((Array.isArray(formData.allowedRanges) ? formData.allowedRanges : []).filter(Boolean))
         );
-        const allowedColors = Array.from(
-            new Set((Array.isArray(formData.allowedColors) ? formData.allowedColors : []).filter(Boolean))
-        );
-
         const dependencies = Array.from(new Map((Array.isArray(formData.dependencies) ? formData.dependencies : [])
             .filter((item) => item?.mainProductId)
             .map((item) => [item.mainProductId, {
@@ -343,14 +335,15 @@ export default function ProductsManagement() {
         const basePayload = {
             ...formData,
             allowedRanges,
-            allowedColors,
             dependencies: formData.productType === 'RELATED' ? dependencies : [],
             mappings: normalizedMappings,
             price: Number(formData.price),
-            nameEn: formData.name,
-            nameRo: formData.name,
-            descriptionEn: formData.description,
-            descriptionRo: formData.description,
+            name: String(formData.nameEn || '').trim(),
+            description: String(formData.descriptionEn || '').trim(),
+            nameEn: String(formData.nameEn || '').trim(),
+            nameRo: String(formData.nameRo || '').trim(),
+            descriptionEn: String(formData.descriptionEn || '').trim(),
+            descriptionRo: String(formData.descriptionRo || '').trim(),
         };
         delete basePayload.imageFile;
         delete basePayload.imagePreview;
@@ -437,7 +430,7 @@ export default function ProductsManagement() {
                             <Layers className="mr-2 h-4 w-4" />
                             {t('adminPages.products.bulkImport.downloadTemplate', { defaultValue: 'Download Template' })}
                         </Button>
-                        
+
                         <label className="inline-block w-full sm:w-auto flex-1 sm:flex-none">
                             <input
                                 type="file"
@@ -528,9 +521,7 @@ export default function ProductsManagement() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-gray-200 bg-gray-50">
-                                    <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.code')}</th>
                                     <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.productName')}</th>
-                                    <th className="px-8 py-4 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.ranges')}</th>
                                     <th className="px-8 py-4 text-right text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.price')}</th>
                                     <th className="px-8 py-4 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.status')}</th>
                                     <th className="px-8 py-4 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.actions')}</th>
@@ -540,20 +531,7 @@ export default function ProductsManagement() {
                                 {filteredProducts.map((p) => (
                                     <tr key={p.id} className="transition-colors hover:bg-gray-50 group">
                                         <td className="px-8 py-6">
-                                            <div className="text-[10px] font-bold text-textSecondary tracking-[0.2em] font-mono group-hover:text-primary-600 transition-colors">#{p.code}</div>
-                                        </td>
-                                        <td className="px-8 py-6">
                                             <div className="text-sm font-bold text-gray-800 tracking-tight uppercase">{p.name}</div>
-                                            <div className="mt-1.5 line-clamp-1 text-[10px] font-medium italic text-textSecondary">{p.description}</div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            <div className="flex flex-wrap justify-center gap-1 max-w-[120px] mx-auto">
-                                                {p.allowedRanges?.map(rId => (
-                                                    <Badge key={rId} variant="neutral" className="!rounded-sm bg-gray-100 border-gray-200 text-gray-700 shadow-sm px-2 py-0.5 text-[8px]">
-                                                        {productRanges.find(r => r.id === rId)?.name}
-                                                    </Badge>
-                                                ))}
-                                            </div>
                                         </td>
                                         <td className="px-8 py-6 text-right font-heading text-3xl font-semibold text-primary-600 tabular-nums">
                                             {Number.isFinite(Number(p.price)) ? formatCurrency(p.price) : '-'}
@@ -595,7 +573,7 @@ export default function ProductsManagement() {
                 title={editingId ? t('adminPages.products.modal.editTitle') : t('adminPages.products.modal.addTitle')}
                 maxWidth="max-w-5xl"
                 footer={
-                        <div className="flex justify-between items-center w-full">
+                    <div className="flex justify-between items-center w-full">
                         <div className="flex items-center gap-3 rounded-full border border-white/8 bg-white/5 px-4 py-2">
                             <ShieldCheck className="w-4 h-4 text-primary-300" />
                             <p className="text-[9px] font-semibold uppercase tracking-widest text-textSecondary">{t('adminPages.products.modal.autoSave')}</p>
@@ -625,16 +603,29 @@ export default function ProductsManagement() {
                             className="uppercase font-black tracking-widest"
                         />
                         <Input
-                            label={t('adminPages.products.modal.name')}
+                            label={`${t('adminPages.products.modal.name')} - ${t('language.en', { defaultValue: 'English' })} (EN) *`}
                             icon={Package}
                             placeholder="e.g. Smart Hub Pro"
-                            value={formData.name}
+                            value={formData.nameEn}
                             onChange={(e) => {
                                 const v = e.target.value;
-                                setFormData({ ...formData, name: v });
-                                if (formErrors.name) setFormErrors({ ...formErrors, name: v.trim() ? null : 'Name is required' });
+                                setFormData({ ...formData, name: v, nameEn: v });
+                                if (formErrors.nameEn) setFormErrors({ ...formErrors, nameEn: v.trim() ? null : 'Name is required' });
                             }}
+                            error={formErrors.nameEn}
                         />
+                        <div className={'space-y-1'}>
+                            <Input
+                                label={`${t('adminPages.products.modal.name')} - ${t('language.ro', { defaultValue: 'Romanian' })} (RO)`}
+                                icon={Package}
+                                placeholder={'e.g. Hub inteligent Pro'}
+                                value={formData.nameRo}
+                                onChange={(event) => setFormData({ ...formData, nameRo: event.target.value })}
+                            />
+                            <p className={'px-2 text-[10px] text-textSecondary'}>
+                                {t('adminPages.masterData.modal.englishFallback', { defaultValue: 'Falls back to English when empty.' })}
+                            </p>
+                        </div>
                         <div className="space-y-2">
                             <Input
                                 label={t('adminPages.products.modal.price')}
@@ -653,13 +644,34 @@ export default function ProductsManagement() {
                             ) : null}
                         </div>
                         <div className="space-y-3">
-                            <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.description')}</label>
+                            <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">
+                                {t('adminPages.products.modal.description')} - {t('language.en', { defaultValue: 'English' })} (EN)
+                            </label>
                             <textarea
                                 rows="3"
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                value={formData.descriptionEn}
+                                onChange={(event) => setFormData({
+                                    ...formData,
+                                    description: event.target.value,
+                                    descriptionEn: event.target.value,
+                                })}
                                 className="w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-5 py-4 text-sm font-medium text-textPrimary transition-all placeholder:text-textSecondary focus:border-primary-500/45 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
                             />
+                        </div>
+                        <div className={'space-y-3'}>
+                            <label className={'ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary'}>
+                                {t('adminPages.products.modal.description')} - {t('language.ro', { defaultValue: 'Romanian' })} (RO)
+                            </label>
+                            <textarea
+                                rows={3}
+                                value={formData.descriptionRo}
+                                onChange={(event) => setFormData({ ...formData, descriptionRo: event.target.value })}
+                                placeholder={'Descriere in limba romana'}
+                                className={'w-full rounded-2xl border border-white/10 bg-[#1f1f1f] px-5 py-4 text-sm font-medium text-textPrimary transition-all placeholder:text-textSecondary focus:border-primary-500/45 focus:outline-none focus:ring-4 focus:ring-primary-500/10'}
+                            />
+                            <p className={'px-2 text-[10px] text-textSecondary'}>
+                                {t('adminPages.masterData.modal.englishFallback', { defaultValue: 'Falls back to English when empty.' })}
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.productType', { defaultValue: 'Product Type' })}</label>
@@ -735,24 +747,6 @@ export default function ProductsManagement() {
                                 ))}
                             </div>
                         </div>
-                        <div className="space-y-3">
-                            <label className="ml-1 block text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.colors')}</label>
-                            <div className="flex flex-wrap gap-2 rounded-[1.4rem] border border-white/8 bg-white/5 p-4">
-                                {colors.map(c => (
-                                    <button
-                                        key={c.id}
-                                        type="button"
-                                        onClick={() => {
-                                            const curr = formData.allowedColors || [];
-                                            setFormData({ ...formData, allowedColors: curr.includes(c.id) ? curr.filter(x => x !== c.id) : [...curr, c.id] });
-                                        }}
-                                        className={clsx("w-10 h-10 rounded-xl border-4 transition-all", formData.allowedColors.includes(c.id) ? "border-primary-600" : "border-white")}
-                                        style={{ backgroundColor: c.hex }}
-                                        title={c.name}
-                                    />
-                                ))}
-                            </div>
-                        </div>
                     </div>
 
                     {apiError ? (
@@ -810,94 +804,94 @@ export default function ProductsManagement() {
                     ) : null}
                     {/* Mappings */}
                     {formData.productType !== 'RELATED' ? (
-                    <div className="md:col-span-2 border-t border-white/8 pt-10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <Cpu className="w-5 h-5 text-primary-300" />
-                                <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.features')}</h4>
+                        <div className="md:col-span-2 border-t border-white/8 pt-10">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <Cpu className="w-5 h-5 text-primary-300" />
+                                    <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-textSecondary">{t('adminPages.products.modal.features')}</h4>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={handleAddMapping} className="text-[9px] uppercase tracking-[0.18em]">
+                                    <Plus className="w-4 h-4 mr-2" /> {t('adminPages.products.modal.addMapping')}
+                                </Button>
                             </div>
-                            <Button type="button" variant="outline" size="sm" onClick={handleAddMapping} className="text-[9px] uppercase tracking-[0.18em]">
-                                <Plus className="w-4 h-4 mr-2" /> {t('adminPages.products.modal.addMapping')}
-                            </Button>
-                        </div>
 
-                        <div className="space-y-4">
-                            {formData.mappings.map((m, idx) => (
-                                <div key={idx} className="relative grid grid-cols-1 gap-4 rounded-[1.5rem] border border-white/8 bg-white/5 p-6 animate-fade-in md:grid-cols-6">
-                                    <div className="col-span-2">
-                                        <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.function')}</label>
-                                        <SelectMenu
-                                            value={m.functionId}
-                                            onChange={(nextValue) => handleUpdateMapping(idx, 'functionId', nextValue)}
-                                            options={smartFunctions.map((func) => ({ value: func.id, label: func.name }))}
-                                            placeholder={t('adminPages.products.modal.selectFunction')}
-                                            ariaLabel={t('adminPages.products.modal.function')}
-                                            size="fieldDense"
-                                            fullWidth
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.channel')}</label>
-                                        <SelectMenu
-                                            value={m.channelType}
-                                            onChange={(nextValue) => handleUpdateMapping(idx, 'channelType', nextValue)}
-                                            options={[
-                                                { value: 'IN', label: 'IN (Room)' },
-                                                { value: 'OUT', label: 'OUT (Level)' },
-                                                { value: 'GENERAL', label: 'GENERAL' },
-                                            ]}
-                                            ariaLabel={t('adminPages.products.modal.channel')}
-                                            size="fieldDense"
-                                            fullWidth
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.capacity')}</label>
-                                        <input
-                                            type="number"
-                                            value={m.capacity}
-                                            onChange={(e) => handleUpdateMapping(idx, 'capacity', parseInt(e.target.value) || 1)}
-                                            className="h-11 w-full rounded-xl border border-white/10 bg-[#1f1f1f] px-4 text-[11px] font-semibold text-textPrimary focus:border-primary-500/45 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.priority')}</label>
-                                        <input
-                                            type="number"
-                                            value={m.priority}
-                                            onChange={(e) => handleUpdateMapping(idx, 'priority', parseInt(e.target.value) || 1)}
-                                            className="h-11 w-full rounded-xl border border-white/10 bg-[#1f1f1f] px-4 text-[11px] font-semibold text-textPrimary focus:border-primary-500/45 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div className="flex items-end gap-2 text-right">
-                                        <div className="flex-1">
-                                            <label className="ml-1 mb-1.5 block text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.scope')}</label>
+                            <div className="space-y-4">
+                                {formData.mappings.map((m, idx) => (
+                                    <div key={idx} className="relative grid grid-cols-1 gap-4 rounded-[1.5rem] border border-white/8 bg-white/5 p-6 animate-fade-in md:grid-cols-6">
+                                        <div className="col-span-2">
+                                            <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.function')}</label>
                                             <SelectMenu
-                                                value={m.calculationScope}
-                                                onChange={(nextValue) => handleUpdateMapping(idx, 'calculationScope', nextValue)}
-                                                options={[
-                                                    { value: 'room', label: t('adminPages.products.modal.scopeRoom') },
-                                                    { value: 'level', label: t('adminPages.products.modal.scopeLevel') },
-                                                    { value: 'project', label: t('adminPages.products.modal.scopeProject') },
-                                                ]}
-                                                ariaLabel={t('adminPages.products.modal.scope')}
+                                                value={m.functionId}
+                                                onChange={(nextValue) => handleUpdateMapping(idx, 'functionId', nextValue)}
+                                                options={smartFunctions.map((func) => ({ value: func.id, label: func.name }))}
+                                                placeholder={t('adminPages.products.modal.selectFunction')}
+                                                ariaLabel={t('adminPages.products.modal.function')}
                                                 size="fieldDense"
                                                 fullWidth
                                             />
                                         </div>
-                                        <button type="button" onClick={() => handleRemoveMapping(idx)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#1c1c1c] text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
-                                            <Trash2 className="w-4.5 h-4.5" />
-                                        </button>
+                                        <div>
+                                            <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.channel')}</label>
+                                            <SelectMenu
+                                                value={m.channelType}
+                                                onChange={(nextValue) => handleUpdateMapping(idx, 'channelType', nextValue)}
+                                                options={[
+                                                    { value: 'IN', label: 'IN (Room)' },
+                                                    { value: 'OUT', label: 'OUT (Level)' },
+                                                    { value: 'GENERAL', label: 'GENERAL' },
+                                                ]}
+                                                ariaLabel={t('adminPages.products.modal.channel')}
+                                                size="fieldDense"
+                                                fullWidth
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.capacity')}</label>
+                                            <input
+                                                type="number"
+                                                value={m.capacity}
+                                                onChange={(e) => handleUpdateMapping(idx, 'capacity', parseInt(e.target.value) || 1)}
+                                                className="h-11 w-full rounded-xl border border-white/10 bg-[#1f1f1f] px-4 text-[11px] font-semibold text-textPrimary focus:border-primary-500/45 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="ml-1 mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.priority')}</label>
+                                            <input
+                                                type="number"
+                                                value={m.priority}
+                                                onChange={(e) => handleUpdateMapping(idx, 'priority', parseInt(e.target.value) || 1)}
+                                                className="h-11 w-full rounded-xl border border-white/10 bg-[#1f1f1f] px-4 text-[11px] font-semibold text-textPrimary focus:border-primary-500/45 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex items-end gap-2 text-right">
+                                            <div className="flex-1">
+                                                <label className="ml-1 mb-1.5 block text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-textSecondary">{t('adminPages.products.modal.scope')}</label>
+                                                <SelectMenu
+                                                    value={m.calculationScope}
+                                                    onChange={(nextValue) => handleUpdateMapping(idx, 'calculationScope', nextValue)}
+                                                    options={[
+                                                        { value: 'room', label: t('adminPages.products.modal.scopeRoom') },
+                                                        { value: 'level', label: t('adminPages.products.modal.scopeLevel') },
+                                                        { value: 'project', label: t('adminPages.products.modal.scopeProject') },
+                                                    ]}
+                                                    ariaLabel={t('adminPages.products.modal.scope')}
+                                                    size="fieldDense"
+                                                    fullWidth
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => handleRemoveMapping(idx)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#1c1c1c] text-textSecondary transition-colors hover:border-red-500/25 hover:text-red-300">
+                                                <Trash2 className="w-4.5 h-4.5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                            {formData.mappings.length === 0 && (
-                                <div className="rounded-[2rem] border border-dashed border-white/10 bg-white/5 p-10 text-center">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary italic">{t('adminPages.products.modal.noFeatures')}</p>
-                                </div>
-                            )}
+                                ))}
+                                {formData.mappings.length === 0 && (
+                                    <div className="rounded-[2rem] border border-dashed border-white/10 bg-white/5 p-10 text-center">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-textSecondary italic">{t('adminPages.products.modal.noFeatures')}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
                     ) : null}
                 </div>
             </Modal>
@@ -951,14 +945,3 @@ export default function ProductsManagement() {
         </AnimatedPageWrapper>
     );
 }
-
-
-
-
-
-
-
-
-
-
-

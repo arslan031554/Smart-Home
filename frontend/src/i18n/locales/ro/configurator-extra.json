@@ -4,6 +4,8 @@
   "configurator.range.badge": "Pasul 04: Gamă de produse",
   "configurator.range.loadingHelp": "Gamele de produse se încarcă. Dacă durează prea mult, reîncarcă pagina.",
   "configurator.range.subtitle": "Selectează gama de produse pentru întregul proiect. Această alegere stabilește ce produse pot fi folosite în calculul automat.",
+  "configurator.range.readMore": "Citește mai mult",
+  "configurator.range.showLess": "Afișează mai puțin",
   "configurator.range.features.premium": "Finisaj premium",
   "configurator.range.features.reliable": "Modul fiabil",
   "configurator.range.features.smart": "Integrare smart",

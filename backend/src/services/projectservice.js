@@ -6,6 +6,7 @@ import RoomType from '../../models/RoomType.js';
 import SmartFunction from '../../models/SmartFunction.js';
 import BuildingType from '../../models/BuildingType.js';
 import { Op } from 'sequelize';
+import { buildFlatFieldTranslations } from '../utils/localization.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -31,6 +32,20 @@ const normalizePositiveInt = (value, fallback = 1) => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const normalizeRoomPayload = (room = {}, existingTranslations = {}) => {
+    const name = normalizeNullableString(room?.nameEn ?? room?.name) || 'Room';
+    return {
+        roomTypeId: normalizeNullableUuid(room?.roomTypeId ?? room?.type),
+        name,
+        translations: buildFlatFieldTranslations(
+            { ...room, name, nameEn: room?.nameEn ?? name },
+            ['name'],
+            existingTranslations,
+        ),
+        roomCount: normalizePositiveInt(room?.roomCount ?? room?.count, 1),
+    };
+};
+
 const normalizeWorkspaceLevels = (levels = []) => (
     Array.isArray(levels)
         ? levels.map((level, levelOrder) => ({
@@ -38,9 +53,7 @@ const normalizeWorkspaceLevels = (levels = []) => (
             levelOrder,
             rooms: Array.isArray(level?.rooms)
                 ? level.rooms.map((room) => ({
-                    roomTypeId: normalizeNullableUuid(room?.roomTypeId ?? room?.type),
-                    name: normalizeNullableString(room?.name) || 'Room',
-                    roomCount: normalizePositiveInt(room?.roomCount ?? room?.count, 1),
+                    ...normalizeRoomPayload(room),
                     functionSelections: Array.isArray(room?.functionSelections || room?.functions)
                         ? (room.functionSelections || room.functions).map((selection) => ({
                             smartFunctionId: normalizeNullableUuid(selection?.smartFunctionId ?? selection?.id),
@@ -53,10 +66,12 @@ const normalizeWorkspaceLevels = (levels = []) => (
         : []
 );
 
-const normalizeProjectPayload = (projectData = {}) => {
+const normalizeProjectPayload = (projectData = {}, existingTranslations = {}) => {
     const payload = {};
 
-    if (projectData.name !== undefined) payload.name = normalizeNullableString(projectData.name);
+    if (projectData.name !== undefined || projectData.nameEn !== undefined) {
+        payload.name = normalizeNullableString(projectData.nameEn ?? projectData.name);
+    }
     if (projectData.buildingTypeId !== undefined || projectData.buildingType !== undefined) {
         payload.buildingTypeId = normalizeNullableUuid(projectData.buildingTypeId ?? projectData.buildingType);
     }
@@ -72,8 +87,8 @@ const normalizeProjectPayload = (projectData = {}) => {
     if (projectData.projectComplexity !== undefined) {
         payload.projectComplexity = normalizeNullableString(projectData.projectComplexity);
     }
-    if (projectData.description !== undefined) {
-        payload.description = normalizeNullableString(projectData.description);
+    if (projectData.description !== undefined || projectData.descriptionEn !== undefined) {
+        payload.description = normalizeNullableString(projectData.descriptionEn ?? projectData.description);
     }
     if (projectData.selectedRangeId !== undefined) {
         payload.selectedRangeId = normalizeNullableUuid(projectData.selectedRangeId);
@@ -83,6 +98,12 @@ const normalizeProjectPayload = (projectData = {}) => {
     }
     if (projectData.status !== undefined && ['draft', 'active', 'archived'].includes(projectData.status)) {
         payload.status = projectData.status;
+    }
+
+    const hasTranslationInput = ['name', 'nameEn', 'nameRo', 'description', 'descriptionEn', 'descriptionRo', 'translations']
+        .some((field) => projectData[field] !== undefined);
+    if (hasTranslationInput) {
+        payload.translations = buildFlatFieldTranslations(projectData, ['name', 'description'], existingTranslations);
     }
 
     return payload;
@@ -166,7 +187,7 @@ export const syncProjectWorkspace = async (projectId, workspaceData = {}, userId
         levelsCount: normalizedLevels.length || workspaceData.projectInfo?.levelsCount || project.levelsCount || 1,
         selectedRangeId: workspaceData.selectedRangeId ?? workspaceData.rangeId ?? workspaceData.range ?? project.selectedRangeId,
         selectedColorId: workspaceData.selectedColorId ?? workspaceData.colorId ?? workspaceData.color ?? project.selectedColorId,
-    });
+    }, project.translations);
 
     await project.update({
         ...projectPayload,
@@ -217,6 +238,7 @@ export const syncProjectWorkspace = async (projectId, workspaceData = {}, userId
                 projectLevelId: level.id,
                 roomTypeId: roomData.roomTypeId,
                 name: roomData.name,
+                translations: roomData.translations,
                 roomCount: roomData.roomCount,
             }, { transaction });
 
@@ -293,7 +315,7 @@ export const updateProject = async (userId = null, projectId, projectData) => {
     const where = userId ? { id: projectId, userId } : { id: projectId };
     const project = await Project.findOne({ where });
     if (!project) throw createNotFoundError('Project');
-    return await project.update(normalizeProjectPayload(projectData));
+    return await project.update(normalizeProjectPayload(projectData, project.translations));
 };
 
 export const deleteProject = async (userId = null, projectId) => {
@@ -326,14 +348,14 @@ export const addRoom = async (projectLevelId, roomData, userId = null) => {
     const level = await ProjectLevel.findByPk(projectLevelId, { include: [{ model: Project, as: 'project', attributes: ['id', 'userId'] }] });
     if (!level?.project) throw createNotFoundError('Level');
     if (userId && level.project.userId !== userId) throw createNotFoundError('Project');
-    return await ProjectRoom.create({ ...roomData, projectLevelId });
+    return await ProjectRoom.create({ ...normalizeRoomPayload(roomData), projectLevelId });
 };
 
 export const updateRoom = async (roomId, roomData, userId = null) => {
     await ensureRoomOwnership(roomId, userId);
     const room = await ProjectRoom.findByPk(roomId);
     if (!room) throw createNotFoundError('Room');
-    return await room.update(roomData);
+    return await room.update(normalizeRoomPayload({ ...room.toJSON(), ...roomData }, room.translations));
 };
 
 export const deleteRoom = async (roomId, userId = null) => {

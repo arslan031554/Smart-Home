@@ -4,6 +4,7 @@ import { Card, Badge } from '../../common/UIComponents';
 import { Layers, Home, Zap } from 'lucide-react';
 import { normalizeRoomCount } from '../../../utils/configuratorNormalization';
 import { useTranslation } from 'react-i18next';
+import { getActiveConfiguratorLanguage, getConfiguratorText } from '../../../utils/configuratorText';
 
 function resolveFunctionSelection(selection, functionMap, fallbackName) {
     const functionId = selection?.smartFunctionId || selection?.id;
@@ -16,7 +17,8 @@ function resolveFunctionSelection(selection, functionMap, fallbackName) {
     };
 }
 export default function RoomFunctionsSummary({ levels }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const language = getActiveConfiguratorLanguage(i18n);
     const roomTypesFromStore = useSelector((state) => state.admin.roomTypes);
     const smartFunctionsFromStore = useSelector((state) => state.admin.smartFunctions);
 
@@ -88,7 +90,9 @@ export default function RoomFunctionsSummary({ levels }) {
                                                             <Home className="h-4 w-4" />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="truncate text-xs sm:text-sm font-bold text-textPrimary">{room.name || roomTypeName}</p>
+                                                            <p className="truncate text-xs sm:text-sm font-bold text-textPrimary">
+                                                                {getConfiguratorText(room, 'name', language, roomTypeName)}
+                                                            </p>
                                                             <p className="text-[10px] font-semibold uppercase tracking-wider text-textSecondary">
                                                                 {roomTypeName}
                                                             </p>

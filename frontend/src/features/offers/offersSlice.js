@@ -127,6 +127,8 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             color: offerData.colorId || offerData.color || null,
             services: offerData.serviceIds || offerData.services || [],
             customerComments: offerData.customerComments || null,
+            customerCommentsEn: offerData.customerCommentsEn ?? offerData.customerComments ?? '',
+            customerCommentsRo: offerData.customerCommentsRo ?? '',
             language,
         });
         const offerId = sanitizeOfferId(offerData.offerId || offerData.id || null);
@@ -138,6 +140,8 @@ export const generateOffer = createAsyncThunk('offers/generate', async (offerDat
             colorId: sanitizeOfferId(normalized.colorId),
             selectedServiceIds: sanitizeOfferIds(normalized.selectedServiceIds),
             customerComments: normalized.customerComments,
+            customerCommentsEn: normalized.customerCommentsEn,
+            customerCommentsRo: normalized.customerCommentsRo,
             language,
         };
         const response = offerId
@@ -162,32 +166,6 @@ export const updateOfferStatus = createAsyncThunk('offers/updateStatus', async (
         return response.data.data;
     } catch (error) {
         return rejectWithValue(error.response?.data?.message || 'Failed to update status');
-    }
-});
-
-export const updateOfferColor = createAsyncThunk('offers/updateColor', async ({ id, colorId }, { getState, dispatch, rejectWithValue }) => {
-    try {
-        const { currentOffer } = getState().offers;
-        if (!currentOffer) throw new Error('No offer loaded');
-        const snapshot = currentOffer.calculationSnapshot || {};
-        const language = (i18n.resolvedLanguage || i18n.language || 'en').startsWith('ro') ? 'ro' : 'en';
-
-        const payload = {
-            projectId: snapshot.projectInfo?.id || currentOffer.projectId || null,
-            projectInfo: snapshot.projectInfo || {},
-            levels: snapshot.levels || [],
-            rangeId: snapshot.selectedRangeId ?? snapshot.rangeId ?? null,
-            colorId: colorId || null,
-            selectedServiceIds: snapshot.selectedServiceIds ?? snapshot.serviceIds ?? [],
-            customerComments: currentOffer.customerComments || snapshot.customerComments || null,
-            language,
-        };
-
-        const response = await api.put(`/offers/${id}/from-config`, payload);
-        await dispatch(fetchOfferById(id));
-        return response.data.data;
-    } catch (error) {
-        return rejectWithValue(error.response?.data?.message || 'Failed to update offer color');
     }
 });
 

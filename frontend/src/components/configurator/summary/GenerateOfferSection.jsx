@@ -12,10 +12,8 @@ export default function GenerateOfferSection() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const configurator = useSelector((state) => state.configurator);
-    const { calculation, isCalculating } = configurator;
+    const { isCalculating } = configurator;
     const { isAuthenticated } = useSelector((state) => state.auth);
-    const hasCalculation = calculation && typeof calculation.grandTotal === 'number';
-    const hasUnmetRequirements = Array.isArray(calculation?.unmetRequirements) && calculation.unmetRequirements.length > 0;
 
     const persistGuestProgress = () => {
         const guestSessionId = getOrCreateGuestSessionId();

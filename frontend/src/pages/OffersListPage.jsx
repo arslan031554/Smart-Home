@@ -38,8 +38,6 @@ export default function OffersListPage() {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
     const rawOffers = useSelector((state) => state.offers?.offersList);
-    const offersLoading = useSelector((state) => state.offers?.loading);
-    const offersError = useSelector((state) => state.offers?.error);
     const offers = Array.isArray(rawOffers) ? rawOffers : [];
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');

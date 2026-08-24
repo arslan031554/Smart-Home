@@ -112,6 +112,8 @@ function normalizeOfferPayload(body) {
           }
         : undefined,
     customerComments: body?.customerComments || null,
+    customerCommentsEn: body?.customerCommentsEn ?? body?.customerComments ?? '',
+    customerCommentsRo: body?.customerCommentsRo ?? '',
     status: body?.status || body?.offerStatus || undefined,
     language: normalizeBusinessLanguage(body?.language || normalized?.language),
   };
@@ -222,6 +224,8 @@ export const createOfferFromConfig = async (req, res, next) => {
 
     const projectCreatePayload = {
       name: projectName,
+      nameEn: projectInfo.nameEn ?? projectName,
+      nameRo: projectInfo.nameRo ?? '',
       buildingTypeId: validBuildingTypeId,
       levelsCount: levels.length,
       multiplicationIndex: Number(multiplicationIndex) || 1,
@@ -232,6 +236,8 @@ export const createOfferFromConfig = async (req, res, next) => {
       description: projectInfo.description
         ? String(projectInfo.description)
         : null,
+      descriptionEn: projectInfo.descriptionEn ?? projectInfo.description ?? '',
+      descriptionRo: projectInfo.descriptionRo ?? '',
       selectedRangeId: validSelectedRangeId,
       selectedColorId: validSelectedColorId,
     };
@@ -282,6 +288,8 @@ export const createOfferFromConfig = async (req, res, next) => {
           projectInfo: {
             ...projectInfo,
             name: projectName,
+            nameEn: projectInfo.nameEn ?? projectName,
+            nameRo: projectInfo.nameRo ?? '',
             buildingType: validBuildingTypeId,
             levelsCount: levels.length,
             builtUpArea,
@@ -293,6 +301,8 @@ export const createOfferFromConfig = async (req, res, next) => {
             description: projectInfo.description
               ? String(projectInfo.description)
               : null,
+            descriptionEn: projectInfo.descriptionEn ?? projectInfo.description ?? '',
+            descriptionRo: projectInfo.descriptionRo ?? '',
           },
           levels: normalizedLevels,
           rangeId: validSelectedRangeId,
@@ -335,6 +345,9 @@ export const createOfferFromConfig = async (req, res, next) => {
             level.id,
             {
               name: roomData.name || `Room ${roomData.roomOrder || 1}`,
+              nameEn: roomData.nameEn ?? roomData.name ?? `Room ${roomData.roomOrder || 1}`,
+              nameRo: roomData.nameRo ?? '',
+              translations: roomData.translations,
               roomTypeId,
               roomCount: normalizeRoomCount(roomData.roomCount ?? roomData.count),
             },
@@ -371,6 +384,8 @@ export const createOfferFromConfig = async (req, res, next) => {
       selectedServiceIds: validServiceIds,
       services: validServiceIds,
       customerComments: body.customerComments,
+      customerCommentsEn: body.customerCommentsEn ?? body.customerComments ?? '',
+      customerCommentsRo: body.customerCommentsRo ?? '',
       language: normalizeBusinessLanguage(body.language || req.query.lang || req.query.language),
     });
     offerData.status = 'offer_generated';

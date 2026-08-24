@@ -28,6 +28,55 @@ export function normalizeTranslations(rawTranslations) {
     return normalized;
 }
 
+export function getLocalizedFlatValue(source, field, language, fallbackValue = null) {
+    const lang = normalizeBusinessLanguage(language);
+    const suffix = lang === 'ro' ? 'Ro' : 'En';
+    const otherSuffix = lang === 'ro' ? 'En' : 'Ro';
+    const translations = normalizeTranslations(source?.translations);
+    const fieldTranslations = translations[field] || {};
+    const candidates = [
+        source?.[`${field}${suffix}`],
+        fieldTranslations[lang],
+        lang === 'en' ? source?.[field] : null,
+        source?.[`${field}${otherSuffix}`],
+        fieldTranslations[lang === 'ro' ? 'en' : 'ro'],
+        source?.[field],
+        fallbackValue,
+    ];
+
+    const value = candidates.find((candidate) => (
+        typeof candidate === 'string' && candidate.trim()
+    ));
+    return value ? value.trim() : fallbackValue;
+}
+
+export function buildFlatFieldTranslations(source = {}, fields = [], existingTranslations = {}) {
+    const next = normalizeTranslations(existingTranslations);
+    const suppliedTranslations = normalizeTranslations(source?.translations);
+
+    fields.forEach((field) => {
+        const current = { ...(next[field] || {}), ...(suppliedTranslations[field] || {}) };
+        const hasEnglish = source?.[`${field}En`] !== undefined || source?.[field] !== undefined;
+        const hasRomanian = source?.[`${field}Ro`] !== undefined;
+
+        if (hasEnglish) {
+            const value = String(source?.[`${field}En`] ?? source?.[field] ?? '').trim();
+            if (value) current.en = value;
+            else delete current.en;
+        }
+        if (hasRomanian) {
+            const value = String(source?.[`${field}Ro`] ?? '').trim();
+            if (value) current.ro = value;
+            else delete current.ro;
+        }
+
+        if (Object.keys(current).length) next[field] = current;
+        else delete next[field];
+    });
+
+    return next;
+}
+
 export const DICTIONARY_FALLBACKS = {
     ro: {
         // Offer Conditions

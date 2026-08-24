@@ -5,7 +5,7 @@ import ExcelJS from 'exceljs';
 import * as offerService from './offerservice.js';
 import * as followupService from './followupservice.js';
 import models from '../../models/index.js';
-import { getLocalizedValue, normalizeBusinessLanguage, serializeLocalizedEntity } from '../utils/localization.js';
+import { getLocalizedFlatValue, getLocalizedValue, normalizeBusinessLanguage, serializeLocalizedEntity } from '../utils/localization.js';
 import { getOfferStatusLabel, normalizeOfferStatus } from '../constants/offerStatus.js';
 import { generateBrandedPdf } from './pdfexportservice.js';
 
@@ -280,6 +280,22 @@ export const generateExcel = async (offerId, actor = null, requestedLang = null)
     const services = Array.isArray(offer.services) ? offer.services : [];
     const levels = Array.isArray(offer?.calculationSnapshot?.levels) ? offer.calculationSnapshot.levels : [];
     const projectInfo = offer?.calculationSnapshot?.projectInfo || {};
+    const projectName = getLocalizedFlatValue(
+        projectInfo,
+        'name',
+        lang,
+        getLocalizedFlatValue(offer.project || {}, 'name', lang, offer.project?.name || '-'),
+    );
+    const customerComments = getLocalizedFlatValue(
+        {
+            customerComments: offer?.calculationSnapshot?.customerComments ?? offer.customerComments,
+            customerCommentsEn: offer?.calculationSnapshot?.customerCommentsEn,
+            customerCommentsRo: offer?.calculationSnapshot?.customerCommentsRo,
+        },
+        'customerComments',
+        lang,
+        offer.customerComments || '-',
+    );
 
     const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '2F5597' } };
     const headerFont = { bold: true, color: { argb: 'FFFFFF' } };
@@ -297,7 +313,7 @@ export const generateExcel = async (offerId, actor = null, requestedLang = null)
         [t(lang, 'status'), getOfferStatusLabel(offer.status || 'draft')],
         [t(lang, 'customer'), offer.project?.user?.fullName || '-'],
         [t(lang, 'email'), offer.project?.user?.email || '-'],
-        [t(lang, 'projectName'), offer.project?.name || projectInfo.name || '-'],
+        [t(lang, 'projectName'), projectName],
         [t(lang, 'buildingType'), projectInfo.buildingTypeName || offer.project?.buildingType?.name || '-'],
         [t(lang, 'levels'), projectInfo.levelsCount || offer.project?.levelsCount || levels.length || '-'],
         [t(lang, 'builtUpArea'), projectInfo.area || offer.project?.builtUpArea || '-'],
@@ -305,7 +321,7 @@ export const generateExcel = async (offerId, actor = null, requestedLang = null)
         [t(lang, 'multiplier'), financials.projectMultiplier],
         [t(lang, 'discountPct'), `${financials.discountPercent.toFixed(2)}%`],
         [t(lang, 'grandTotal'), financials.grandTotal],
-        [t(lang, 'customerComments'), offer.customerComments || '-'],
+        [t(lang, 'customerComments'), customerComments],
     ];
     projectRows.forEach((row) => projectSheet.addRow(row));
     projectSheet.getColumn(2).numFmt = currencyFmt;
